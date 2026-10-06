@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<colors>
+
+    <color name="primaryColor">#FFEF0160</color>
+    <color name="baseWhite">#FFFFFFFF</color>
+    <color name="textPrimary">#FFFFFFFF</color>
+    <color name="textSecondary">#FFFFFFFF</color>
+    <color name="textWhite">#FFFFFFFF</color>
+    <color name="textDark">#FF16131C</color>
+    <color name="textMuted">#FF6B7280</color>
+
+
+
+    <color name="secondaryColor">#FF012c5d</color>
+    <color name="successColor">#FF16a34a</color>
+    <color name="warningColor">#FFf59e0b</color>
+    <color name="errorColor">#FFdc2626</color>
+    <color name="infoColor">#FF2563eb</color>
+    <color name="greyColor">#FF737373</color>
+
+
+
+</colors>
