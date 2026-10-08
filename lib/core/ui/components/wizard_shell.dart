@@ -1,10 +1,11 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/components/wizard_progress_bar.dart';
+import 'package:find_a_nikah/core/ui/components/wizard_scaffold.dart'
+    show WizardScaffold;
+import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
 import 'package:find_a_nikah/gen/colors.gen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
-
-import 'wizard_progress_bar.dart';
 
 /// Where a wizard screen sits in the flow: its app-bar title, which of the
 /// 4 progress-bar sections it belongs to, and its 1-based position inside
@@ -63,9 +64,9 @@ typedef WizardSections = List<List<(String, String)>>;
 /// the shell's first match) and maps it through [sections].
 class RoutedWizardShell extends StatefulWidget {
   const RoutedWizardShell({
-    super.key,
     required this.sections,
     required this.child,
+    super.key,
   });
 
   final WizardSections sections;
@@ -111,9 +112,9 @@ class _RoutedWizardShellState extends State<RoutedWizardShell> {
 /// steps.
 class WizardShell extends StatelessWidget {
   const WizardShell({
-    super.key,
     required this.progress,
     required this.child,
+    super.key,
     this.onHelp,
   });
 
@@ -152,7 +153,7 @@ class WizardShell extends StatelessWidget {
 /// Marks the subtree as living inside a [WizardShell], so [WizardScaffold]
 /// skips drawing its own header/progress bar.
 class WizardShellScope extends InheritedWidget {
-  const WizardShellScope({super.key, required super.child});
+  const WizardShellScope({required super.child, super.key});
 
   static bool isInShell(BuildContext context) =>
       context.getInheritedWidgetOfExactType<WizardShellScope>() != null;
@@ -165,7 +166,7 @@ class WizardShellScope extends InheritedWidget {
 /// standalone [WizardScaffold] so both look identical. The title
 /// cross-fades when it changes.
 class WizardHeader extends StatelessWidget {
-  const WizardHeader({super.key, required this.title, this.onHelp});
+  const WizardHeader({required this.title, super.key, this.onHelp});
 
   final String title;
   final VoidCallback? onHelp;

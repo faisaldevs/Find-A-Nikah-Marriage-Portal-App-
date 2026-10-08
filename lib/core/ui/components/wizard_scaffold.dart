@@ -1,10 +1,9 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/components/app_primary_button.dart';
+import 'package:find_a_nikah/core/ui/components/wizard_progress_bar.dart';
+import 'package:find_a_nikah/core/ui/components/wizard_shell.dart';
+import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'app_primary_button.dart';
-import 'wizard_progress_bar.dart';
-import 'wizard_shell.dart';
 
 /// Chrome shared by every profile-info wizard screen (and the face
 /// verification / filters screens in `features/auth`): back arrow + title +
@@ -19,12 +18,12 @@ import 'wizard_shell.dart';
 /// is drawn here.
 class WizardScaffold extends StatelessWidget {
   const WizardScaffold({
+    required this.body,
+    required this.onContinue,
     super.key,
     this.title,
     this.step,
     this.totalSteps,
-    required this.body,
-    required this.onContinue,
     this.continueLabel = 'Continue',
     this.showSkip = false,
     this.onSkip,
@@ -167,7 +166,8 @@ class WizardScaffold extends StatelessWidget {
 //                   Expanded(
 //                     child: Text(
 //                       title,
-//                       style: TextFontStyle.headline16w600textDarkStyleSatoshi,
+//                       style:
+//     TextFontStyle.headline16w600textDarkStyleSatoshi,
 //                     ),
 //                   ),
 //                   GestureDetector(
@@ -209,8 +209,8 @@ class WizardScaffold extends StatelessWidget {
 /// used at the top of every wizard screen's body.
 class WizardHeadline extends StatelessWidget {
   const WizardHeadline({
-    super.key,
     required this.text,
+    super.key,
     this.highlight,
     this.subtitle,
     this.padding,
@@ -236,7 +236,8 @@ class WizardHeadline extends StatelessWidget {
                 height: 1.4,
               ),
               // Previously 26 / w700 / 1.2 — didn't match the design spec.
-              // style: TextFontStyle.headline26w700textDarkStyleSatoshi.copyWith(
+              // style:
+              //     TextFontStyle.headline26w700textDarkStyleSatoshi.copyWith(
               //   height: 1.2,
               // ),
               children: highlight == null
@@ -263,7 +264,8 @@ class WizardHeadline extends StatelessWidget {
               style: TextFontStyle.headline16w400textMutedStyleSatoshi.copyWith(
                 height: 1.4,
               ),
-              // style: TextFontStyle.headline14w400textMutedStyleSatoshi.copyWith(
+              // style:
+              //     TextFontStyle.headline14w400textMutedStyleSatoshi.copyWith(
               //   height: 1.4,
               // ),
             ),

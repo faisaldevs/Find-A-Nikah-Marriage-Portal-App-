@@ -1,4 +1,4 @@
-import 'package:find_a_nikah/gen/colors.gen.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -21,11 +21,11 @@ const kProfileActionButtonSize = 58.0;
 /// goes back one, Message does nothing yet.
 class ProfileActionButtons extends StatelessWidget {
   const ProfileActionButtons({
-    super.key,
     required this.onCancel,
     required this.onPrevious,
     required this.onMessage,
     required this.onSave,
+    super.key,
   });
 
   final VoidCallback onCancel;

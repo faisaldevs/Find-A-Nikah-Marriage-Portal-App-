@@ -1,0 +1,301 @@
+import 'dart:async';
+
+import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/network/network.dart';
+import 'package:find_a_nikah/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:find_a_nikah/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:find_a_nikah/features/auth/data/datasources/session_expiry_signal.dart';
+import 'package:find_a_nikah/features/auth/data/datasources/social_auth_data_source.dart';
+import 'package:find_a_nikah/features/auth/data/dtos/auth_dtos.dart';
+import 'package:find_a_nikah/features/auth/domain/entities/auth_status.dart';
+import 'package:find_a_nikah/features/auth/domain/repositories/auth_repository.dart';
+
+/// Write policy: online only — every auth call needs the server's answer
+/// before anything is stored locally (decisions register #8).
+class AuthRepositoryImpl implements AuthRepository {
+  AuthRepositoryImpl({
+    required this._remote,
+    required this._local,
+    required this._social,
+    required this._guard,
+    required this._logger,
+    required SessionExpirySignal sessionExpiry,
+  }) {
+    _expirySubscription = sessionExpiry.stream.listen(
+      (_) => _emit(
+        const AuthStatus.unauthenticated(),
+      ),
+    );
+  }
+
+  final AuthRemoteDataSource _remote;
+  final AuthLocalDataSource _local;
+  final SocialAuthDataSource _social;
+  final Guard _guard;
+  final Logger _logger;
+  late final StreamSubscription<void> _expirySubscription;
+
+  final _controller = StreamController<AuthStatus>.broadcast();
+  AuthStatus _status = const AuthStatus.unknown();
+
+  @override
+  AuthStatus get currentStatus => _status;
+
+  @override
+  Stream<AuthStatus> watchStatus() async* {
+    yield _status;
+    yield* _controller.stream;
+  }
+
+  void _emit(AuthStatus status) {
+    if (status == _status) return;
+    _status = status;
+    _controller.add(status);
+  }
+
+  @override
+  Future<void> restoreSession() async {
+    final restored = await _guard(() async {
+      final tokens = await _local.read();
+      final session = await _local.readSession();
+      if (tokens == null || session == null) return null;
+      return UserSession(
+        userId: session.userId,
+        onboardingComplete: session.onboardingComplete,
+      );
+    });
+    await restored.fold(
+      // Unreadable store: treat as signed out (Guard already reported it).
+      (_) async => _emit(const AuthStatus.unauthenticated()),
+      (session) async {
+        if (session == null) {
+          _emit(const AuthStatus.unauthenticated());
+          return;
+        }
+
+        final status = await _guard(
+          () async => (await _remote.fetchOnboardingStatus()).data.isCompleted,
+        );
+        final onboardingComplete = status.fold(
+          (failure) {
+            // Keep the last known state when offline; the failure is still
+            // recorded here instead of silently discarding the status check.
+            _logger.warning(
+              'Could not refresh onboarding completion status: $failure',
+            );
+            return session.onboardingComplete;
+          },
+          (isCompleted) => isCompleted,
+        );
+        final restoredSession = session.copyWith(
+          onboardingComplete: onboardingComplete,
+        );
+        if (restoredSession != session) {
+          final saved = await _guard(
+            () => _local.saveSession(
+              userId: restoredSession.userId,
+              onboardingComplete: restoredSession.onboardingComplete,
+            ),
+          );
+          saved.fold(
+            (failure) => _logger.warning(
+              'Could not cache onboarding completion status: $failure',
+            ),
+            (_) {},
+          );
+        }
+        _emit(AuthStatus.authenticated(restoredSession));
+      },
+    );
+  }
+
+  /// Persists tokens + session, then emits `authenticated`.
+  Future<Unit> _startSession(AuthSessionDto dto) async {
+    await _local.save(
+      AuthTokens(accessToken: dto.accessToken, refreshToken: dto.refreshToken),
+    );
+    var onboardingComplete = dto.onboardingComplete;
+    final status = await _guard(
+      () async => (await _remote.fetchOnboardingStatus()).data.isCompleted,
+    );
+    status.fold(
+      (failure) => _logger.warning(
+        'Could not fetch onboarding completion status: $failure',
+      ),
+      (isCompleted) => onboardingComplete = isCompleted,
+    );
+    await _local.saveSession(
+      userId: dto.userId,
+      onboardingComplete: onboardingComplete,
+    );
+    _emit(
+      AuthStatus.authenticated(
+        UserSession(
+          userId: dto.userId,
+          onboardingComplete: onboardingComplete,
+        ),
+      ),
+    );
+    return unit;
+  }
+
+  @override
+  Future<Either<Failure, Unit>> signInWithEmail({
+    required String email,
+    required String password,
+  }) => _guard(
+    () async => _startSession(
+      (await _remote.login(
+        EmailPasswordRequestDto(email: email, password: password),
+      )).toAuthSession(),
+    ),
+  );
+
+  @override
+  Future<Either<Failure, Unit>> signInWithSocial(SocialProvider provider) =>
+      _guard(() async {
+        final idToken = await _social.obtainIdToken(provider);
+        return _startSession(
+          await _remote.socialSignIn(
+            SocialSignInRequestDto(provider: provider.name, idToken: idToken),
+          ),
+        );
+      });
+
+  @override
+  Future<Either<Failure, Unit>> requestSignUpCode(String email) => _guard(
+    () async {
+      await _remote.requestSignUpCode(EmailRequestDto(email: email));
+      return unit;
+    },
+  );
+
+  @override
+  Future<Either<Failure, Unit>> verifySignUpCode({
+    required String email,
+    required String code,
+  }) => _guard(() async {
+    await _remote.verifySignUpCode(
+      EmailCodeRequestDto(email: email, code: code),
+    );
+    return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
+  }) => _guard(
+    () async => _startSession(
+      (await _remote.register(
+        EmailPasswordRequestDto(
+          email: email,
+          password: password,
+          confirmPassword: password,
+        ),
+      )).toAuthSession(),
+    ),
+  );
+
+  @override
+  Future<Either<Failure, Unit>> requestPhoneCode(String phoneNumber) =>
+      _guard(() async {
+        await _remote.requestPhoneCode(
+          PhoneRequestDto(phoneNumber: phoneNumber),
+        );
+        return unit;
+      });
+
+  @override
+  Future<Either<Failure, Unit>> verifyPhoneCode({
+    required String phoneNumber,
+    required String code,
+  }) => _guard(() async {
+    await _remote.verifyPhoneCode(
+      PhoneCodeRequestDto(phoneNumber: phoneNumber, code: code),
+    );
+    return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> completeOnboarding() async {
+    final result = await _guard(() async {
+      if (_status is! Authenticated) throw StateError('not signed in');
+      await _remote.completeOnboarding();
+      return (await _remote.fetchOnboardingStatus()).data.isCompleted;
+    });
+    return result.fold(
+      (failure) async => left(failure),
+      (isCompleted) async {
+        if (!isCompleted) {
+          return left(
+            const ApiResponseFailure(
+              fallback: ConflictFailure(),
+              message: 'The server has not marked onboarding as complete.',
+            ),
+          );
+        }
+        final current = _status;
+        if (current is! Authenticated) {
+          return left(const UnauthorizedFailure());
+        }
+        final session = current.session.copyWith(onboardingComplete: true);
+        final saved = await _guard(
+          () => _local.saveSession(
+            userId: session.userId,
+            onboardingComplete: true,
+          ),
+        );
+        return saved.fold(
+          left,
+          (_) {
+            _emit(AuthStatus.authenticated(session));
+            return right(unit);
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Future<void> revokeServerSession() async {
+    final tokens = await _local.read().catchError((Object _) => null);
+    if (tokens == null) return;
+    // Best effort: an offline sign-out still signs out locally.
+    await _guard(
+      () =>
+          _remote.logout(RefreshRequestDto(refreshToken: tokens.refreshToken)),
+    );
+  }
+
+  @override
+  Future<void> deleteCredentials() async {
+    await _guard(_local.clear);
+  }
+
+  @override
+  void markSignedOut() => _emit(const AuthStatus.unauthenticated());
+
+  /// Test/teardown hook.
+  Future<void> dispose() async {
+    await _expirySubscription.cancel();
+    await _controller.close();
+  }
+}
+
+/// [TokenRefresher] for `ApiClient`: exchanges the refresh token on the bare
+/// Dio and persists the new session metadata.
+TokenRefresher authTokenRefresher(AuthLocalDataSource local) =>
+    (bareDio, refreshToken) async {
+      final dto = await AuthRemoteDataSource(
+        bareDio,
+      ).refresh(RefreshRequestDto(refreshToken: refreshToken));
+      await local.saveSession(
+        userId: dto.userId,
+        onboardingComplete: dto.onboardingComplete,
+      );
+      return AuthTokens(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+      );
+    };

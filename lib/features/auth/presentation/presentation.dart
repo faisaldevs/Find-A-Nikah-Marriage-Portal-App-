@@ -1,0 +1,10 @@
+export 'bloc/bloc.dart';
+export 'view/create_password_page.dart';
+export 'view/intro_page.dart';
+export 'view/login_page.dart';
+export 'view/phone_code_page.dart';
+export 'view/phone_number_page.dart';
+export 'view/sign_up_code_page.dart';
+export 'view/sign_up_email_page.dart';
+export 'view/splash_page.dart';
+export 'view/welcome_page.dart';

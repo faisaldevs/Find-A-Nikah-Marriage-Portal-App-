@@ -1,14 +1,12 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
-import 'package:find_a_nikah/gen/colors.gen.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'profile_style.dart';
 
 /// White "Compliment" band: a quick first message to the profile. Submit
 /// stays faded until something is typed.
 class ComplimentBox extends StatefulWidget {
-  const ComplimentBox({super.key, required this.name, required this.onSubmit});
+  const ComplimentBox({required this.name, required this.onSubmit, super.key});
 
   final String name;
 

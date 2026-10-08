@@ -1,9 +1,9 @@
+import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
 import 'package:find_a_nikah/gen/colors.gen.dart';
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
 import 'package:flutter/material.dart';
 
 /// "By continuing you agree to our Terms and Privacy Policy" footer shown
-/// on [WelcomeScreen] and every [AuthStepScaffold] step. [light] switches
+/// on the welcome screen and every sign-up step. [light] switches
 /// between white text (over a photo background) and dark text (on white).
 class LegalFooterText extends StatelessWidget {
   const LegalFooterText({

@@ -1,0 +1,36 @@
+{
+  // Run/debug the app per flavor (Run and Debug panel, or F5).
+  // Each one = its own entry point in lib/flavors/ + its env file.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/flavors/main_dev.dart",
+      "args": ["--dart-define-from-file=lib/flavors/env/dev.json"]
+    },
+    {
+      "name": "Staging",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/flavors/main_staging.dart",
+      "args": ["--dart-define-from-file=lib/flavors/env/staging.json"]
+    },
+    {
+      "name": "Prod",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/flavors/main_prod.dart",
+      "args": ["--dart-define-from-file=lib/flavors/env/prod.json"]
+    },
+    {
+      "name": "Prod (release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "program": "lib/flavors/main_prod.dart",
+      "args": ["--dart-define-from-file=lib/flavors/env/prod.json"]
+    }
+  ]
+}

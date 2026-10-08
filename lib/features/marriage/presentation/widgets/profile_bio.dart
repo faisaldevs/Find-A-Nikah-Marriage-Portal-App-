@@ -1,8 +1,7 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'profile_style.dart';
 
 /// Bio text: blank lines become a full empty line, "• " lines become a
 /// bulleted list with a hanging indent.

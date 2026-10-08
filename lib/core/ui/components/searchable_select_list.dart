@@ -1,5 +1,5 @@
+import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
 import 'package:find_a_nikah/gen/colors.gen.dart';
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -21,11 +21,11 @@ class SelectListItem {
 /// Used by the nationality/country/ethnicity/profession screens.
 class SearchableSelectList extends StatefulWidget {
   const SearchableSelectList({
-    super.key,
     required this.items,
-    this.suggested = const [],
     required this.selected,
     required this.onToggle,
+    super.key,
+    this.suggested = const [],
     this.multiSelect = false,
     this.maxSelections,
     this.hintText = 'Search',
@@ -87,9 +87,10 @@ class _SearchableSelectListState extends State<SearchableSelectList> {
                     style: TextFontStyle.headline15w500textDarkStyleSatoshi,
                   ),
                 ),
-                widget.multiSelect
-                    ? _CheckCircle(selected: isSelected)
-                    : _RadioDot(selected: isSelected),
+                if (widget.multiSelect)
+                  _CheckCircle(selected: isSelected)
+                else
+                  _RadioDot(selected: isSelected),
               ],
             ),
           ),
@@ -129,10 +130,10 @@ class _SearchableSelectListState extends State<SearchableSelectList> {
           child: ListView(
             children: [
               if (filtered == null && widget.suggested.isNotEmpty) ...[
-                _SectionLabel('Suggested'),
+                const _SectionLabel('Suggested'),
                 ...widget.suggested.map(tile),
                 SizedBox(height: 4.h),
-                _SectionLabel('All'),
+                const _SectionLabel('All'),
               ],
               ...(filtered ?? widget.items).map(tile),
               SizedBox(height: 12.h),

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// Drawn rather than an icon font because no Material icon matches it.
 /// [width] × 0.74 high (the mockup's 22 × 16).
 class CrownIcon extends StatelessWidget {
-  const CrownIcon({super.key, required this.width, required this.color});
+  const CrownIcon({required this.width, required this.color, super.key});
 
   final double width;
   final Color color;

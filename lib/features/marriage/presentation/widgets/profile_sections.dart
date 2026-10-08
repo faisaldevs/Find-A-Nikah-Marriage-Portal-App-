@@ -1,8 +1,7 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'profile_style.dart';
 
 /// Bold 18 section title ("About me", "My Faith", ...).
 class ProfileSectionHeading extends StatelessWidget {
@@ -25,9 +24,9 @@ class ProfileSectionHeading extends StatelessWidget {
 /// block — photo, chips, card — is followed by 40 before the next heading).
 class ProfileSection extends StatelessWidget {
   const ProfileSection({
-    super.key,
     required this.title,
     required this.child,
+    super.key,
     this.top = 40,
   });
 
@@ -55,7 +54,7 @@ class ProfileSection extends StatelessWidget {
 
 /// Chips flowing left to right, or one per row when [stacked].
 class ProfileChipList extends StatelessWidget {
-  const ProfileChipList({super.key, required this.chips, this.stacked = false});
+  const ProfileChipList({required this.chips, super.key, this.stacked = false});
 
   final List<ProfileChip> chips;
 
@@ -111,11 +110,17 @@ class ProfileChip extends StatelessWidget {
             Text(flag!, style: TextStyle(fontSize: 13.sp, height: 1)),
             SizedBox(width: 8.w),
           ],
-          Text(
-            label,
-            style: TextFontStyle.headline14w400textDarkStyleSatoshi
-                .copyWith(color: kProfileInk)
-                .lh(20, tracking: -0.003),
+          // Flexible + ellipsis: a long label (or a large text scale) must
+          // shrink inside the chip, not overflow it.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextFontStyle.headline14w400textDarkStyleSatoshi
+                  .copyWith(color: kProfileInk)
+                  .lh(20, tracking: -0.003),
+            ),
           ),
         ],
       ),

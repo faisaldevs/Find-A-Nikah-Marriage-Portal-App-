@@ -1,14 +1,13 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/crown_icon.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'crown_icon.dart';
-import 'profile_style.dart';
 
 /// Cream band under the main photo of a premium profile: "Curious about
 /// X's filters?" + gold "Check if you match their filters" button.
 class FiltersTeaser extends StatelessWidget {
-  const FiltersTeaser({super.key, required this.name, required this.onCheck});
+  const FiltersTeaser({required this.name, required this.onCheck, super.key});
 
   final String name;
   final VoidCallback onCheck;
@@ -63,10 +62,14 @@ class FiltersTeaser extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Check if you match their filters',
-                      style: TextFontStyle.headline16w500textWhiteStyleSatoshi
-                          .lh(22),
+                    Flexible(
+                      child: Text(
+                        'Check if you match their filters',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextFontStyle.headline16w500textWhiteStyleSatoshi
+                            .lh(22),
+                      ),
                     ),
                     SizedBox(width: 8.w),
                     Icon(Icons.arrow_forward, size: 22.r, color: Colors.white),

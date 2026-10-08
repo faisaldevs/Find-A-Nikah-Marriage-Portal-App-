@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// "Marriage" glyph (bottom nav, marriage-intentions pill). No Material icon
 /// matches it. Drawn in a box of [width] × [width] × 1.28.
 class RingIcon extends StatelessWidget {
-  const RingIcon({super.key, required this.width, required this.color});
+  const RingIcon({required this.width, required this.color, super.key});
 
   final double width;
   final Color color;
@@ -33,8 +33,9 @@ class _RingPainter extends CustomPainter {
     // Band: outer and inner circle filling the lower ~3/4.
     final r = w / 2 - stroke.strokeWidth / 2;
     final centre = Offset(w / 2, h - r - stroke.strokeWidth / 2);
-    canvas.drawCircle(centre, r, stroke);
-    canvas.drawCircle(centre, r * 0.72, stroke..strokeWidth = w * 0.06);
+    canvas
+      ..drawCircle(centre, r, stroke)
+      ..drawCircle(centre, r * 0.72, stroke..strokeWidth = w * 0.06);
     // Gem: a flat-topped diamond resting on the band.
     final base = centre.dy - r;
     final gemTop = h * 0.04;

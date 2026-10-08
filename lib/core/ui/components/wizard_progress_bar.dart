@@ -7,9 +7,9 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 /// the active one fills gradually across [step]/[totalSteps].
 class WizardProgressBar extends StatelessWidget {
   const WizardProgressBar({
-    super.key,
     required this.step,
     required this.totalSteps,
+    super.key,
     this.activeSegment = 0,
     this.segmentCount = 4,
   });

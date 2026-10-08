@@ -1,24 +1,22 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/domain/domain.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/compliment_box.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/filters_teaser.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/marriage_intentions_card.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_bio.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_footer_actions.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_photo.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_sections.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/verified_profile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import '../state/marriage_profile.dart';
-import 'compliment_box.dart';
-import 'filters_teaser.dart';
-import 'marriage_intentions_card.dart';
-import 'profile_bio.dart';
-import 'profile_footer_actions.dart';
-import 'profile_photo.dart';
-import 'profile_sections.dart';
-import 'profile_style.dart';
-import 'verified_profile_card.dart';
 
 /// Everything below a profile's main photo, in mockup order: filters
 /// teaser, similarities, then detail sections with the extra photos between
 /// them, compliment box, and share / block / report.
 class ProfileDetails extends StatelessWidget {
   const ProfileDetails({
-    super.key,
     required this.profile,
     required this.onCheckFilters,
     required this.onCompliment,
@@ -27,6 +25,7 @@ class ProfileDetails extends StatelessWidget {
     required this.onBlock,
     required this.onReport,
     required this.bottomPadding,
+    super.key,
   });
 
   final MarriageProfile profile;

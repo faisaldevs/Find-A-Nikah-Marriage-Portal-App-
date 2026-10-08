@@ -1,9 +1,8 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/marriage_intentions_card.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import 'marriage_intentions_card.dart';
-import 'profile_style.dart';
 
 const _rowTextColor = Color(0xFF7C7481);
 
@@ -11,11 +10,11 @@ const _rowTextColor = Color(0xFF7C7481);
 /// in green, age and ID in blue — as in the mockup).
 class VerifiedProfileCard extends StatelessWidget {
   const VerifiedProfileCard({
-    super.key,
     required this.name,
     required this.photo,
     required this.age,
     required this.id,
+    super.key,
     this.onInfo,
   });
 
@@ -32,7 +31,7 @@ class VerifiedProfileCard extends StatelessWidget {
         _Row(kProfileVerifiedGreen, '$name’s main photo has been verified.'),
       if (age) _Row(kProfileVerifiedBlue, '$name’s age has been verified.'),
       if (id)
-        _Row(kProfileVerifiedBlue, 'We\'ve verified $name’s ID documents.'),
+        _Row(kProfileVerifiedBlue, "We've verified $name’s ID documents."),
     ];
     return ProfileCard(
       title: 'Verified profile',

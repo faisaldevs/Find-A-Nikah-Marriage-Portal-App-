@@ -1,21 +1,20 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/domain/domain.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/crown_icon.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_photo.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import '../state/marriage_profile.dart';
-import 'crown_icon.dart';
-import 'profile_photo.dart';
-import 'profile_style.dart';
 
 /// First screen of a profile: full-height main photo with "Active today",
 /// premium crown, name/age/verified, distance line and a 2×2 details grid
 /// laid over a dark gradient.
 class ProfileHero extends StatelessWidget {
   const ProfileHero({
-    super.key,
     required this.profile,
     required this.height,
     required this.bottomInset,
+    super.key,
   });
 
   final MarriageProfile profile;

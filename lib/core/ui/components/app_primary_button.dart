@@ -1,5 +1,5 @@
+import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
 import 'package:find_a_nikah/gen/colors.gen.dart';
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -8,20 +8,24 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 /// login). `onPressed: null` renders the disabled (faded) state.
 class AppPrimaryButton extends StatelessWidget {
   const AppPrimaryButton({
-    super.key,
     required this.label,
     required this.onPressed,
+    super.key,
     this.height,
     this.borderRadius,
+    this.isLoading = false,
+    this.loadingLabel = 'Please wait...',
   });
 
   final String label;
   final VoidCallback? onPressed;
 
-  /// Defaults to 54.h — the size used everywhere except [LoginScreen], which
+  /// Defaults to 54.h — the size used everywhere except the login screen, which
   /// passes 52.h to match its own field/circle-button radius language.
   final double? height;
   final double? borderRadius;
+  final bool isLoading;
+  final String loadingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -31,15 +35,38 @@ class AppPrimaryButton extends StatelessWidget {
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
-          disabledBackgroundColor: AppColors.primaryColor.withValues(
-            alpha: 0.35,
-          ),
+          disabledBackgroundColor: isLoading
+              ? AppColors.primaryColor
+              : AppColors.primaryColor.withValues(alpha: 0.35),
+          disabledForegroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius ?? 16.r),
           ),
         ),
-        onPressed: onPressed,
-        child: Text(label, style: TextFontStyle.headline16w600StyleSatoshi),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox.square(
+                    dimension: 18.r,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Flexible(
+                    child: Text(
+                      loadingLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextFontStyle.headline16w600StyleSatoshi,
+                    ),
+                  ),
+                ],
+              )
+            : Text(label, style: TextFontStyle.headline16w600StyleSatoshi),
       ),
     );
   }

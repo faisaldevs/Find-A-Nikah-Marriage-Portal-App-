@@ -1,9 +1,7 @@
-import 'package:find_a_nikah/core/constants/text_font_style.dart';
+import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-
-import '../../../../core/ui/icons/ring_icon.dart';
-import 'profile_style.dart';
 
 const _lineColor = Color(0xFF292533);
 const _stopLabelColor = Color(0xFF534F5D);
@@ -13,11 +11,11 @@ const _matchColor = Color(0xFFFC4E4D);
 /// they'd involve family, how long they'd chat, and when they'd marry.
 class MarriageIntentionsCard extends StatelessWidget {
   const MarriageIntentionsCard({
-    super.key,
     required this.name,
     required this.involveFamily,
     required this.chatFor,
     required this.marryWithin,
+    super.key,
     this.onInfo,
   });
 
@@ -50,9 +48,9 @@ class MarriageIntentionsCard extends StatelessWidget {
 /// Shared by the intentions and "Verified profile" cards.
 class ProfileCard extends StatelessWidget {
   const ProfileCard({
-    super.key,
     required this.title,
     required this.child,
+    super.key,
     this.onInfo,
   });
 

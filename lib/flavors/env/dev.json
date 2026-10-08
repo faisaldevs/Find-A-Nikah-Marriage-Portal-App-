@@ -1,0 +1,6 @@
+{
+  "FLAVOR": "dev",
+  "API_BASE_URL": "https://d356-160-30-189-152.ngrok-free.app/api",
+  "AUTH_API_BASE_URL": "https://d356-160-30-189-152.ngrok-free.app/api/v1",
+  "SOCKET_URL": "http://localhost:3000"
+}

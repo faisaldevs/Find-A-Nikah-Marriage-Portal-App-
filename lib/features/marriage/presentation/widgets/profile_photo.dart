@@ -4,7 +4,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 /// Network profile photo with a grey placeholder until the first frame (and
 /// if it fails), so a slow or broken image never leaves a blank hole.
 class ProfilePhoto extends StatelessWidget {
-  const ProfilePhoto({super.key, required this.url});
+  const ProfilePhoto({required this.url, super.key});
 
   final String url;
 

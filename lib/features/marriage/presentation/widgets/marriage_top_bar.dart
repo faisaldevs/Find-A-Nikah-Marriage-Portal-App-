@@ -1,15 +1,15 @@
+import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
-import 'package:find_a_nikah/gen/colors.gen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 /// Filters · Find A Nikah logo · Sort · Notifications.
 class MarriageTopBar extends StatelessWidget {
   const MarriageTopBar({
-    super.key,
     required this.onFilters,
     required this.onSort,
     required this.onNotifications,
+    super.key,
   });
 
   final VoidCallback onFilters;
