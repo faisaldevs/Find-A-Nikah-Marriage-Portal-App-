@@ -4,6 +4,7 @@ import 'package:find_a_nikah/app/view/menu_page.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/presentation.dart';
 import 'package:find_a_nikah/features/discovery/presentation/presentation.dart';
+import 'package:find_a_nikah/features/explore/presentation/presentation.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/presentation.dart';
 import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
@@ -125,9 +126,7 @@ final List<RouteBase> appRoutes = [
         routes: [_page(RoutePaths.marriage, const MarriagePage())],
       ),
       StatefulShellBranch(
-        routes: [
-          _page(RoutePaths.explore, const PlaceholderScreen(title: 'Explore')),
-        ],
+        routes: [_page(RoutePaths.explore, const ExplorePage())],
       ),
       StatefulShellBranch(
         routes: [

@@ -1,6 +1,5 @@
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/marriage/domain/domain.dart';
-import 'package:find_a_nikah/features/marriage/presentation/widgets/crown_icon.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_photo.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:flutter/material.dart';

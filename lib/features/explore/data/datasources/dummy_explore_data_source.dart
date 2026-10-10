@@ -1,0 +1,366 @@
+import 'package:find_a_nikah/features/explore/domain/domain.dart';
+
+/// Placeholder photo from an online avatar service (needs internet), same
+/// trick as `DummyMarriageDataSource` — swap for real photos once the
+/// Explore API exists.
+String _photo(int id) => 'https://i.pravatar.cc/800?img=$id';
+
+const _bd = '🇧🇩';
+
+ExploreProfile _profile(
+  String id,
+  String name,
+  int age,
+  int photoId,
+  String area, {
+  bool verified = false,
+  bool activeToday = false,
+  String? profession,
+  String? postedAt,
+  double? distanceKm,
+}) => ExploreProfile(
+  id: id,
+  name: name,
+  age: age,
+  photoUrl: _photo(photoId),
+  area: area,
+  countryFlag: _bd,
+  isVerified: verified,
+  isActiveToday: activeToday,
+  profession: profession,
+  postedAt: postedAt,
+  distanceKm: distanceKm,
+);
+
+/// Dev-flavor stand-in for the Explore API: every section on the "For you"
+/// tab, with the copy taken straight from the mockup. Pagination doesn't
+/// exist yet — each section is a fixed list.
+class DummyExploreDataSource {
+  const DummyExploreDataSource({
+    this.latency = const Duration(milliseconds: 300),
+  });
+
+  final Duration latency;
+
+  Future<ExploreFeed> fetchFeed() async {
+    await Future<void>.delayed(latency);
+    return ExploreFeed(
+      likesInFilters: ExploreSection(
+        count: 3,
+        profiles: [
+          _profile(
+            'lf1',
+            'Tabassum',
+            31,
+            47,
+            'Chittagong',
+            verified: true,
+            profession: 'Student',
+            postedAt: '1 weeks ago',
+          ),
+          _profile(
+            'lf2',
+            'Muntaha',
+            27,
+            9,
+            'Cumilla',
+            profession: 'Designer',
+            postedAt: '3 days ago',
+          ),
+          _profile(
+            'lf3',
+            'Nusrat',
+            29,
+            48,
+            'Dhanmondi',
+            verified: true,
+            profession: 'Doctor',
+            postedAt: '2 weeks ago',
+          ),
+        ],
+      ),
+      secondLook: ExploreSection(
+        count: 1,
+        profiles: [
+          _profile(
+            'sl1',
+            'Tanjina',
+            21,
+            16,
+            'Chittagong',
+            verified: true,
+            postedAt: 'Last Month',
+          ),
+        ],
+      ),
+      currentlyAvailable: ExploreSection(
+        profiles: [
+          _profile(
+            'ca1',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca2',
+            'Sharmin',
+            21,
+            47,
+            'Cumilla',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca3',
+            'Tanijila',
+            32,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca4',
+            'Anika',
+            28,
+            41,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca5',
+            'Maliha',
+            27,
+            44,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca6',
+            'Tabassum',
+            28,
+            25,
+            'Savar',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca7',
+            'Maliha',
+            26,
+            23,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'ca8',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+        ],
+      ),
+      visitedYou: ExploreSection(
+        count: 1,
+        profiles: [
+          _profile(
+            'vy1',
+            'Tanjina',
+            21,
+            16,
+            'Mohakhali',
+            verified: true,
+            postedAt: '1 hour ago',
+          ),
+          _profile(
+            'vy2',
+            'Tanjina',
+            21,
+            20,
+            'Rampura',
+            verified: true,
+            postedAt: '51 minutes ago',
+          ),
+          _profile(
+            'vy3',
+            'Tanjina',
+            21,
+            47,
+            'Chittagong',
+            verified: true,
+            postedAt: '4 hour ago',
+          ),
+        ],
+      ),
+      justJoined: ExploreSection(
+        profiles: [
+          _profile(
+            'jj1',
+            'Sharmin',
+            21,
+            47,
+            'Cumilla',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj2',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj3',
+            'Anika',
+            28,
+            41,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj4',
+            'Tanijila',
+            32,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj5',
+            'Maliha',
+            27,
+            44,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj6',
+            'Tabassum',
+            28,
+            25,
+            'Savar',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj7',
+            'Maliha',
+            26,
+            23,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+          _profile(
+            'jj8',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+          ),
+        ],
+      ),
+      activeNearYou: ExploreSection(
+        profiles: [
+          _profile(
+            'an1',
+            'Sharmin',
+            21,
+            47,
+            'Cumilla',
+            verified: true,
+            activeToday: true,
+            distanceKm: 1,
+          ),
+          _profile(
+            'an2',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 2,
+          ),
+          _profile(
+            'an3',
+            'Anika',
+            28,
+            41,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 1,
+          ),
+          _profile(
+            'an4',
+            'Tanijila',
+            32,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 4,
+          ),
+          _profile(
+            'an5',
+            'Maliha',
+            27,
+            44,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 3,
+          ),
+          _profile(
+            'an6',
+            'Tabassum',
+            28,
+            25,
+            'Savar',
+            verified: true,
+            activeToday: true,
+            distanceKm: 2,
+          ),
+          _profile(
+            'an7',
+            'Maliha',
+            26,
+            23,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 1,
+          ),
+          _profile(
+            'an8',
+            'Maliha',
+            26,
+            45,
+            'Tungi',
+            verified: true,
+            activeToday: true,
+            distanceKm: 6,
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// The mockup's premium crown: three-point crown over a separate bar.
+/// The mockups' premium crown: three-point crown over a separate bar.
 /// Drawn rather than an icon font because no Material icon matches it.
-/// [width] × 0.74 high (the mockup's 22 × 16).
+/// [width] × 0.74 high (the mockup's 22 × 16). Shared by the Marriage
+/// full-profile hero/teaser and the Explore tab's premium badges.
 class CrownIcon extends StatelessWidget {
   const CrownIcon({required this.width, required this.color, super.key});
 

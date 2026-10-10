@@ -11,6 +11,9 @@ import 'package:find_a_nikah/features/auth/presentation/bloc/bloc.dart';
 import 'package:find_a_nikah/features/discovery/data/data.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/discovery/presentation/presentation.dart';
+import 'package:find_a_nikah/features/explore/data/data.dart';
+import 'package:find_a_nikah/features/explore/domain/domain.dart';
+import 'package:find_a_nikah/features/explore/presentation/presentation.dart';
 import 'package:find_a_nikah/features/face_verification/data/data.dart';
 import 'package:find_a_nikah/features/face_verification/domain/domain.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/presentation.dart';
@@ -113,6 +116,12 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerLazySingleton<AiBioRepository>(
       () => AiBioRepositoryImpl(AiBioRemoteDataSource(api.dio), guard),
     )
+    ..registerLazySingleton<OnboardingSubmissionRepository>(
+      () => OnboardingSubmissionRepositoryImpl(
+        OnboardingRemoteDataSource(api.dio),
+        guard,
+      ),
+    )
     ..registerLazySingleton<MarriageRepository>(
       () => MarriageRepositoryImpl(
         isDev
@@ -120,6 +129,10 @@ Future<void> configureDependencies(AppConfig config) async {
             : MarriageRemoteDataSource(api.dio),
         guard,
       ),
+    )
+    // Dummy-only for now — no Explore API exists yet.
+    ..registerLazySingleton<ExploreRepository>(
+      () => ExploreRepositoryImpl(const DummyExploreDataSource(), guard),
     )
     // ── Session ────────────────────────────────────────────────────────
     ..registerLazySingleton<SessionScopeManager>(
@@ -153,6 +166,7 @@ Future<void> configureDependencies(AppConfig config) async {
         getIt<OnboardingDraftRepository>(),
         getIt<PhotoPickerRepository>(),
         getIt<AiBioRepository>(),
+        getIt<OnboardingSubmissionRepository>(),
       ),
     )
     ..registerFactory<DiscoveryFiltersBloc>(
@@ -166,6 +180,9 @@ Future<void> configureDependencies(AppConfig config) async {
         getIt<MarriageRepository>(),
         getIt<DiscoveryFiltersRepository>(),
       ),
+    )
+    ..registerFactory<ExploreBloc>(
+      () => ExploreBloc(getIt<ExploreRepository>()),
     );
 }
 
