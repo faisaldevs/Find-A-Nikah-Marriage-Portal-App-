@@ -15,6 +15,8 @@ class _Remote implements AuthRemoteDataSource {
   int logouts = 0;
   bool onboardingComplete = false;
   bool? onboardingStatusOverride;
+  int? currentStepOverride;
+  bool isPhoneVerifiedOverride = false;
   int onboardingStatusRequests = 0;
 
   AuthApiSessionResponseDto _response({required bool onboardingComplete}) =>
@@ -103,6 +105,10 @@ class _Remote implements AuthRemoteDataSource {
     return OnboardingStatusResponseDto(
       data: OnboardingStatusDataDto(
         isCompleted: onboardingStatusOverride ?? onboardingComplete,
+        currentStep: currentStepOverride ?? 4,
+        user: OnboardingStatusUserDto(
+          isPhoneVerified: isPhoneVerifiedOverride,
+        ),
       ),
     );
   }
@@ -156,6 +162,29 @@ void main() {
     await sub.cancel();
   });
 
+  test(
+    'restore after logout, with no new sign-in, looks like a fresh '
+    'install (the one-shot login screen already fired)',
+    () async {
+      await repo.register(email: 'a@b.co', password: 'abcdefg1');
+      await repo.revokeServerSession();
+      await repo.deleteCredentials();
+      await repo.markSignedOut();
+
+      final next = AuthRepositoryImpl(
+        remote: remote,
+        local: AuthLocalDataSource(const FlutterSecureStorage()),
+        social: const UnconfiguredSocialAuthDataSource(),
+        guard: testGuard(),
+        logger: SilentLogger(),
+        sessionExpiry: SessionExpirySignal(),
+      );
+      await next.restoreSession();
+
+      expect(next.currentStatus, const AuthStatus.unauthenticated());
+    },
+  );
+
   test('a stored session is restored on the next start', () async {
     await repo.register(email: 'a@b.co', password: 'abcdefg1');
     final next = AuthRepositoryImpl(
@@ -193,6 +222,53 @@ void main() {
     expect(status.session.onboardingComplete, isFalse);
     expect(remote.onboardingStatusRequests, 1);
   });
+
+  test(
+    'resume step comes from the onboarding-status API, cached locally',
+    () async {
+      remote.currentStepOverride = 6;
+
+      await repo.register(email: 'a@b.co', password: 'abcdefg1');
+
+      final status = repo.currentStatus as Authenticated;
+      expect(status.session.resumeStep, 6);
+      expect((await local.readSession())!.resumeStep, 6);
+    },
+  );
+
+  test(
+    'resume step is refreshed on restore, cleared devices default to 4',
+    () async {
+      remote.currentStepOverride = 5;
+      await repo.register(email: 'a@b.co', password: 'abcdefg1');
+      remote.currentStepOverride = 7;
+
+      final next = AuthRepositoryImpl(
+        remote: remote,
+        local: AuthLocalDataSource(const FlutterSecureStorage()),
+        social: const UnconfiguredSocialAuthDataSource(),
+        guard: testGuard(),
+        logger: SilentLogger(),
+        sessionExpiry: SessionExpirySignal(),
+      );
+      await next.restoreSession();
+
+      expect((next.currentStatus as Authenticated).session.resumeStep, 7);
+    },
+  );
+
+  test(
+    'isPhoneVerified comes from the onboarding-status API, cached locally',
+    () async {
+      remote.isPhoneVerifiedOverride = true;
+
+      await repo.register(email: 'a@b.co', password: 'abcdefg1');
+
+      final status = repo.currentStatus as Authenticated;
+      expect(status.session.isPhoneVerified, isTrue);
+      expect((await local.readSession())!.isPhoneVerified, isTrue);
+    },
+  );
 
   test('rejected credentials become a ValidationFailure', () async {
     final result = await repo.signInWithEmail(
@@ -248,12 +324,73 @@ void main() {
     });
 
     expect(status.data.isCompleted, isFalse);
+    expect(status.data.currentStep, 23);
+  });
+
+  test(
+    'onboarding status DTO survives a real post-Basics payload '
+    '(extra nested fields ignored)',
+    () {
+      final status = OnboardingStatusResponseDto.fromJson({
+        'statusCode': 200,
+        'data': {
+          'user': {
+            '_id': '6ac5e6cb9a4c151759932718',
+            'fullName': 'Dev Team',
+            'email': 'user@gmail.com',
+            'onboardingStep': 5,
+            'isOnboardingComplete': false,
+            'isPhoneVerified': false,
+            'isEmailVerified': true,
+            'gender': 'male',
+          },
+          'profile': {
+            '_id': '6acb2794a16f2d56cc1f97ee',
+            'userId': '6ac5e6cb9a4c151759932718',
+            'accountType': 'individual',
+            'completeness': 0,
+            'country': 'Bangladesh',
+            'onboardingStep': 5,
+            'profileStatus': 'pending',
+            'isOnboardingCompleted': false,
+          },
+          'preference': null,
+          'photos': <Object?>[],
+          'verifications': <Object?>[],
+          'currentStep': 5,
+          'isCompleted': false,
+        },
+        'message': 'Onboarding status',
+        'success': true,
+      });
+
+      expect(status.data.isCompleted, isFalse);
+      expect(status.data.currentStep, 5);
+      expect(status.data.user?.isPhoneVerified, isFalse);
+    },
+  );
+
+  test('onboarding status DTO defaults currentStep to 4 when absent', () {
+    final status = OnboardingStatusResponseDto.fromJson({
+      'data': {'isCompleted': false},
+    });
+
+    expect(status.data.currentStep, 4);
   });
 
   test('a session expiry from the HTTP stack signs out', () async {
     await repo.signInWithEmail(email: 'a@b.co', password: 'x');
     expiry.notify();
-    expect(repo.currentStatus, const AuthStatus.unauthenticated());
+    expect(
+      repo.currentStatus,
+      const AuthStatus.unauthenticated(
+        reason: SignedOutReason.sessionExpired,
+      ),
+    );
+    // One-shot: tokens and the "has signed in" flag are both consumed, so
+    // the next restore looks like a fresh install, not another expiry.
+    await Future<void>.delayed(Duration.zero);
+    expect(await local.hasSignedInBefore(), isFalse);
   });
 
   test(
@@ -263,10 +400,14 @@ void main() {
       remote.failWith = const NetworkException();
       await repo.revokeServerSession(); // offline: must not throw
       await repo.deleteCredentials();
-      repo.markSignedOut();
+      await repo.markSignedOut();
       expect(await local.read(), isNull);
       expect(await local.readSession(), isNull);
-      expect(repo.currentStatus, const AuthStatus.unauthenticated());
+      expect(
+        repo.currentStatus,
+        const AuthStatus.unauthenticated(reason: SignedOutReason.loggedOut),
+      );
+      expect(await local.hasSignedInBefore(), isFalse);
     },
   );
 

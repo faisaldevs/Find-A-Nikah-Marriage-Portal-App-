@@ -19,9 +19,14 @@ class PhoneNumberPage extends StatefulWidget {
 class _PhoneNumberPageState extends State<PhoneNumberPage> {
   String? _completeNumber;
 
-  void _next() => context.read<PhoneVerificationBloc>().add(
-    PhoneNumberSubmitted(_completeNumber!),
-  );
+  void _next() {
+    // TODO(phone-api): no phone verification API yet — skip straight to
+    // the code screen. Re-enable once it exists.
+    // context.read<PhoneVerificationBloc>().add(
+    //   PhoneNumberSubmitted(_completeNumber!),
+    // );
+    context.push<void>(RoutePaths.phoneCode).ignore();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -22,9 +22,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required SessionExpirySignal sessionExpiry,
   }) {
     _expirySubscription = sessionExpiry.stream.listen(
-      (_) => _emit(
-        const AuthStatus.unauthenticated(),
-      ),
+      (_) => _signOutLocally(SignedOutReason.sessionExpired),
     );
   }
 
@@ -53,6 +51,18 @@ class AuthRepositoryImpl implements AuthRepository {
     _controller.add(status);
   }
 
+  /// Emits the one-shot signed-out status immediately — this must win any
+  /// race with a concurrent [restoreSession] that's mid-flight — then
+  /// clears the now-dead tokens and consumes the "has signed in" flag, so
+  /// a reopen without a new sign-in lands on [SignedOutReason.freshInstall]
+  /// (the intro carousel) instead of showing the one-shot login screen
+  /// again.
+  Future<void> _signOutLocally(SignedOutReason reason) async {
+    _emit(AuthStatus.unauthenticated(reason: reason));
+    await _guard(_local.clear);
+    await _guard(_local.forgetPriorSession);
+  }
+
   @override
   Future<void> restoreSession() async {
     final restored = await _guard(() async {
@@ -62,6 +72,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return UserSession(
         userId: session.userId,
         onboardingComplete: session.onboardingComplete,
+        resumeStep: session.resumeStep,
+        isPhoneVerified: session.isPhoneVerified,
       );
     });
     await restored.fold(
@@ -69,32 +81,45 @@ class AuthRepositoryImpl implements AuthRepository {
       (_) async => _emit(const AuthStatus.unauthenticated()),
       (session) async {
         if (session == null) {
-          _emit(const AuthStatus.unauthenticated());
+          final hadSignedIn = await _guard(_local.hasSignedInBefore);
+          _emit(
+            AuthStatus.unauthenticated(
+              reason: hadSignedIn.fold(
+                (_) => SignedOutReason.freshInstall,
+                (value) => value
+                    ? SignedOutReason.sessionExpired
+                    : SignedOutReason.freshInstall,
+              ),
+            ),
+          );
           return;
         }
 
         final status = await _guard(
-          () async => (await _remote.fetchOnboardingStatus()).data.isCompleted,
+          () async => (await _remote.fetchOnboardingStatus()).data,
         );
-        final onboardingComplete = status.fold(
+        final restoredSession = status.fold(
           (failure) {
             // Keep the last known state when offline; the failure is still
             // recorded here instead of silently discarding the status check.
             _logger.warning(
               'Could not refresh onboarding completion status: $failure',
             );
-            return session.onboardingComplete;
+            return session;
           },
-          (isCompleted) => isCompleted,
-        );
-        final restoredSession = session.copyWith(
-          onboardingComplete: onboardingComplete,
+          (data) => session.copyWith(
+            onboardingComplete: data.isCompleted,
+            resumeStep: data.currentStep,
+            isPhoneVerified: data.user?.isPhoneVerified ?? false,
+          ),
         );
         if (restoredSession != session) {
           final saved = await _guard(
             () => _local.saveSession(
               userId: restoredSession.userId,
               onboardingComplete: restoredSession.onboardingComplete,
+              resumeStep: restoredSession.resumeStep,
+              isPhoneVerified: restoredSession.isPhoneVerified,
             ),
           );
           saved.fold(
@@ -104,6 +129,10 @@ class AuthRepositoryImpl implements AuthRepository {
             (_) {},
           );
         }
+        // Fetching the onboarding status above can 401 → a refresh failure
+        // → the expiry signal, which already emitted `unauthenticated`
+        // synchronously. Don't clobber that with a stale `authenticated`.
+        if (_status is Unauthenticated) return;
         _emit(AuthStatus.authenticated(restoredSession));
       },
     );
@@ -115,24 +144,34 @@ class AuthRepositoryImpl implements AuthRepository {
       AuthTokens(accessToken: dto.accessToken, refreshToken: dto.refreshToken),
     );
     var onboardingComplete = dto.onboardingComplete;
+    var resumeStep = 4;
+    var isPhoneVerified = false;
     final status = await _guard(
-      () async => (await _remote.fetchOnboardingStatus()).data.isCompleted,
+      () async => (await _remote.fetchOnboardingStatus()).data,
     );
     status.fold(
       (failure) => _logger.warning(
         'Could not fetch onboarding completion status: $failure',
       ),
-      (isCompleted) => onboardingComplete = isCompleted,
+      (data) {
+        onboardingComplete = data.isCompleted;
+        resumeStep = data.currentStep;
+        isPhoneVerified = data.user?.isPhoneVerified ?? false;
+      },
     );
     await _local.saveSession(
       userId: dto.userId,
       onboardingComplete: onboardingComplete,
+      resumeStep: resumeStep,
+      isPhoneVerified: isPhoneVerified,
     );
     _emit(
       AuthStatus.authenticated(
         UserSession(
           userId: dto.userId,
           onboardingComplete: onboardingComplete,
+          resumeStep: resumeStep,
+          isPhoneVerified: isPhoneVerified,
         ),
       ),
     );
@@ -244,6 +283,8 @@ class AuthRepositoryImpl implements AuthRepository {
           () => _local.saveSession(
             userId: session.userId,
             onboardingComplete: true,
+            resumeStep: session.resumeStep,
+            isPhoneVerified: session.isPhoneVerified,
           ),
         );
         return saved.fold(
@@ -274,7 +315,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  void markSignedOut() => _emit(const AuthStatus.unauthenticated());
+  Future<void> markSignedOut() => _signOutLocally(SignedOutReason.loggedOut);
 
   /// Test/teardown hook.
   Future<void> dispose() async {
@@ -290,9 +331,15 @@ TokenRefresher authTokenRefresher(AuthLocalDataSource local) =>
       final dto = await AuthRemoteDataSource(
         bareDio,
       ).refresh(RefreshRequestDto(refreshToken: refreshToken));
+      // The refresh response carries no `currentStep`/`isPhoneVerified` —
+      // keep whatever was cached rather than resetting the resume point on
+      // every silent token refresh.
+      final previous = await local.readSession();
       await local.saveSession(
         userId: dto.userId,
         onboardingComplete: dto.onboardingComplete,
+        resumeStep: previous?.resumeStep ?? 4,
+        isPhoneVerified: previous?.isPhoneVerified ?? false,
       );
       return AuthTokens(
         accessToken: dto.accessToken,

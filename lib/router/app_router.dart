@@ -14,7 +14,8 @@ import 'package:go_router/go_router.dart';
 /// - Build too old → the force-update page, nothing else.
 /// - Status unknown (credentials still loading) → splash.
 /// - Signed out → public routes only.
-/// - Signed in, onboarding incomplete → sign-up + onboarding routes.
+/// - Signed in, onboarding incomplete → sign-up + onboarding routes, first
+///   entry resumes at the wizard section from `resumeRouteFor`.
 /// - Signed in, onboarding complete → app routes only.
 /// - Face verification turned off remotely → skip to the Location step.
 String? appRedirect({
@@ -35,12 +36,17 @@ String? appRedirect({
     Unauthenticated() =>
       RoutePaths.public.contains(location) ? null : RoutePaths.splash,
     // New account: sign-up screens stay reachable (back from "Get started"
-    // returns into sign-up, as before); splash/intro move on.
+    // returns into sign-up, as before); splash/intro move on. A returning,
+    // still-incomplete user lands on the wizard section matching their
+    // onboarding-status step, not always the start.
     Authenticated(:final session) when !session.onboardingComplete =>
       RoutePaths.onboarding.contains(location) ||
               RoutePaths.signUpFlow.contains(location)
           ? null
-          : RoutePaths.getStarted,
+          : resumeRouteFor(
+              session.resumeStep,
+              isPhoneVerified: session.isPhoneVerified,
+            ),
     Authenticated() =>
       RoutePaths.app.contains(location) ? null : RoutePaths.marriage,
   };
@@ -52,6 +58,24 @@ String? appRedirect({
   }
   return null;
 }
+
+/// Where an incomplete-onboarding user resumes, from the onboarding-status
+/// API's `currentStep` (4 Basics, 5 Background & faith, 6 Lifestyle &
+/// personality, 7 Bio — matching `OnboardingSubmissionRepository`'s step
+/// literals). Step ≤4 still goes through the `getStarted` CTA screen, same
+/// as a brand-new signup. Steps ≥8 (photos onward) aren't backend-tracked
+/// yet, so [isPhoneVerified] decides between the two things that could
+/// still be pending: phone verification (if not done) or photos/face
+/// verification (once it is) — phone is locked in once verified and
+/// can't be resumed back into (see `wizard_sections.dart`).
+String resumeRouteFor(int step, {required bool isPhoneVerified}) =>
+    switch (step) {
+      <= 4 => RoutePaths.getStarted,
+      5 => RoutePaths.education,
+      6 => RoutePaths.lifestylePreferences,
+      7 => RoutePaths.bio,
+      _ => isPhoneVerified ? RoutePaths.addPhotos : RoutePaths.phoneNumber,
+    };
 
 /// Builds the app's [GoRouter]. Re-evaluates [appRedirect] whenever
 /// [authStatus] or [remoteConfig] emits, so a logout or a forced update

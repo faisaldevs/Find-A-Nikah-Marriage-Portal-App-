@@ -11,6 +11,15 @@ abstract class UserSession with _$UserSession {
     /// False right after registration: the profile wizard, verification and
     /// discovery filters still have to be completed before the main app.
     required bool onboardingComplete,
+
+    /// Mirrors the onboarding-status API's `currentStep` — which wizard
+    /// section to resume into. See `resumeRouteFor` in `app_router.dart`.
+    @Default(4) int resumeStep,
+
+    /// Mirrors `user.isPhoneVerified` — once true, `resumeRouteFor` never
+    /// routes back to the phone step (it's locked; change it from
+    /// Settings instead).
+    @Default(false) bool isPhoneVerified,
   }) = _UserSession;
 }
 
@@ -23,8 +32,19 @@ sealed class AuthStatus with _$AuthStatus {
 
   const factory AuthStatus.authenticated(UserSession session) = Authenticated;
 
-  const factory AuthStatus.unauthenticated() = Unauthenticated;
+  const factory AuthStatus.unauthenticated({
+    @Default(SignedOutReason.freshInstall) SignedOutReason reason,
+  }) = Unauthenticated;
 }
+
+/// Why the app is signed out — the splash screen's one-shot redirect reads
+/// this. [freshInstall] (never signed in on this device, or the one-shot
+/// below has already been shown and not followed by a new sign-in) goes to
+/// the intro carousel; [loggedOut] / [sessionExpired] skip it, straight to
+/// login with a toast — but only once: the repository consumes this
+/// device's "has signed in" flag the moment either fires, so a reopen
+/// without signing back in sees [freshInstall] again.
+enum SignedOutReason { freshInstall, loggedOut, sessionExpired }
 
 /// Third-party identity providers offered on the welcome and login screens.
 enum SocialProvider { google, apple }

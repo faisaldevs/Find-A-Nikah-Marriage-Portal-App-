@@ -51,6 +51,17 @@ class WizardProgress {
     }
     return null;
   }
+
+  /// The path immediately before [path] in [sections]' flow order (crossing
+  /// section boundaries), or null if [path] is the flow's first page or
+  /// isn't in it. Used to step backward when a user lands mid-flow (e.g.
+  /// resumed from a saved step) with nothing pushed to pop.
+  static String? previousPathFor(WizardSections sections, String path) {
+    final flat = [for (final section in sections) ...section];
+    final index = flat.indexWhere((entry) => entry.$1 == path);
+    if (index <= 0) return null;
+    return flat[index - 1].$1;
+  }
 }
 
 /// A wizard flow as progress-bar sections, in order. Each entry is
@@ -67,10 +78,21 @@ class RoutedWizardShell extends StatefulWidget {
     required this.sections,
     required this.child,
     super.key,
+    this.exitPath,
+    this.hideBackFor = const {},
   });
 
   final WizardSections sections;
   final Widget child;
+
+  /// Where back goes from this flow's first page (e.g. a resumed user who
+  /// walks all the way back). Null disables back there.
+  final String? exitPath;
+
+  /// Pages with no back button at all — for a step that can't be undone
+  /// once passed (e.g. phone verification locks in before Photos), so
+  /// there's nothing sensible to go back to.
+  final Set<String> hideBackFor;
 
   @override
   State<RoutedWizardShell> createState() => _RoutedWizardShellState();
@@ -88,18 +110,33 @@ class _RoutedWizardShellState extends State<RoutedWizardShell> {
     return ListenableBuilder(
       listenable: router.routerDelegate,
       builder: (context, _) {
+        final location = router.state.matchedLocation;
         final progress =
-            WizardProgress.forPath(
-              widget.sections,
-              router.state.matchedLocation,
-            ) ??
+            WizardProgress.forPath(widget.sections, location) ??
             _last ??
             WizardProgress.forPath(
               widget.sections,
               widget.sections.first.first.$1,
             )!;
         _last = progress;
-        return WizardShell(progress: progress, child: widget.child);
+        // Landing here via a redirect (e.g. resuming a saved step) pushes
+        // nothing, so there's nothing to pop — step to the previous page
+        // in flow order instead, or [exitPath] from the very first one.
+        final previousPath =
+            WizardProgress.previousPathFor(widget.sections, location) ??
+            widget.exitPath;
+        return WizardShell(
+          progress: progress,
+          showBack: !widget.hideBackFor.contains(location),
+          onBack: () {
+            if (context.canPop()) {
+              context.pop();
+            } else if (previousPath != null) {
+              context.go(previousPath);
+            }
+          },
+          child: widget.child,
+        );
       },
     );
   }
@@ -116,11 +153,20 @@ class WizardShell extends StatelessWidget {
     required this.child,
     super.key,
     this.onHelp,
+    this.onBack,
+    this.showBack = true,
   });
 
   final WizardProgress progress;
   final Widget child;
   final VoidCallback? onHelp;
+
+  /// Overrides the header's default `context.pop()`.
+  final VoidCallback? onBack;
+
+  /// False removes the back arrow entirely (see [RoutedWizardShell.
+  /// hideBackFor]), rather than just disabling it.
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +175,12 @@ class WizardShell extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            WizardHeader(title: progress.title, onHelp: onHelp),
+            WizardHeader(
+              title: progress.title,
+              onHelp: onHelp,
+              onBack: onBack,
+              showBack: showBack,
+            ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: WizardProgressBar(
@@ -166,10 +217,22 @@ class WizardShellScope extends InheritedWidget {
 /// standalone [WizardScaffold] so both look identical. The title
 /// cross-fades when it changes.
 class WizardHeader extends StatelessWidget {
-  const WizardHeader({required this.title, super.key, this.onHelp});
+  const WizardHeader({
+    required this.title,
+    super.key,
+    this.onHelp,
+    this.onBack,
+    this.showBack = true,
+  });
 
   final String title;
   final VoidCallback? onHelp;
+
+  /// Defaults to `context.pop()` when null.
+  final VoidCallback? onBack;
+
+  /// False removes the back arrow entirely, instead of just disabling it.
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
@@ -180,14 +243,17 @@ class WizardHeader extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(4.w, 10.h, 16.w, 4.h),
           child: Row(
             children: [
-              IconButton(
-                onPressed: () => context.pop(),
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: AppColors.textDark,
-                  size: 22.r,
-                ),
-              ),
+              if (showBack)
+                IconButton(
+                  onPressed: onBack ?? () => context.pop(),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: AppColors.textDark,
+                    size: 22.r,
+                  ),
+                )
+              else
+                SizedBox(width: 48.r, height: 48.r),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),

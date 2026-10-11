@@ -1130,7 +1130,11 @@ $OnboardingStatusDataDtoCopyWith<$Res> get data {
 /// @nodoc
 mixin _$OnboardingStatusDataDto {
 
-@JsonKey(name: 'isCompleted') bool get isCompleted;
+@JsonKey(name: 'isCompleted') bool get isCompleted;/// Which wizard section the user has yet to finish (4 Basics, 5
+/// Background & faith, 6 Lifestyle & personality, 7 Bio — matching
+/// `OnboardingSubmissionRepository`'s step literals). Defaults to 4
+/// (the first section) if the backend omits it.
+@JsonKey(name: 'currentStep') int get currentStep; OnboardingStatusUserDto? get user;
 /// Create a copy of OnboardingStatusDataDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1143,16 +1147,16 @@ $OnboardingStatusDataDtoCopyWith<OnboardingStatusDataDto> get copyWith => _$Onbo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingStatusDataDto&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingStatusDataDto&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.user, user) || other.user == user));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,isCompleted);
+int get hashCode => Object.hash(runtimeType,isCompleted,currentStep,user);
 
 @override
 String toString() {
-  return 'OnboardingStatusDataDto(isCompleted: $isCompleted)';
+  return 'OnboardingStatusDataDto(isCompleted: $isCompleted, currentStep: $currentStep, user: $user)';
 }
 
 
@@ -1163,11 +1167,11 @@ abstract mixin class $OnboardingStatusDataDtoCopyWith<$Res>  {
   factory $OnboardingStatusDataDtoCopyWith(OnboardingStatusDataDto value, $Res Function(OnboardingStatusDataDto) _then) = _$OnboardingStatusDataDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'isCompleted') bool isCompleted
+@JsonKey(name: 'isCompleted') bool isCompleted,@JsonKey(name: 'currentStep') int currentStep, OnboardingStatusUserDto? user
 });
 
 
-
+$OnboardingStatusUserDtoCopyWith<$Res>? get user;
 
 }
 /// @nodoc
@@ -1180,13 +1184,27 @@ class _$OnboardingStatusDataDtoCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingStatusDataDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isCompleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isCompleted = null,Object? currentStep = null,Object? user = freezed,}) {
   return _then(_self.copyWith(
 isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
+as int,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
+as OnboardingStatusUserDto?,
   ));
 }
+/// Create a copy of OnboardingStatusDataDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OnboardingStatusUserDtoCopyWith<$Res>? get user {
+    if (_self.user == null) {
+    return null;
+  }
 
+  return $OnboardingStatusUserDtoCopyWith<$Res>(_self.user!, (value) {
+    return _then(_self.copyWith(user: value));
+  });
+}
 }
 
 
@@ -1268,10 +1286,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'isCompleted')  bool isCompleted)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'isCompleted')  bool isCompleted, @JsonKey(name: 'currentStep')  int currentStep,  OnboardingStatusUserDto? user)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingStatusDataDto() when $default != null:
-return $default(_that.isCompleted);case _:
+return $default(_that.isCompleted,_that.currentStep,_that.user);case _:
   return orElse();
 
 }
@@ -1289,10 +1307,10 @@ return $default(_that.isCompleted);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'isCompleted')  bool isCompleted)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'isCompleted')  bool isCompleted, @JsonKey(name: 'currentStep')  int currentStep,  OnboardingStatusUserDto? user)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingStatusDataDto():
-return $default(_that.isCompleted);case _:
+return $default(_that.isCompleted,_that.currentStep,_that.user);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1309,10 +1327,10 @@ return $default(_that.isCompleted);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'isCompleted')  bool isCompleted)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'isCompleted')  bool isCompleted, @JsonKey(name: 'currentStep')  int currentStep,  OnboardingStatusUserDto? user)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingStatusDataDto() when $default != null:
-return $default(_that.isCompleted);case _:
+return $default(_that.isCompleted,_that.currentStep,_that.user);case _:
   return null;
 
 }
@@ -1324,10 +1342,16 @@ return $default(_that.isCompleted);case _:
 @JsonSerializable()
 
 class _OnboardingStatusDataDto implements OnboardingStatusDataDto {
-  const _OnboardingStatusDataDto({@JsonKey(name: 'isCompleted') required this.isCompleted});
+  const _OnboardingStatusDataDto({@JsonKey(name: 'isCompleted') required this.isCompleted, @JsonKey(name: 'currentStep') this.currentStep = 4, this.user});
   factory _OnboardingStatusDataDto.fromJson(Map<String, dynamic> json) => _$OnboardingStatusDataDtoFromJson(json);
 
 @override@JsonKey(name: 'isCompleted') final  bool isCompleted;
+/// Which wizard section the user has yet to finish (4 Basics, 5
+/// Background & faith, 6 Lifestyle & personality, 7 Bio — matching
+/// `OnboardingSubmissionRepository`'s step literals). Defaults to 4
+/// (the first section) if the backend omits it.
+@override@JsonKey(name: 'currentStep') final  int currentStep;
+@override final  OnboardingStatusUserDto? user;
 
 /// Create a copy of OnboardingStatusDataDto
 /// with the given fields replaced by the non-null parameter values.
@@ -1342,16 +1366,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingStatusDataDto&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingStatusDataDto&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.user, user) || other.user == user));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,isCompleted);
+int get hashCode => Object.hash(runtimeType,isCompleted,currentStep,user);
 
 @override
 String toString() {
-  return 'OnboardingStatusDataDto(isCompleted: $isCompleted)';
+  return 'OnboardingStatusDataDto(isCompleted: $isCompleted, currentStep: $currentStep, user: $user)';
 }
 
 
@@ -1362,11 +1386,11 @@ abstract mixin class _$OnboardingStatusDataDtoCopyWith<$Res> implements $Onboard
   factory _$OnboardingStatusDataDtoCopyWith(_OnboardingStatusDataDto value, $Res Function(_OnboardingStatusDataDto) _then) = __$OnboardingStatusDataDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'isCompleted') bool isCompleted
+@JsonKey(name: 'isCompleted') bool isCompleted,@JsonKey(name: 'currentStep') int currentStep, OnboardingStatusUserDto? user
 });
 
 
-
+@override $OnboardingStatusUserDtoCopyWith<$Res>? get user;
 
 }
 /// @nodoc
@@ -1379,9 +1403,286 @@ class __$OnboardingStatusDataDtoCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingStatusDataDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isCompleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isCompleted = null,Object? currentStep = null,Object? user = freezed,}) {
   return _then(_OnboardingStatusDataDto(
 isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
+as bool,currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
+as int,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
+as OnboardingStatusUserDto?,
+  ));
+}
+
+/// Create a copy of OnboardingStatusDataDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OnboardingStatusUserDtoCopyWith<$Res>? get user {
+    if (_self.user == null) {
+    return null;
+  }
+
+  return $OnboardingStatusUserDtoCopyWith<$Res>(_self.user!, (value) {
+    return _then(_self.copyWith(user: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$OnboardingStatusUserDto {
+
+ bool get isPhoneVerified;
+/// Create a copy of OnboardingStatusUserDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OnboardingStatusUserDtoCopyWith<OnboardingStatusUserDto> get copyWith => _$OnboardingStatusUserDtoCopyWithImpl<OnboardingStatusUserDto>(this as OnboardingStatusUserDto, _$identity);
+
+  /// Serializes this OnboardingStatusUserDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingStatusUserDto&&(identical(other.isPhoneVerified, isPhoneVerified) || other.isPhoneVerified == isPhoneVerified));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,isPhoneVerified);
+
+@override
+String toString() {
+  return 'OnboardingStatusUserDto(isPhoneVerified: $isPhoneVerified)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OnboardingStatusUserDtoCopyWith<$Res>  {
+  factory $OnboardingStatusUserDtoCopyWith(OnboardingStatusUserDto value, $Res Function(OnboardingStatusUserDto) _then) = _$OnboardingStatusUserDtoCopyWithImpl;
+@useResult
+$Res call({
+ bool isPhoneVerified
+});
+
+
+
+
+}
+/// @nodoc
+class _$OnboardingStatusUserDtoCopyWithImpl<$Res>
+    implements $OnboardingStatusUserDtoCopyWith<$Res> {
+  _$OnboardingStatusUserDtoCopyWithImpl(this._self, this._then);
+
+  final OnboardingStatusUserDto _self;
+  final $Res Function(OnboardingStatusUserDto) _then;
+
+/// Create a copy of OnboardingStatusUserDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? isPhoneVerified = null,}) {
+  return _then(_self.copyWith(
+isPhoneVerified: null == isPhoneVerified ? _self.isPhoneVerified : isPhoneVerified // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OnboardingStatusUserDto].
+extension OnboardingStatusUserDtoPatterns on OnboardingStatusUserDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OnboardingStatusUserDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OnboardingStatusUserDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OnboardingStatusUserDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isPhoneVerified)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto() when $default != null:
+return $default(_that.isPhoneVerified);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isPhoneVerified)  $default,) {final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto():
+return $default(_that.isPhoneVerified);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isPhoneVerified)?  $default,) {final _that = this;
+switch (_that) {
+case _OnboardingStatusUserDto() when $default != null:
+return $default(_that.isPhoneVerified);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OnboardingStatusUserDto implements OnboardingStatusUserDto {
+  const _OnboardingStatusUserDto({this.isPhoneVerified = false});
+  factory _OnboardingStatusUserDto.fromJson(Map<String, dynamic> json) => _$OnboardingStatusUserDtoFromJson(json);
+
+@override@JsonKey() final  bool isPhoneVerified;
+
+/// Create a copy of OnboardingStatusUserDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OnboardingStatusUserDtoCopyWith<_OnboardingStatusUserDto> get copyWith => __$OnboardingStatusUserDtoCopyWithImpl<_OnboardingStatusUserDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OnboardingStatusUserDtoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingStatusUserDto&&(identical(other.isPhoneVerified, isPhoneVerified) || other.isPhoneVerified == isPhoneVerified));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,isPhoneVerified);
+
+@override
+String toString() {
+  return 'OnboardingStatusUserDto(isPhoneVerified: $isPhoneVerified)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OnboardingStatusUserDtoCopyWith<$Res> implements $OnboardingStatusUserDtoCopyWith<$Res> {
+  factory _$OnboardingStatusUserDtoCopyWith(_OnboardingStatusUserDto value, $Res Function(_OnboardingStatusUserDto) _then) = __$OnboardingStatusUserDtoCopyWithImpl;
+@override @useResult
+$Res call({
+ bool isPhoneVerified
+});
+
+
+
+
+}
+/// @nodoc
+class __$OnboardingStatusUserDtoCopyWithImpl<$Res>
+    implements _$OnboardingStatusUserDtoCopyWith<$Res> {
+  __$OnboardingStatusUserDtoCopyWithImpl(this._self, this._then);
+
+  final _OnboardingStatusUserDto _self;
+  final $Res Function(_OnboardingStatusUserDto) _then;
+
+/// Create a copy of OnboardingStatusUserDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? isPhoneVerified = null,}) {
+  return _then(_OnboardingStatusUserDto(
+isPhoneVerified: null == isPhoneVerified ? _self.isPhoneVerified : isPhoneVerified // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

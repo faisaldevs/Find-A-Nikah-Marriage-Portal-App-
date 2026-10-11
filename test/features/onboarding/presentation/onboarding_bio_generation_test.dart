@@ -23,16 +23,20 @@ void main() {
   late FakeOnboardingDraftRepository drafts;
   late MockPhotoPickerRepository photos;
   late _FakeAiBioRepository aiBio;
+  late MockOnboardingSubmissionRepository submissions;
+  late MockOnboardingProfileRepository profile;
 
   setUp(() {
     drafts = FakeOnboardingDraftRepository();
     photos = MockPhotoPickerRepository();
     aiBio = _FakeAiBioRepository(right('Generated profile bio'));
+    submissions = MockOnboardingSubmissionRepository();
+    profile = MockOnboardingProfileRepository();
   });
 
   blocTest<OnboardingBloc, OnboardingState>(
     'generates and saves the returned bio',
-    build: () => OnboardingBloc(drafts, photos, aiBio),
+    build: () => OnboardingBloc(drafts, photos, aiBio, submissions, profile),
     act: (bloc) => bloc.add(const BioGenerationRequested()),
     expect: () => [
       const OnboardingState(
@@ -55,7 +59,7 @@ void main() {
     setUp: () {
       aiBio = _FakeAiBioRepository(left(const ServerFailure()));
     },
-    build: () => OnboardingBloc(drafts, photos, aiBio),
+    build: () => OnboardingBloc(drafts, photos, aiBio, submissions, profile),
     act: (bloc) => bloc.add(const BioGenerationRequested()),
     expect: () => [
       const OnboardingState(

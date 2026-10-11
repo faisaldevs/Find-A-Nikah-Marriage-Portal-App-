@@ -52,10 +52,16 @@ final List<RouteBase> appRoutes = [
     builder: (_, _, child) => BlocProvider(
       create: (_) =>
           getIt<OnboardingBloc>()..add(const OnboardingDraftSubscribed()),
-      child: RoutedWizardShell(sections: profileWizardSections, child: child),
+      child: RoutedWizardShell(
+        sections: profileWizardSections,
+        exitPath: RoutePaths.getStarted,
+        child: child,
+      ),
     ),
     routes: [
       _page(RoutePaths.accountType, const AccountTypePage()),
+      _page(RoutePaths.relationship, const RelationshipPage()),
+      _page(RoutePaths.basicInformation, const BasicInformationPage()),
       _page(RoutePaths.intentions, const IntentionsPage()),
       _page(RoutePaths.howHeard, const HowHeardPage()),
       _page(RoutePaths.nationality, const NationalityPage()),
@@ -76,23 +82,46 @@ final List<RouteBase> appRoutes = [
     ],
   ),
 
-  // Verification part: phone → photos → face verification. Its pages come
-  // from three features, so the blocs they share are provided here.
+  // Phone verification: its own shell, own progress bar, own bloc — fully
+  // separate from photo/face verification below, not just a different
+  // wizard section. Once verified it's locked (see `hideBackFor` on the
+  // next shell); a user must finish this before starting the next layer.
+  ShellRoute(
+    builder: (_, _, child) => BlocProvider(
+      create: (_) => getIt<PhoneVerificationBloc>(),
+      child: RoutedWizardShell(
+        sections: phoneVerificationSections,
+        exitPath: RoutePaths.bio,
+        child: child,
+      ),
+    ),
+    routes: [
+      _page(RoutePaths.phoneNumber, const PhoneNumberPage()),
+      _page(RoutePaths.phoneCode, const PhoneCodePage()),
+    ],
+  ),
+
+  // Photo + face verification: a separate layer from phone above — its
+  // own shell, own progress bar, own blocs. Adding a photo immediately
+  // drives the face check against it, so these are one flow, not two.
   ShellRoute(
     builder: (_, _, child) => MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<PhoneVerificationBloc>()),
         BlocProvider(
           create: (_) =>
               getIt<OnboardingBloc>()..add(const OnboardingDraftSubscribed()),
         ),
         BlocProvider(create: (_) => getIt<FaceVerificationBloc>()),
       ],
-      child: RoutedWizardShell(sections: verificationSections, child: child),
+      child: RoutedWizardShell(
+        sections: photoFaceVerificationSections,
+        // No way back into the phone layer from here — it's a separate,
+        // already-completed shell, not a section of this one.
+        hideBackFor: const {RoutePaths.addPhotos},
+        child: child,
+      ),
     ),
     routes: [
-      _page(RoutePaths.phoneNumber, const PhoneNumberPage()),
-      _page(RoutePaths.phoneCode, const PhoneCodePage()),
       _page(RoutePaths.addPhotos, const AddPhotosPage()),
       // `extra` carries the main onboarding photo.
       GoRoute(

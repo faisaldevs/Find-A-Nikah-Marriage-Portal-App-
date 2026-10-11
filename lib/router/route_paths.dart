@@ -15,6 +15,10 @@ abstract final class RoutePaths {
 
   // Profile wizard — order matches the reference mockups exactly.
   static const accountType = '/onboarding/account-type';
+
+  /// Family flow only — "Who are you creating this profile for?"
+  static const relationship = '/onboarding/relationship';
+  static const basicInformation = '/onboarding/basic-information';
   static const intentions = '/onboarding/intentions';
   static const howHeard = '/onboarding/how-heard';
   static const nationality = '/onboarding/nationality';
@@ -87,6 +91,8 @@ abstract final class RoutePaths {
   static const Set<String> onboarding = {
     getStarted,
     accountType,
+    relationship,
+    basicInformation,
     intentions,
     howHeard,
     nationality,

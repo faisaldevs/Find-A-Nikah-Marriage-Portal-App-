@@ -81,10 +81,15 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
     setState(() {});
   }
 
+  // ignore: unused_element — only used by the commented-out API call below.
   String get _code => _controllers.map((c) => c.text.trim()).join();
 
-  void _submit() =>
-      context.read<PhoneVerificationBloc>().add(PhoneCodeSubmitted(_code));
+  void _submit() {
+    // TODO(phone-api): no phone verification API yet — skip straight to
+    // photos. Re-enable once it exists.
+    // context.read<PhoneVerificationBloc>().add(PhoneCodeSubmitted(_code));
+    context.push<void>(RoutePaths.addPhotos).ignore();
+  }
 
   void _resend() {
     context.read<PhoneVerificationBloc>().add(const PhoneCodeResendRequested());

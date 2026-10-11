@@ -32,39 +32,59 @@ class _BioPageState extends State<BioPage> {
     super.dispose();
   }
 
-  void _next() {
+  void _submit() {
     context.read<OnboardingBloc>().add(
       OnboardingAnswerSaved((d) => d.copyWith(bio: _controller.text.trim())),
     );
-    // End of the Profile part → Verification part starts with phone.
-    context.push<void>(RoutePaths.phoneNumber).ignore();
-    // context.push<void>(RoutePaths.addPhotos);  // photos now come after the phone OTP
+    context.read<OnboardingBloc>().add(const BioSubmitted());
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<OnboardingBloc>().state;
     final hasBio = _controller.text.trim().isNotEmpty;
-    return BlocListener<OnboardingBloc, OnboardingState>(
-      listenWhen: (previous, current) =>
-          (previous.generatingBio && !current.generatingBio) ||
-          (current.failure != null && previous.failure != current.failure),
-      listener: (context, state) {
-        if (state.failure != null) {
-          showFailureToast(context, state.failure!);
-        }
-        if (state.generatedBio case final bio?) {
-          setState(() {
-            _controller.value = TextEditingValue(
-              text: bio,
-              selection: TextSelection.collapsed(offset: bio.length),
-            );
-          });
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<OnboardingBloc, OnboardingState>(
+          listenWhen: (previous, current) =>
+              previous.generatingBio && !current.generatingBio,
+          listener: (context, state) {
+            if (state.failure != null) {
+              showFailureToast(context, state.failure!);
+            }
+            if (state.generatedBio case final bio?) {
+              setState(() {
+                _controller.value = TextEditingValue(
+                  text: bio,
+                  selection: TextSelection.collapsed(offset: bio.length),
+                );
+              });
+            }
+          },
+        ),
+        BlocListener<OnboardingBloc, OnboardingState>(
+          listenWhen: (previous, current) =>
+              previous.submittingStep && !current.submittingStep,
+          listener: (context, state) {
+            if (state.failure != null) {
+              showFailureToast(context, state.failure!);
+            } else {
+              // End of the Profile part → Verification part starts with
+              // phone.
+              context.push<void>(RoutePaths.phoneNumber).ignore();
+            }
+          },
+        ),
+      ],
       child: WizardScaffold(
-        continueLabel: hasBio ? 'Add this bio' : 'Add bio',
-        onContinue: hasBio && !state.generatingBio ? _next : null,
+        continueLabel: state.submittingStep
+            ? 'Saving...'
+            : hasBio
+            ? 'Add this bio'
+            : 'Add bio',
+        onContinue: hasBio && !state.generatingBio && !state.submittingStep
+            ? _submit
+            : null,
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Column(

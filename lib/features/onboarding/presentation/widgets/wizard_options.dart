@@ -28,13 +28,41 @@ const lookingForIntentOptions = [
   WizardOption('curious', "I'm just curious about Find A Nikah"),
 ];
 
+/// Religion dropdown on Basic Information. Values are a best guess pending
+/// confirmation of the backend's accepted set — only `islam` is confirmed
+/// (from the API example).
+const religionOptions = [
+  WizardOption('islam', 'Islam'),
+  WizardOption('christianity', 'Christianity'),
+  WizardOption('hinduism', 'Hinduism'),
+  WizardOption('buddhism', 'Buddhism'),
+  WizardOption('other', 'Other'),
+];
+
+/// Language multi-select on Basic Information. Not currently sent to the
+/// backend — no field name confirmed yet — captured locally only.
+const languageOptions = [
+  'English',
+  'Bengali',
+  'Hindi',
+  'Tamil',
+  'Malay',
+  'French',
+  'Bahasa',
+  'Spanish',
+];
+
+/// Values confirmed against the backend's `referralSource` validation error
+/// (`social_media, friend_or_family, influencer, ai_recommendation,
+/// success_couple, google_play_store, apple_app_store, advertisement,
+/// other`) — the app offers a subset of the accepted values.
 const howHeardOptions = [
   WizardOption('social_media', 'Social Media'),
-  WizardOption('friends_family', 'Friends or Family'),
+  WizardOption('friend_or_family', 'Friends or Family'),
   WizardOption('influencer', 'Influencer'),
   WizardOption('ai_recommendation', 'AI recommendation'),
   WizardOption('success_couple', 'I know a success couple'),
-  WizardOption('play_store', 'Google play store'),
+  WizardOption('google_play_store', 'Google play store'),
 ];
 
 const educationOptions = [

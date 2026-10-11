@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OnboardingState {
 
- OnboardingData get draft; bool get pickingPhotos; bool get generatingBio; String? get generatedBio;/// Shown once by the page's listener.
+ OnboardingData get draft; bool get pickingPhotos; bool get generatingBio; String? get generatedBio;/// True while a `*Submitted` section PATCH is in flight.
+ bool get submittingStep;/// Shown once by the page's listener.
  Failure? get failure;
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
@@ -26,16 +27,16 @@ $OnboardingStateCopyWith<OnboardingState> get copyWith => _$OnboardingStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.draft, draft) || other.draft == draft)&&(identical(other.pickingPhotos, pickingPhotos) || other.pickingPhotos == pickingPhotos)&&(identical(other.generatingBio, generatingBio) || other.generatingBio == generatingBio)&&(identical(other.generatedBio, generatedBio) || other.generatedBio == generatedBio)&&(identical(other.failure, failure) || other.failure == failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.draft, draft) || other.draft == draft)&&(identical(other.pickingPhotos, pickingPhotos) || other.pickingPhotos == pickingPhotos)&&(identical(other.generatingBio, generatingBio) || other.generatingBio == generatingBio)&&(identical(other.generatedBio, generatedBio) || other.generatedBio == generatedBio)&&(identical(other.submittingStep, submittingStep) || other.submittingStep == submittingStep)&&(identical(other.failure, failure) || other.failure == failure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,draft,pickingPhotos,generatingBio,generatedBio,failure);
+int get hashCode => Object.hash(runtimeType,draft,pickingPhotos,generatingBio,generatedBio,submittingStep,failure);
 
 @override
 String toString() {
-  return 'OnboardingState(draft: $draft, pickingPhotos: $pickingPhotos, generatingBio: $generatingBio, generatedBio: $generatedBio, failure: $failure)';
+  return 'OnboardingState(draft: $draft, pickingPhotos: $pickingPhotos, generatingBio: $generatingBio, generatedBio: $generatedBio, submittingStep: $submittingStep, failure: $failure)';
 }
 
 
@@ -46,7 +47,7 @@ abstract mixin class $OnboardingStateCopyWith<$Res>  {
   factory $OnboardingStateCopyWith(OnboardingState value, $Res Function(OnboardingState) _then) = _$OnboardingStateCopyWithImpl;
 @useResult
 $Res call({
- OnboardingData draft, bool pickingPhotos, bool generatingBio, String? generatedBio, Failure? failure
+ OnboardingData draft, bool pickingPhotos, bool generatingBio, String? generatedBio, bool submittingStep, Failure? failure
 });
 
 
@@ -63,13 +64,14 @@ class _$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? draft = null,Object? pickingPhotos = null,Object? generatingBio = null,Object? generatedBio = freezed,Object? failure = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? draft = null,Object? pickingPhotos = null,Object? generatingBio = null,Object? generatedBio = freezed,Object? submittingStep = null,Object? failure = freezed,}) {
   return _then(_self.copyWith(
 draft: null == draft ? _self.draft : draft // ignore: cast_nullable_to_non_nullable
 as OnboardingData,pickingPhotos: null == pickingPhotos ? _self.pickingPhotos : pickingPhotos // ignore: cast_nullable_to_non_nullable
 as bool,generatingBio: null == generatingBio ? _self.generatingBio : generatingBio // ignore: cast_nullable_to_non_nullable
 as bool,generatedBio: freezed == generatedBio ? _self.generatedBio : generatedBio // ignore: cast_nullable_to_non_nullable
-as String?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as String?,submittingStep: null == submittingStep ? _self.submittingStep : submittingStep // ignore: cast_nullable_to_non_nullable
+as bool,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }
@@ -164,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  bool submittingStep,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.failure);case _:
+return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.submittingStep,_that.failure);case _:
   return orElse();
 
 }
@@ -185,10 +187,10 @@ return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.genera
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  Failure? failure)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  bool submittingStep,  Failure? failure)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState():
-return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.failure);case _:
+return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.submittingStep,_that.failure);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +207,10 @@ return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.genera
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  Failure? failure)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingData draft,  bool pickingPhotos,  bool generatingBio,  String? generatedBio,  bool submittingStep,  Failure? failure)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.failure);case _:
+return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.generatedBio,_that.submittingStep,_that.failure);case _:
   return null;
 
 }
@@ -220,13 +222,15 @@ return $default(_that.draft,_that.pickingPhotos,_that.generatingBio,_that.genera
 
 
 class _OnboardingState implements OnboardingState {
-  const _OnboardingState({required this.draft, this.pickingPhotos = false, this.generatingBio = false, this.generatedBio, this.failure});
+  const _OnboardingState({required this.draft, this.pickingPhotos = false, this.generatingBio = false, this.generatedBio, this.submittingStep = false, this.failure});
   
 
 @override final  OnboardingData draft;
 @override@JsonKey() final  bool pickingPhotos;
 @override@JsonKey() final  bool generatingBio;
 @override final  String? generatedBio;
+/// True while a `*Submitted` section PATCH is in flight.
+@override@JsonKey() final  bool submittingStep;
 /// Shown once by the page's listener.
 @override final  Failure? failure;
 
@@ -240,16 +244,16 @@ _$OnboardingStateCopyWith<_OnboardingState> get copyWith => __$OnboardingStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.draft, draft) || other.draft == draft)&&(identical(other.pickingPhotos, pickingPhotos) || other.pickingPhotos == pickingPhotos)&&(identical(other.generatingBio, generatingBio) || other.generatingBio == generatingBio)&&(identical(other.generatedBio, generatedBio) || other.generatedBio == generatedBio)&&(identical(other.failure, failure) || other.failure == failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.draft, draft) || other.draft == draft)&&(identical(other.pickingPhotos, pickingPhotos) || other.pickingPhotos == pickingPhotos)&&(identical(other.generatingBio, generatingBio) || other.generatingBio == generatingBio)&&(identical(other.generatedBio, generatedBio) || other.generatedBio == generatedBio)&&(identical(other.submittingStep, submittingStep) || other.submittingStep == submittingStep)&&(identical(other.failure, failure) || other.failure == failure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,draft,pickingPhotos,generatingBio,generatedBio,failure);
+int get hashCode => Object.hash(runtimeType,draft,pickingPhotos,generatingBio,generatedBio,submittingStep,failure);
 
 @override
 String toString() {
-  return 'OnboardingState(draft: $draft, pickingPhotos: $pickingPhotos, generatingBio: $generatingBio, generatedBio: $generatedBio, failure: $failure)';
+  return 'OnboardingState(draft: $draft, pickingPhotos: $pickingPhotos, generatingBio: $generatingBio, generatedBio: $generatedBio, submittingStep: $submittingStep, failure: $failure)';
 }
 
 
@@ -260,7 +264,7 @@ abstract mixin class _$OnboardingStateCopyWith<$Res> implements $OnboardingState
   factory _$OnboardingStateCopyWith(_OnboardingState value, $Res Function(_OnboardingState) _then) = __$OnboardingStateCopyWithImpl;
 @override @useResult
 $Res call({
- OnboardingData draft, bool pickingPhotos, bool generatingBio, String? generatedBio, Failure? failure
+ OnboardingData draft, bool pickingPhotos, bool generatingBio, String? generatedBio, bool submittingStep, Failure? failure
 });
 
 
@@ -277,13 +281,14 @@ class __$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? draft = null,Object? pickingPhotos = null,Object? generatingBio = null,Object? generatedBio = freezed,Object? failure = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? draft = null,Object? pickingPhotos = null,Object? generatingBio = null,Object? generatedBio = freezed,Object? submittingStep = null,Object? failure = freezed,}) {
   return _then(_OnboardingState(
 draft: null == draft ? _self.draft : draft // ignore: cast_nullable_to_non_nullable
 as OnboardingData,pickingPhotos: null == pickingPhotos ? _self.pickingPhotos : pickingPhotos // ignore: cast_nullable_to_non_nullable
 as bool,generatingBio: null == generatingBio ? _self.generatingBio : generatingBio // ignore: cast_nullable_to_non_nullable
 as bool,generatedBio: freezed == generatedBio ? _self.generatedBio : generatedBio // ignore: cast_nullable_to_non_nullable
-as String?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as String?,submittingStep: null == submittingStep ? _self.submittingStep : submittingStep // ignore: cast_nullable_to_non_nullable
+as bool,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }

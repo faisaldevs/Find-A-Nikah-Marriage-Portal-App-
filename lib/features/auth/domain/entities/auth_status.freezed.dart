@@ -16,7 +16,12 @@ mixin _$UserSession {
 
  String get userId;/// False right after registration: the profile wizard, verification and
 /// discovery filters still have to be completed before the main app.
- bool get onboardingComplete;
+ bool get onboardingComplete;/// Mirrors the onboarding-status API's `currentStep` — which wizard
+/// section to resume into. See `resumeRouteFor` in `app_router.dart`.
+ int get resumeStep;/// Mirrors `user.isPhoneVerified` — once true, `resumeRouteFor` never
+/// routes back to the phone step (it's locked; change it from
+/// Settings instead).
+ bool get isPhoneVerified;
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,16 +32,16 @@ $UserSessionCopyWith<UserSession> get copyWith => _$UserSessionCopyWithImpl<User
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.onboardingComplete, onboardingComplete) || other.onboardingComplete == onboardingComplete));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.onboardingComplete, onboardingComplete) || other.onboardingComplete == onboardingComplete)&&(identical(other.resumeStep, resumeStep) || other.resumeStep == resumeStep)&&(identical(other.isPhoneVerified, isPhoneVerified) || other.isPhoneVerified == isPhoneVerified));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,userId,onboardingComplete);
+int get hashCode => Object.hash(runtimeType,userId,onboardingComplete,resumeStep,isPhoneVerified);
 
 @override
 String toString() {
-  return 'UserSession(userId: $userId, onboardingComplete: $onboardingComplete)';
+  return 'UserSession(userId: $userId, onboardingComplete: $onboardingComplete, resumeStep: $resumeStep, isPhoneVerified: $isPhoneVerified)';
 }
 
 
@@ -47,7 +52,7 @@ abstract mixin class $UserSessionCopyWith<$Res>  {
   factory $UserSessionCopyWith(UserSession value, $Res Function(UserSession) _then) = _$UserSessionCopyWithImpl;
 @useResult
 $Res call({
- String userId, bool onboardingComplete
+ String userId, bool onboardingComplete, int resumeStep, bool isPhoneVerified
 });
 
 
@@ -64,10 +69,12 @@ class _$UserSessionCopyWithImpl<$Res>
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? onboardingComplete = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? onboardingComplete = null,Object? resumeStep = null,Object? isPhoneVerified = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,onboardingComplete: null == onboardingComplete ? _self.onboardingComplete : onboardingComplete // ignore: cast_nullable_to_non_nullable
+as bool,resumeStep: null == resumeStep ? _self.resumeStep : resumeStep // ignore: cast_nullable_to_non_nullable
+as int,isPhoneVerified: null == isPhoneVerified ? _self.isPhoneVerified : isPhoneVerified // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -153,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  bool onboardingComplete)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  bool onboardingComplete,  int resumeStep,  bool isPhoneVerified)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserSession() when $default != null:
-return $default(_that.userId,_that.onboardingComplete);case _:
+return $default(_that.userId,_that.onboardingComplete,_that.resumeStep,_that.isPhoneVerified);case _:
   return orElse();
 
 }
@@ -174,10 +181,10 @@ return $default(_that.userId,_that.onboardingComplete);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  bool onboardingComplete)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  bool onboardingComplete,  int resumeStep,  bool isPhoneVerified)  $default,) {final _that = this;
 switch (_that) {
 case _UserSession():
-return $default(_that.userId,_that.onboardingComplete);case _:
+return $default(_that.userId,_that.onboardingComplete,_that.resumeStep,_that.isPhoneVerified);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +201,10 @@ return $default(_that.userId,_that.onboardingComplete);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  bool onboardingComplete)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  bool onboardingComplete,  int resumeStep,  bool isPhoneVerified)?  $default,) {final _that = this;
 switch (_that) {
 case _UserSession() when $default != null:
-return $default(_that.userId,_that.onboardingComplete);case _:
+return $default(_that.userId,_that.onboardingComplete,_that.resumeStep,_that.isPhoneVerified);case _:
   return null;
 
 }
@@ -209,13 +216,20 @@ return $default(_that.userId,_that.onboardingComplete);case _:
 
 
 class _UserSession implements UserSession {
-  const _UserSession({required this.userId, required this.onboardingComplete});
+  const _UserSession({required this.userId, required this.onboardingComplete, this.resumeStep = 4, this.isPhoneVerified = false});
   
 
 @override final  String userId;
 /// False right after registration: the profile wizard, verification and
 /// discovery filters still have to be completed before the main app.
 @override final  bool onboardingComplete;
+/// Mirrors the onboarding-status API's `currentStep` — which wizard
+/// section to resume into. See `resumeRouteFor` in `app_router.dart`.
+@override@JsonKey() final  int resumeStep;
+/// Mirrors `user.isPhoneVerified` — once true, `resumeRouteFor` never
+/// routes back to the phone step (it's locked; change it from
+/// Settings instead).
+@override@JsonKey() final  bool isPhoneVerified;
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +241,16 @@ _$UserSessionCopyWith<_UserSession> get copyWith => __$UserSessionCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.onboardingComplete, onboardingComplete) || other.onboardingComplete == onboardingComplete));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.onboardingComplete, onboardingComplete) || other.onboardingComplete == onboardingComplete)&&(identical(other.resumeStep, resumeStep) || other.resumeStep == resumeStep)&&(identical(other.isPhoneVerified, isPhoneVerified) || other.isPhoneVerified == isPhoneVerified));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,userId,onboardingComplete);
+int get hashCode => Object.hash(runtimeType,userId,onboardingComplete,resumeStep,isPhoneVerified);
 
 @override
 String toString() {
-  return 'UserSession(userId: $userId, onboardingComplete: $onboardingComplete)';
+  return 'UserSession(userId: $userId, onboardingComplete: $onboardingComplete, resumeStep: $resumeStep, isPhoneVerified: $isPhoneVerified)';
 }
 
 
@@ -247,7 +261,7 @@ abstract mixin class _$UserSessionCopyWith<$Res> implements $UserSessionCopyWith
   factory _$UserSessionCopyWith(_UserSession value, $Res Function(_UserSession) _then) = __$UserSessionCopyWithImpl;
 @override @useResult
 $Res call({
- String userId, bool onboardingComplete
+ String userId, bool onboardingComplete, int resumeStep, bool isPhoneVerified
 });
 
 
@@ -264,10 +278,12 @@ class __$UserSessionCopyWithImpl<$Res>
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? onboardingComplete = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? onboardingComplete = null,Object? resumeStep = null,Object? isPhoneVerified = null,}) {
   return _then(_UserSession(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,onboardingComplete: null == onboardingComplete ? _self.onboardingComplete : onboardingComplete // ignore: cast_nullable_to_non_nullable
+as bool,resumeStep: null == resumeStep ? _self.resumeStep : resumeStep // ignore: cast_nullable_to_non_nullable
+as int,isPhoneVerified: null == isPhoneVerified ? _self.isPhoneVerified : isPhoneVerified // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -386,12 +402,12 @@ return unauthenticated(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unknown,TResult Function( UserSession session)?  authenticated,TResult Function()?  unauthenticated,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unknown,TResult Function( UserSession session)?  authenticated,TResult Function( SignedOutReason reason)?  unauthenticated,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AuthUnknown() when unknown != null:
 return unknown();case Authenticated() when authenticated != null:
 return authenticated(_that.session);case Unauthenticated() when unauthenticated != null:
-return unauthenticated();case _:
+return unauthenticated(_that.reason);case _:
   return orElse();
 
 }
@@ -409,12 +425,12 @@ return unauthenticated();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unknown,required TResult Function( UserSession session)  authenticated,required TResult Function()  unauthenticated,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unknown,required TResult Function( UserSession session)  authenticated,required TResult Function( SignedOutReason reason)  unauthenticated,}) {final _that = this;
 switch (_that) {
 case AuthUnknown():
 return unknown();case Authenticated():
 return authenticated(_that.session);case Unauthenticated():
-return unauthenticated();}
+return unauthenticated(_that.reason);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -428,12 +444,12 @@ return unauthenticated();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unknown,TResult? Function( UserSession session)?  authenticated,TResult? Function()?  unauthenticated,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unknown,TResult? Function( UserSession session)?  authenticated,TResult? Function( SignedOutReason reason)?  unauthenticated,}) {final _that = this;
 switch (_that) {
 case AuthUnknown() when unknown != null:
 return unknown();case Authenticated() when authenticated != null:
 return authenticated(_that.session);case Unauthenticated() when unauthenticated != null:
-return unauthenticated();case _:
+return unauthenticated(_that.reason);case _:
   return null;
 
 }
@@ -552,32 +568,66 @@ $UserSessionCopyWith<$Res> get session {
 
 
 class Unauthenticated implements AuthStatus {
-  const Unauthenticated();
+  const Unauthenticated({this.reason = SignedOutReason.freshInstall});
   
 
+@JsonKey() final  SignedOutReason reason;
 
-
+/// Create a copy of AuthStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UnauthenticatedCopyWith<Unauthenticated> get copyWith => _$UnauthenticatedCopyWithImpl<Unauthenticated>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Unauthenticated);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Unauthenticated&&(identical(other.reason, reason) || other.reason == reason));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,reason);
 
 @override
 String toString() {
-  return 'AuthStatus.unauthenticated()';
+  return 'AuthStatus.unauthenticated(reason: $reason)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $UnauthenticatedCopyWith<$Res> implements $AuthStatusCopyWith<$Res> {
+  factory $UnauthenticatedCopyWith(Unauthenticated value, $Res Function(Unauthenticated) _then) = _$UnauthenticatedCopyWithImpl;
+@useResult
+$Res call({
+ SignedOutReason reason
+});
 
 
+
+
+}
+/// @nodoc
+class _$UnauthenticatedCopyWithImpl<$Res>
+    implements $UnauthenticatedCopyWith<$Res> {
+  _$UnauthenticatedCopyWithImpl(this._self, this._then);
+
+  final Unauthenticated _self;
+  final $Res Function(Unauthenticated) _then;
+
+/// Create a copy of AuthStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? reason = null,}) {
+  return _then(Unauthenticated(
+reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as SignedOutReason,
+  ));
+}
+
+
+}
 
 // dart format on

@@ -12,10 +12,14 @@ import 'package:go_router/go_router.dart';
 
 /// Brief branded loading screen, shown while stored credentials are read.
 ///
-/// Signed-out users move on to the intro carousel once both the 1.2 s brand
-/// beat has passed *and* the auth status is known (a slow Keystore read on
-/// first launch must not swallow the navigation). Signed-in users never see
-/// the intro: the router redirects them as soon as the session is restored.
+/// Once both the 1.2 s brand beat has passed *and* the auth status is
+/// known (a slow Keystore read on first launch must not swallow the
+/// navigation), branches on [SignedOutReason]: a fresh install (or a
+/// one-shot login screen already shown with no sign-in since) moves on to
+/// the intro carousel; logout/expiry skip it, straight to login with a
+/// toast — shown once, then the repository resets to [SignedOutReason.
+/// freshInstall] for the next open. Signed-in users never see this
+/// redirect: the router sends them on as soon as the session is restored.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -26,6 +30,7 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage> {
   Timer? _timer;
   bool _beatDone = false;
+  bool _handledSignedOut = false;
 
   @override
   void initState() {
@@ -37,8 +42,22 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _maybeContinue(AuthStatus status) {
-    if (mounted && _beatDone && status is Unauthenticated) {
-      context.go(RoutePaths.intro);
+    if (!mounted ||
+        !_beatDone ||
+        status is! Unauthenticated ||
+        _handledSignedOut) {
+      return;
+    }
+    _handledSignedOut = true;
+    switch (status.reason) {
+      case SignedOutReason.freshInstall:
+        context.go(RoutePaths.intro);
+      case SignedOutReason.loggedOut:
+        CustomToast.showInfo(context, 'Signed out successfully');
+        context.go(RoutePaths.login);
+      case SignedOutReason.sessionExpired:
+        CustomToast.showInfo(context, 'Session expired, please log in again');
+        context.go(RoutePaths.login);
     }
   }
 

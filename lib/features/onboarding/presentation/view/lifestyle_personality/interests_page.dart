@@ -34,55 +34,67 @@ class _InterestsPageState extends State<InterestsPage> {
     });
   }
 
-  void _next() => context.push<void>(RoutePaths.bio).ignore();
+  void _submit() {
+    context.read<OnboardingBloc>().add(
+      OnboardingAnswerSaved((d) => d.copyWith(interests: _selected.toList())),
+    );
+    context.read<OnboardingBloc>().add(const LifestylePersonalitySubmitted());
+  }
 
   @override
   Widget build(BuildContext context) {
+    final submitting = context.select<OnboardingBloc, bool>(
+      (b) => b.state.submittingStep,
+    );
     final atMax = _selected.length >= _maxSelections;
     final allOptions = interestCategories.values.expand((v) => v).toSet();
-    return WizardScaffold(
-      showSkip: true,
-      onSkip: _next,
-      continueLabel: _selected.isEmpty
-          ? 'Continue'
-          : 'Select (${_selected.length})',
-      onContinue: _selected.isEmpty
-          ? null
-          : () {
-              context.read<OnboardingBloc>().add(
-                OnboardingAnswerSaved(
-                  (d) => d.copyWith(interests: _selected.toList()),
+    return BlocListener<OnboardingBloc, OnboardingState>(
+      listenWhen: (prev, next) => prev.submittingStep && !next.submittingStep,
+      listener: (context, state) {
+        if (state.failure != null) {
+          showFailureToast(context, state.failure!);
+        } else {
+          context.push<void>(RoutePaths.bio).ignore();
+        }
+      },
+      child: WizardScaffold(
+        showSkip: true,
+        onSkip: submitting ? null : _submit,
+        continueLabel: submitting
+            ? 'Saving...'
+            : _selected.isEmpty
+            ? 'Continue'
+            : 'Select (${_selected.length})',
+        onContinue: _selected.isEmpty || submitting ? null : _submit,
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const WizardHeadline(
+                text: 'What are your interests?',
+                subtitle:
+                    'Select up to 15 interests to make your profile stand '
+                    'out!',
+                padding: EdgeInsets.zero,
+              ),
+              for (final entry in interestCategories.entries) ...[
+                SizedBox(height: 24.h),
+                Text(
+                  entry.key,
+                  style: TextFontStyle.headline16w700textDarkStyleSatoshi,
                 ),
-              );
-              _next();
-            },
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 20.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const WizardHeadline(
-              text: 'What are your interests?',
-              subtitle:
-                  'Select up to 15 interests to make your profile stand out!',
-              padding: EdgeInsets.zero,
-            ),
-            for (final entry in interestCategories.entries) ...[
-              SizedBox(height: 24.h),
-              Text(
-                entry.key,
-                style: TextFontStyle.headline16w700textDarkStyleSatoshi,
-              ),
-              SizedBox(height: 12.h),
-              WizardChipGroup(
-                options: entry.value,
-                selected: _selected,
-                onTap: _toggle,
-                disabled: atMax ? allOptions : {},
-              ),
+                SizedBox(height: 12.h),
+                WizardChipGroup(
+                  options: entry.value,
+                  selected: _selected,
+                  onTap: _toggle,
+                  disabled: atMax ? allOptions : {},
+                ),
+              ],
+              SizedBox(height: 20.h),
             ],
-            SizedBox(height: 20.h),
-          ],
+          ),
         ),
       ),
     );

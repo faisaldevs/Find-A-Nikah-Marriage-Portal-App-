@@ -60,6 +60,8 @@ abstract interface class AuthRepository {
   Future<void> deleteCredentials();
 
   /// Sign-out step 5: emits `unauthenticated` so the router navigates to
-  /// the signed-out route.
-  void markSignedOut();
+  /// the signed-out route, then consumes the one-shot "has signed in"
+  /// flag — awaited so a logout immediately followed by the app closing
+  /// can't leave it unconsumed.
+  Future<void> markSignedOut();
 }

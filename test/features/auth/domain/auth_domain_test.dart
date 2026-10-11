@@ -44,7 +44,7 @@ void main() {
       ).thenAnswer((_) async => calls.add('close'));
       when(auth.deleteCredentials).thenAnswer((_) async => calls.add('delete'));
       when(session.end).thenAnswer((_) async => calls.add('end'));
-      when(auth.markSignedOut).thenAnswer((_) => calls.add('signedOut'));
+      when(auth.markSignedOut).thenAnswer((_) async => calls.add('signedOut'));
     });
 
     test('runs the guide\'s five steps in order and never fails', () async {

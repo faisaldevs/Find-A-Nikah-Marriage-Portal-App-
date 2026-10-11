@@ -1,13 +1,16 @@
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 
-/// The Profile part's 3 progress-bar sections (Account type → Bio), in flow
+/// The Profile part's 4 progress-bar sections (Account type → Bio), in flow
 /// order. Single source of truth for the persistent wizard header — pages
 /// don't pass title/step.
 const WizardSections profileWizardSections = [
   // 1. Basics
   [
     (RoutePaths.accountType, 'Choose account type'),
+    // Family flow only — skipped for individual.
+    (RoutePaths.relationship, 'Relationship'),
+    (RoutePaths.basicInformation, 'Basic Information'),
     (RoutePaths.intentions, 'About Find A Nikah'),
     (RoutePaths.howHeard, 'About Find A Nikah'),
     (RoutePaths.nationality, 'Nationality'),
@@ -30,27 +33,35 @@ const WizardSections profileWizardSections = [
     (RoutePaths.aboutYou, 'About you'),
     (RoutePaths.personality, 'Personality'),
     (RoutePaths.interests, 'Interests'),
-    (RoutePaths.bio, 'Bio'),
   ],
+  // 4. Bio — its own backend step (7), separate from Lifestyle &
+  // personality (6); matches `OnboardingSubmissionRepository.submitBio`.
+  [(RoutePaths.bio, 'Bio')],
 ];
 
-/// The Verification part (after Bio): phone → photos → face verification,
-/// under one persistent header + 3-segment progress bar. Its pages come
-/// from three features (auth, onboarding, face_verification), which is why
-/// the shell is assembled in the router.
-///
-/// Photos sit directly before face verification because the face check
-/// compares the selfie against the main profile photo.
-const WizardSections verificationSections = [
-  // 1. Phone
+/// Phone verification (after Bio): its own `ShellRoute`, own persistent
+/// header + progress bar, own bloc — a fully separate layer from photo +
+/// face verification below, not just a different section of the same
+/// shell. Once verified it's locked in: changing the number afterwards is
+/// a Settings concern, and there's no `ShellRoute` boundary to cross back
+/// into even if a user tried (the next layer's own back button is also
+/// hidden via `RoutedWizardShell.hideBackFor` — see `routes.dart`).
+const WizardSections phoneVerificationSections = [
   [
     (RoutePaths.phoneNumber, 'Phone number'),
     (RoutePaths.phoneCode, 'Phone verification'),
   ],
-  // 2. Photos
-  [(RoutePaths.addPhotos, 'Photos')],
-  // 3. Face verification
+];
+
+/// Photo + face verification (after phone): its own `ShellRoute` and
+/// progress bar, started only once the phone layer above is done. One
+/// section, not two: adding a photo immediately drives the face check
+/// against it, so it's a single flow with multiple steps, from three
+/// features (auth, onboarding, face_verification) — hence the shell being
+/// assembled in the router.
+const WizardSections photoFaceVerificationSections = [
   [
+    (RoutePaths.addPhotos, 'Photos'),
     (RoutePaths.scanYourFace, 'Scan your face'),
     (RoutePaths.startVerification, 'Start Verification'),
     (RoutePaths.photoVerification, 'Photo Verification'),

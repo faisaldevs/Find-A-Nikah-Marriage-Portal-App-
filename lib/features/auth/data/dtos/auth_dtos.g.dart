@@ -109,8 +109,28 @@ Map<String, dynamic> _$OnboardingStatusResponseDtoToJson(
 
 _OnboardingStatusDataDto _$OnboardingStatusDataDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingStatusDataDto(isCompleted: json['isCompleted'] as bool);
+) => _OnboardingStatusDataDto(
+  isCompleted: json['isCompleted'] as bool,
+  currentStep: (json['currentStep'] as num?)?.toInt() ?? 4,
+  user: json['user'] == null
+      ? null
+      : OnboardingStatusUserDto.fromJson(json['user'] as Map<String, dynamic>),
+);
 
 Map<String, dynamic> _$OnboardingStatusDataDtoToJson(
   _OnboardingStatusDataDto instance,
-) => <String, dynamic>{'isCompleted': instance.isCompleted};
+) => <String, dynamic>{
+  'isCompleted': instance.isCompleted,
+  'currentStep': instance.currentStep,
+  'user': instance.user,
+};
+
+_OnboardingStatusUserDto _$OnboardingStatusUserDtoFromJson(
+  Map<String, dynamic> json,
+) => _OnboardingStatusUserDto(
+  isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
+);
+
+Map<String, dynamic> _$OnboardingStatusUserDtoToJson(
+  _OnboardingStatusUserDto instance,
+) => <String, dynamic>{'isPhoneVerified': instance.isPhoneVerified};

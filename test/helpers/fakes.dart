@@ -64,6 +64,12 @@ class MockLocationRepository extends Mock implements LocationRepository {}
 
 class MockPhotoPickerRepository extends Mock implements PhotoPickerRepository {}
 
+class MockOnboardingSubmissionRepository extends Mock
+    implements OnboardingSubmissionRepository {}
+
+class MockOnboardingProfileRepository extends Mock
+    implements OnboardingProfileRepository {}
+
 /// [DiscoveryFiltersRepository] backed by a list, with a working stream.
 class FakeDiscoveryFiltersRepository implements DiscoveryFiltersRepository {
   FakeDiscoveryFiltersRepository([this._current = const DiscoveryFilters()]);

@@ -33,7 +33,13 @@ class _AccountTypePageState extends State<AccountTypePage> {
               context.read<OnboardingBloc>().add(
                 OnboardingAnswerSaved((d) => d.copyWith(accountType: _value)),
               );
-              context.push<void>(RoutePaths.intentions).ignore();
+              context
+                  .push<void>(
+                    _value == 'family'
+                        ? RoutePaths.relationship
+                        : RoutePaths.basicInformation,
+                  )
+                  .ignore();
             },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

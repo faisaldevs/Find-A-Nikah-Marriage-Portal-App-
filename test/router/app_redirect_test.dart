@@ -77,6 +77,49 @@ void main() {
       expect(_redirect(RoutePaths.accountType, _member), RoutePaths.marriage);
     });
 
+    test('returning incomplete user resumes at their wizard section', () {
+      const atBackgroundFaith = AuthStatus.authenticated(
+        UserSession(userId: 'u1', onboardingComplete: false, resumeStep: 5),
+      );
+      const atLifestyle = AuthStatus.authenticated(
+        UserSession(userId: 'u1', onboardingComplete: false, resumeStep: 6),
+      );
+      const atBio = AuthStatus.authenticated(
+        UserSession(userId: 'u1', onboardingComplete: false, resumeStep: 7),
+      );
+      const atPhoneUnverified = AuthStatus.authenticated(
+        UserSession(userId: 'u1', onboardingComplete: false, resumeStep: 8),
+      );
+      const atPhotos = AuthStatus.authenticated(
+        UserSession(
+          userId: 'u1',
+          onboardingComplete: false,
+          resumeStep: 8,
+          isPhoneVerified: true,
+        ),
+      );
+
+      expect(
+        _redirect(RoutePaths.marriage, atBackgroundFaith),
+        RoutePaths.education,
+      );
+      expect(
+        _redirect(RoutePaths.marriage, atLifestyle),
+        RoutePaths.lifestylePreferences,
+      );
+      expect(_redirect(RoutePaths.marriage, atBio), RoutePaths.bio);
+      // Past Bio, not backend-tracked yet — phone must be verified first,
+      // and stays locked once it is (see `wizard_sections.dart`).
+      expect(
+        _redirect(RoutePaths.marriage, atPhoneUnverified),
+        RoutePaths.phoneNumber,
+      );
+      expect(_redirect(RoutePaths.marriage, atPhotos), RoutePaths.addPhotos);
+
+      // Already inside the wizard: free to navigate, no step-lock.
+      expect(_redirect(RoutePaths.accountType, atBio), isNull);
+    });
+
     test('face verification kill switch skips to Location', () {
       for (final path in RoutePaths.faceVerification) {
         expect(

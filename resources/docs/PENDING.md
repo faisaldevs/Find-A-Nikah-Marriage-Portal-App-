@@ -5,6 +5,62 @@ Work that's been scoped but not started. Newest first. Move an item out
 
 ---
 
+## Phone verification — bypassed, no backend API yet
+
+**Screens:** `lib/features/auth/presentation/view/phone_number_page.dart`,
+`lib/features/auth/presentation/view/phone_code_page.dart`
+**Added:** 2026-10-11
+
+Backend has no phone-verification endpoints yet (`/me/phone/code`,
+`/me/phone/verify`). Both screens' "Continue" buttons skip straight to
+the next screen instead of calling `PhoneVerificationBloc`/
+`AuthRepository`; the original dispatch is commented out in place
+(search `TODO(phone-api)`), not deleted.
+
+- [ ] `phone_number_page.dart` `_next()`: uncomment the
+      `PhoneNumberSubmitted` dispatch, remove the direct `context.push`
+- [ ] `phone_code_page.dart` `_submit()`: uncomment `PhoneCodeSubmitted`,
+      remove the direct `context.push`; un-suppress the `_code` getter
+      (`// ignore: unused_element`)
+- [ ] "Resend code" (`PhoneCodeResendRequested`) was **not** bypassed —
+      still calls the same unavailable API if tapped
+- [ ] Once verified, `isPhoneVerified` is read from the onboarding-status
+      API (`user.isPhoneVerified`) for resume routing — confirm the
+      backend actually flips this once `/me/phone/verify` succeeds
+
+---
+
+## Onboarding resume — gaps past Bio (backend step-tracking stops at 7)
+
+**Files:** `lib/router/app_router.dart` (`resumeRouteFor`),
+`lib/features/onboarding/data/repositories/onboarding_profile_repository_impl.dart`
+**Added:** 2026-10-11
+
+The onboarding-status API's `currentStep` only tracks steps 4-7 (Basics →
+Bio); nothing backend-side tracks progress through phone/photos/face
+verification the same way.
+
+- [ ] **Resume re-does photos/face verification**: once phone is
+      verified, `resumeRouteFor` always sends a returning user to
+      `addPhotos` — there's no signal for "already added photos" or
+      "already passed face verification but hasn't hit Discover
+      profiles yet." Needs either backend step-tracking extended past 7,
+      or reading the status payload's `photos`/`verifications` arrays
+      client-side as a completion signal.
+- [ ] **Step 8 (photos) was never wired**: `OnboardingRemoteDataSource
+      .submitImages` / `OnboardingImagesRequestDto` exist but nothing
+      calls them — this is the root cause of the gap above.
+- [ ] **Prefill field names unconfirmed past Basics**: `educationLevel` /
+      `professionTitle` / `getToknowDuration` / `marriageTimeline`
+      (step 5) and `aboutMe`'s location (step 7) in
+      `OnboardingProfileDto` are same-name-as-the-submit-request
+      guesses — only `maritalStatus` / `faith` / `religiousPractices` /
+      the `aboutYou` / `lifestyle` / `interests` nesting were confirmed
+      against a real payload. Verify against a real post-step-5 and
+      post-step-7 payload and fix any mismatches.
+
+---
+
 ## Marriage tab — profile details below the first photo
 
 **Screen:** `lib/features/marriage/presentation/screens/marriage_screen.dart`

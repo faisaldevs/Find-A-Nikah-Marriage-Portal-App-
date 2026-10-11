@@ -9,6 +9,15 @@ part 'onboarding_data.freezed.dart';
 abstract class OnboardingData with _$OnboardingData {
   const factory OnboardingData({
     String? accountType,
+
+    /// Set only on the family flow: `son`/`daughter`/`brother`/`sister`/
+    /// `other_family_member` — who the profile is being created for.
+    String? relationship,
+    String? fullName,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? religion,
+    @Default(<String>[]) List<String> languages,
     String? lookingForIntent,
     String? howHeard,
     @Default(<String>[]) List<String> nationalities,
@@ -60,4 +69,21 @@ abstract class OnboardingData with _$OnboardingData {
 
   /// The photo face verification compares the selfie against.
   String? get mainPhotoPath => photoPaths.isEmpty ? null : photoPaths.first;
+
+  /// Whole years since [dateOfBirth], null until it's set.
+  int? get age {
+    final dob = dateOfBirth;
+    if (dob == null) return null;
+    final now = DateTime.now();
+    var years = now.year - dob.year;
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
+      years--;
+    }
+    return years;
+  }
+
+  static const minAge = 18;
+
+  bool get isEligibleAge => (age ?? 0) >= minAge;
 }

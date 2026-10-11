@@ -122,6 +122,12 @@ Future<void> configureDependencies(AppConfig config) async {
         guard,
       ),
     )
+    ..registerLazySingleton<OnboardingProfileRepository>(
+      () => OnboardingProfileRepositoryImpl(
+        OnboardingRemoteDataSource(api.dio),
+        guard,
+      ),
+    )
     ..registerLazySingleton<MarriageRepository>(
       () => MarriageRepositoryImpl(
         isDev
@@ -167,6 +173,7 @@ Future<void> configureDependencies(AppConfig config) async {
         getIt<PhotoPickerRepository>(),
         getIt<AiBioRepository>(),
         getIt<OnboardingSubmissionRepository>(),
+        getIt<OnboardingProfileRepository>(),
       ),
     )
     ..registerFactory<DiscoveryFiltersBloc>(

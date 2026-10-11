@@ -52,7 +52,7 @@ void main() {
       setUp: () {
         when(repo.revokeServerSession).thenAnswer((_) async {});
         when(repo.deleteCredentials).thenAnswer((_) async {});
-        when(repo.markSignedOut).thenReturn(null);
+        when(repo.markSignedOut).thenAnswer((_) async {});
         when(session.closeConnections).thenAnswer((_) async {});
         when(session.end).thenAnswer((_) async {});
       },

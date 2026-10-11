@@ -6,7 +6,7 @@
     <!-- OSM tiles + ML Kit model fetch -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="find_a_nikah"
+        android:label="Find A Nikah"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

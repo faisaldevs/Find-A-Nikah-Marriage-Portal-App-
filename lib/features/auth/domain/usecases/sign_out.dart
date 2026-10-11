@@ -26,7 +26,7 @@ class SignOut implements UseCase<Unit, NoParams> {
     await _session.closeConnections();
     await _auth.deleteCredentials();
     await _session.end();
-    _auth.markSignedOut();
+    await _auth.markSignedOut();
     return right(unit);
   }
 }

@@ -24,36 +24,48 @@ class _ReligiousPracticePageState extends State<ReligiousPracticePage> {
     _value = context.read<OnboardingBloc>().state.draft.religionPracticeLevel;
   }
 
+  void _continue() {
+    context.read<OnboardingBloc>().add(
+      OnboardingAnswerSaved((d) => d.copyWith(religionPracticeLevel: _value)),
+    );
+    context.read<OnboardingBloc>().add(const BackgroundFaithSubmitted());
+  }
+
   @override
   Widget build(BuildContext context) {
-    return WizardScaffold(
-      onContinue: _value == null
-          ? null
-          : () {
-              context.read<OnboardingBloc>().add(
-                OnboardingAnswerSaved(
-                  (d) => d.copyWith(religionPracticeLevel: _value),
+    final submitting = context.select<OnboardingBloc, bool>(
+      (b) => b.state.submittingStep,
+    );
+    return BlocListener<OnboardingBloc, OnboardingState>(
+      listenWhen: (prev, next) => prev.submittingStep && !next.submittingStep,
+      listener: (context, state) {
+        if (state.failure != null) {
+          showFailureToast(context, state.failure!);
+        } else {
+          context.push<void>(RoutePaths.lifestylePreferences).ignore();
+        }
+      },
+      child: WizardScaffold(
+        continueLabel: submitting ? 'Saving...' : 'Continue',
+        onContinue: _value == null || submitting ? null : _continue,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const WizardHeadline(text: 'How do you practise\nyour religion?'),
+            SizedBox(height: 8.h),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: WizardRadioGroup(
+                  options: religionPracticeOptions,
+                  value: _value,
+                  divider: true,
+                  onChanged: (v) => setState(() => _value = v),
                 ),
-              );
-              context.push<void>(RoutePaths.lifestylePreferences).ignore();
-            },
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const WizardHeadline(text: 'How do you practise\nyour religion?'),
-          SizedBox(height: 8.h),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: WizardRadioGroup(
-                options: religionPracticeOptions,
-                value: _value,
-                divider: true,
-                onChanged: (v) => setState(() => _value = v),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

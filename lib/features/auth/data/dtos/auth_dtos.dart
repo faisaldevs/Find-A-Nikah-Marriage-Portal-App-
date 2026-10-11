@@ -145,10 +145,27 @@ abstract class OnboardingStatusResponseDto with _$OnboardingStatusResponseDto {
 abstract class OnboardingStatusDataDto with _$OnboardingStatusDataDto {
   const factory OnboardingStatusDataDto({
     @JsonKey(name: 'isCompleted') required bool isCompleted,
+
+    /// Which wizard section the user has yet to finish (4 Basics, 5
+    /// Background & faith, 6 Lifestyle & personality, 7 Bio — matching
+    /// `OnboardingSubmissionRepository`'s step literals). Defaults to 4
+    /// (the first section) if the backend omits it.
+    @JsonKey(name: 'currentStep') @Default(4) int currentStep,
+    OnboardingStatusUserDto? user,
   }) = _OnboardingStatusDataDto;
 
   factory OnboardingStatusDataDto.fromJson(Map<String, dynamic> json) =>
       _$OnboardingStatusDataDtoFromJson(json);
+}
+
+@freezed
+abstract class OnboardingStatusUserDto with _$OnboardingStatusUserDto {
+  const factory OnboardingStatusUserDto({
+    @Default(false) bool isPhoneVerified,
+  }) = _OnboardingStatusUserDto;
+
+  factory OnboardingStatusUserDto.fromJson(Map<String, dynamic> json) =>
+      _$OnboardingStatusUserDtoFromJson(json);
 }
 
 extension AuthApiSessionResponseDtoSession on AuthApiSessionResponseDto {
