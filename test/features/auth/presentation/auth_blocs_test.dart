@@ -113,6 +113,58 @@ void main() {
     );
 
     blocTest<SignInBloc, SignInState>(
+      "a brand-new account (hasn't started the wizard) is flagged new",
+      setUp: () {
+        when(() => repo.currentStatus).thenReturn(
+          const AuthStatus.authenticated(
+            UserSession(userId: 'u1', onboardingComplete: false),
+          ),
+        );
+        when(
+          () => repo.signInWithEmail(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+          ),
+        ).thenAnswer((_) => _ok());
+      },
+      build: () => SignInBloc(repo),
+      act: (bloc) =>
+          bloc.add(const SignInEmailSubmitted(email: 'a@b.co', password: 'pw')),
+      expect: () => [
+        const SignInState(status: SignInStatus.submitting),
+        const SignInState(status: SignInStatus.success, isNewAccount: true),
+      ],
+    );
+
+    blocTest<SignInBloc, SignInState>(
+      'a returning, mid-wizard account is NOT flagged new (router moves it on)',
+      setUp: () {
+        when(() => repo.currentStatus).thenReturn(
+          const AuthStatus.authenticated(
+            UserSession(
+              userId: 'u1',
+              onboardingComplete: false,
+              resumeStep: 8,
+            ),
+          ),
+        );
+        when(
+          () => repo.signInWithEmail(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+          ),
+        ).thenAnswer((_) => _ok());
+      },
+      build: () => SignInBloc(repo),
+      act: (bloc) =>
+          bloc.add(const SignInEmailSubmitted(email: 'a@b.co', password: 'pw')),
+      expect: () => [
+        const SignInState(status: SignInStatus.submitting),
+        const SignInState(status: SignInStatus.success),
+      ],
+    );
+
+    blocTest<SignInBloc, SignInState>(
       'double-tapping a submit button signs in once (droppable)',
       setUp: () =>
           when(

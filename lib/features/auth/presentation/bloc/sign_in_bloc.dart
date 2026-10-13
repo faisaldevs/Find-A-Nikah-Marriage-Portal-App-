@@ -26,8 +26,9 @@ enum SignInStatus {
   submitting,
   failure,
 
-  /// Signed in. A new account (onboarding incomplete) continues to "Get
-  /// started"; an existing one is moved on by the router.
+  /// Signed in. An account that hasn't started the wizard continues to
+  /// "Get started"; a returning account — complete or mid-wizard — is
+  /// moved on by the router.
   success,
 }
 
@@ -36,7 +37,11 @@ abstract class SignInState with _$SignInState {
   const factory SignInState({
     @Default(SignInStatus.idle) SignInStatus status,
 
-    /// On [SignInStatus.success]: the account still has onboarding to do.
+    /// On [SignInStatus.success]: the account hasn't started the wizard
+    /// yet (`resumeStep <= 4` — same threshold `resumeRouteFor` uses for
+    /// "Get started"). Not the same as "onboarding incomplete": a
+    /// returning user mid-wizard is also incomplete but isn't new, and
+    /// is moved on by the router instead.
     @Default(false) bool isNewAccount,
 
     /// Shown once by the page's listener.
@@ -80,8 +85,11 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
           final status = _repository.currentStatus;
           return SignInState(
             status: SignInStatus.success,
+            // `!onboardingComplete` alone misclassifies every returning
+            // mid-wizard user as "new" — resumeStep is the actual signal
+            // for "hasn't started."
             isNewAccount:
-                status is Authenticated && !status.session.onboardingComplete,
+                status is Authenticated && status.session.resumeStep <= 4,
           );
         },
       ),
