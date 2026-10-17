@@ -25,6 +25,14 @@ class RingSliderTheme extends StatelessWidget {
         trackShape: const RoundedRectSliderTrackShape(),
         rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
         showValueIndicator: ShowValueIndicator.never,
+        // Division tick marks read as a dotted track between the handles;
+        // Figma's track is solid (audit #44).
+        tickMarkShape: SliderTickMarkShape.noTickMark,
+        rangeTickMarkShape: const RoundRangeSliderTickMarkShape(
+          tickMarkRadius: 0,
+        ),
+        activeTickMarkColor: Colors.transparent,
+        inactiveTickMarkColor: Colors.transparent,
       ),
       child: child,
     );

@@ -5,10 +5,19 @@ import 'package:find_a_nikah/features/onboarding/domain/entities/onboarding_data
 import 'package:find_a_nikah/features/onboarding/domain/repositories/onboarding_profile_repository.dart';
 
 class OnboardingProfileRepositoryImpl implements OnboardingProfileRepository {
-  OnboardingProfileRepositoryImpl(this._remote, this._guard);
+  OnboardingProfileRepositoryImpl(
+    this._remote,
+    this._guard, {
+    required String imageBaseUrl,
+  }) : _imageBaseUrl = imageBaseUrl.endsWith('/')
+           ? imageBaseUrl.substring(0, imageBaseUrl.length - 1)
+           : imageBaseUrl;
 
   final OnboardingRemoteDataSource _remote;
   final Guard _guard;
+
+  /// `IMAGE_BASE_URL` — server-relative image paths are resolved against it.
+  final String _imageBaseUrl;
 
   @override
   Future<Either<Failure, OnboardingData?>> fetchSubmittedDraft() =>
@@ -74,8 +83,21 @@ class OnboardingProfileRepositoryImpl implements OnboardingProfileRepository {
           draft = draft.copyWith(bio: profile.aboutMe);
         }
 
+        // Already-uploaded photos come back as full URLs; the Photos page
+        // shows them from the network next to newly picked local files.
+        if (profile.images.isNotEmpty) {
+          draft = draft.copyWith(
+            photoPaths: profile.images.map(_imageUrl).toList(),
+          );
+        }
+
         return draft;
       });
+
+  String _imageUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return '$_imageBaseUrl${path.startsWith('/') ? '' : '/'}$path';
+  }
 
   /// Reverse of the submission repository's `_countryName` — full country
   /// name → ISO code. Falls back to the raw name if it's not in the list

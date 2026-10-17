@@ -115,6 +115,35 @@ void main() {
         RoutePaths.phoneNumber,
       );
       expect(_redirect(RoutePaths.marriage, atPhotos), RoutePaths.addPhotos);
+      // Data-derived steps (see `resumeStep`): 11 location, 12 filters.
+      expect(
+        _redirect(
+          RoutePaths.marriage,
+          const AuthStatus.authenticated(
+            UserSession(
+              userId: 'u1',
+              onboardingComplete: false,
+              resumeStep: 11,
+              isPhoneVerified: true,
+            ),
+          ),
+        ),
+        RoutePaths.location,
+      );
+      expect(
+        _redirect(
+          RoutePaths.marriage,
+          const AuthStatus.authenticated(
+            UserSession(
+              userId: 'u1',
+              onboardingComplete: false,
+              resumeStep: 12,
+              isPhoneVerified: true,
+            ),
+          ),
+        ),
+        RoutePaths.addFilters,
+      );
 
       // Already inside the wizard: free to navigate, no step-lock.
       expect(_redirect(RoutePaths.accountType, atBio), isNull);

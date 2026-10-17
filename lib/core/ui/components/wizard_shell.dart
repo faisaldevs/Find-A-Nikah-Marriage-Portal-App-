@@ -1,8 +1,7 @@
 import 'package:find_a_nikah/core/ui/components/wizard_progress_bar.dart';
 import 'package:find_a_nikah/core/ui/components/wizard_scaffold.dart'
     show WizardScaffold;
-import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
-import 'package:find_a_nikah/gen/colors.gen.dart';
+import 'package:find_a_nikah/core/ui/theme/figma_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
@@ -80,6 +79,7 @@ class RoutedWizardShell extends StatefulWidget {
     super.key,
     this.exitPath,
     this.hideBackFor = const {},
+    this.bareHeaderFor = const {},
   });
 
   final WizardSections sections;
@@ -93,6 +93,10 @@ class RoutedWizardShell extends StatefulWidget {
   /// once passed (e.g. phone verification locks in before Photos), so
   /// there's nothing sensible to go back to.
   final Set<String> hideBackFor;
+
+  /// Routes whose Figma frame has only back + help — no title, rule or
+  /// progress bar (e.g. phone verification code, audit #37).
+  final Set<String> bareHeaderFor;
 
   @override
   State<RoutedWizardShell> createState() => _RoutedWizardShellState();
@@ -128,6 +132,7 @@ class _RoutedWizardShellState extends State<RoutedWizardShell> {
         return WizardShell(
           progress: progress,
           showBack: !widget.hideBackFor.contains(location),
+          bare: widget.bareHeaderFor.contains(location),
           onBack: () {
             if (context.canPop()) {
               context.pop();
@@ -155,6 +160,7 @@ class WizardShell extends StatelessWidget {
     this.onHelp,
     this.onBack,
     this.showBack = true,
+    this.bare = false,
   });
 
   final WizardProgress progress;
@@ -168,8 +174,53 @@ class WizardShell extends StatelessWidget {
   /// hideBackFor]), rather than just disabling it.
   final bool showBack;
 
+  /// Back + help only (no title, rule or progress bar).
+  final bool bare;
+
   @override
   Widget build(BuildContext context) {
+    if (bare) {
+      // Figma 883:6645: 24pt below the status bar, 40pt to the headline.
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (showBack)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onBack ?? () => context.pop(),
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: const Color(0xFF0A0A0A),
+                          size: 20.r,
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    GestureDetector(
+                      onTap: onHelp,
+                      child: Icon(
+                        Icons.help_outline,
+                        size: 18.r,
+                        color: const Color(0xFF0A0A0A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 40.h),
+              Expanded(child: WizardShellScope(child: child)),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -190,7 +241,9 @@ class WizardShell extends StatelessWidget {
                 segmentCount: progress.sectionCount,
               ),
             ),
-            SizedBox(height: 16.h),
+            // SizedBox(height: 16.h),
+            // Figma: 24pt under the bar, then 20pt to the page headline.
+            SizedBox(height: 44.h),
             // Pages inside the shell see this and render body-only
             // (see [WizardScaffold]).
             Expanded(child: WizardShellScope(child: child)),
@@ -236,29 +289,89 @@ class WizardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // return Column(
+    // children: [
+    // // SizedBox(height: 16.h),
+    // Padding(
+    // padding: EdgeInsets.fromLTRB(4.w, 10.h, 16.w, 4.h),
+    // child: Row(
+    // children: [
+    // if (showBack)
+    // IconButton(
+    // onPressed: onBack ?? () => context.pop(),
+    // icon: Icon(
+    // Icons.arrow_back,
+    // color: AppColors.textDark,
+    // size: 22.r,
+    // ),
+    // )
+    // else
+    // SizedBox(width: 48.r, height: 48.r),
+    // Expanded(
+    // child: AnimatedSwitcher(
+    // duration: const Duration(milliseconds: 200),
+    // // Default layout centres the children; keep the title
+    // // left-aligned like the design.
+    // layoutBuilder: (current, previous) => Stack(
+    // alignment: Alignment.centerLeft,
+    // children: [...previous, ?current],
+    // ),
+    // child: Text(
+    // title,
+    // key: ValueKey(title),
+    // style: TextFontStyle.headline16w600textDarkStyleSatoshi,
+    // ),
+    // ),
+    // ),
+    // GestureDetector(
+    // onTap: onHelp,
+    // child: Container(
+    // width: 28.r,
+    // height: 28.r,
+    // decoration: BoxDecoration(
+    // shape: BoxShape.circle,
+    // border: Border.all(color: AppColors.textMuted),
+    // ),
+    // child: Icon(
+    // Icons.help_outline,
+    // size: 16.r,
+    // color: AppColors.textDark,
+    // ),
+    // ),
+    // ),
+    // ],
+    // ),
+    // ),
+    // SizedBox(height: 0.h),
+    // const Divider(),
+    // SizedBox(height: 16.h),
+    // ],
+    // );
+    // Figma (e.g. 883:3951): 20pt padding, 20pt back arrow, 14pt gap,
+    // Satoshi Medium 16 title, plain 18pt (?) — no circle — over a 1px
+    // #D4D4D4 rule; the progress bar sits 24pt below it.
     return Column(
       children: [
-        // SizedBox(height: 16.h),
         Padding(
-          padding: EdgeInsets.fromLTRB(4.w, 10.h, 16.w, 4.h),
+          padding: EdgeInsets.all(20.r),
           child: Row(
             children: [
               if (showBack)
-                IconButton(
-                  onPressed: onBack ?? () => context.pop(),
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: AppColors.textDark,
-                    size: 22.r,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onBack ?? () => context.pop(),
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 14.w),
+                    child: Icon(
+                      Icons.arrow_back,
+                      color: const Color(0xFF0A0A0A),
+                      size: 20.r,
+                    ),
                   ),
-                )
-              else
-                SizedBox(width: 48.r, height: 48.r),
+                ),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  // Default layout centres the children; keep the title
-                  // left-aligned like the design.
                   layoutBuilder: (current, previous) => Stack(
                     alignment: Alignment.centerLeft,
                     children: [...previous, ?current],
@@ -266,32 +379,23 @@ class WizardHeader extends StatelessWidget {
                   child: Text(
                     title,
                     key: ValueKey(title),
-                    style: TextFontStyle.headline16w600textDarkStyleSatoshi,
+                    style: figmaText(16, 22.4, weight: FontWeight.w500),
                   ),
                 ),
               ),
               GestureDetector(
                 onTap: onHelp,
-                child: Container(
-                  width: 28.r,
-                  height: 28.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.textMuted),
-                  ),
-                  child: Icon(
-                    Icons.help_outline,
-                    size: 16.r,
-                    color: AppColors.textDark,
-                  ),
+                child: Icon(
+                  Icons.help_outline,
+                  size: 18.r,
+                  color: const Color(0xFF0A0A0A),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: 0.h),
-        const Divider(),
-        SizedBox(height: 16.h),
+        const Divider(height: 1, thickness: 1, color: Color(0xFFD4D4D4)),
+        SizedBox(height: 24.h),
       ],
     );
   }

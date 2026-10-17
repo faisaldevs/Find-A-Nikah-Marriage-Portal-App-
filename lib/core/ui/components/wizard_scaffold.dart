@@ -1,7 +1,9 @@
 import 'package:find_a_nikah/core/ui/components/app_primary_button.dart';
 import 'package:find_a_nikah/core/ui/components/wizard_progress_bar.dart';
 import 'package:find_a_nikah/core/ui/components/wizard_shell.dart';
+import 'package:find_a_nikah/core/ui/theme/figma_text.dart';
 import 'package:find_a_nikah/core/ui/theme/text_font_style.dart';
+import 'package:find_a_nikah/gen/colors.gen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -31,6 +33,7 @@ class WizardScaffold extends StatelessWidget {
     this.onSecondary,
     this.footer,
     this.onHelp,
+    this.activeSegment = 0,
   });
 
   final String? title;
@@ -57,15 +60,33 @@ class WizardScaffold extends StatelessWidget {
   /// matching the original onboarding behaviour.
   final VoidCallback? onHelp;
 
+  /// Which of the 4 progress segments [step]/[totalSteps] fills (earlier
+  /// segments show full) — standalone pages only.
+  final int activeSegment;
+
   @override
   Widget build(BuildContext context) {
     final content = [
       Expanded(child: body),
       Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 8.h),
+        // padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 8.h),
+        padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
         child: Column(
           children: [
-            AppPrimaryButton(label: continueLabel, onPressed: onContinue),
+            // AppPrimaryButton(label: continueLabel, onPressed: onContinue),
+            // Figma: 48pt, 8pt radius, Satoshi Medium 18 label.
+            AppPrimaryButton(
+              label: continueLabel,
+              onPressed: onContinue,
+              height: 48.h,
+              borderRadius: 8.r,
+              labelStyle: figmaText(
+                18,
+                23.4,
+                weight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
             // Secondary link: explicit [secondaryLabel] wins, else the
             // legacy Skip flag.
             if (secondaryLabel != null || showSkip) ...[
@@ -122,9 +143,15 @@ class WizardScaffold extends StatelessWidget {
             if (step != null && totalSteps != null) ...[
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: WizardProgressBar(step: step!, totalSteps: totalSteps!),
+                child: WizardProgressBar(
+                  step: step!,
+                  totalSteps: totalSteps!,
+                  activeSegment: activeSegment,
+                ),
               ),
-              SizedBox(height: 16.h),
+              // SizedBox(height: 16.h),
+              // Same as the shell: 24pt under the bar + 20pt to the headline.
+              SizedBox(height: 44.h),
             ],
             // WizardHeader(title: title!, onHelp: onHelp),
             // Padding(
@@ -214,12 +241,28 @@ class WizardHeadline extends StatelessWidget {
     this.highlight,
     this.subtitle,
     this.padding,
+    this.subtitleGap = 14,
+    this.titleSize = 30,
+    this.titleHeight = 1.4,
+    this.subtitleHeight = 1.4,
+    this.subtitleColor = const Color(0xFF0A0A0A),
   });
 
   final String text;
   final String? highlight;
   final String? subtitle;
   final EdgeInsets? padding;
+
+  /// Title → subtitle gap (Figma: 14 on most pages, 24 on some).
+  final double subtitleGap;
+
+  /// Figma title size / line heights (30 · 1.4 on most wizard pages).
+  final double titleSize;
+  final double titleHeight;
+  final double subtitleHeight;
+
+  /// Grey-950 on most pages; some frames (e.g. Scan your face) use grey.
+  final Color subtitleColor;
 
   @override
   Widget build(BuildContext context) {
@@ -228,46 +271,78 @@ class WizardHeadline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Text.rich(
+          // TextSpan(
+          // text: text,
+          // // Figma: Satoshi 30 / Medium 500 / line height 140%.
+          // style: TextFontStyle.headline30w500textDarkStyleSatoshi.copyWith(
+          // height: 1.4,
+          // ),
+          // // Previously 26 / w700 / 1.2 — didn't match the design spec.
+          // // style:
+          // //     TextFontStyle.headline26w700textDarkStyleSatoshi.copyWith(
+          // //   height: 1.2,
+          // // ),
+          // children: highlight == null
+          // ? null
+          // : [
+          // TextSpan(
+          // text: highlight,
+          // style: TextFontStyle
+          // .headline30w500primaryColorStyleSatoshi
+          // .copyWith(height: 1.4),
+          // // style: TextFontStyle
+          // //     .headline26w700primaryColorStyleSatoshi
+          // //     .copyWith(height: 1.2),
+          // ),
+          // ],
+          // ),
+          // ),
+          // if (subtitle != null) ...[
+          // SizedBox(height: 10.h),
+          // Text(
+          // subtitle!,
+          // // Figma: Satoshi 16 / Regular 400 / 140%. Design color is
+          // // Grey/950 #0A0A0A — kept on textMuted until tokens are updated.
+          // style: TextFontStyle.headline16w400textMutedStyleSatoshi.copyWith(
+          // height: 1.4,
+          // ),
+          // // style:
+          // //     TextFontStyle.headline14w400textMutedStyleSatoshi.copyWith(
+          // //   height: 1.4,
+          // // ),
+          // ),
+          // ],
+          // Figma: Medium 30 / 1.4, Regular 16 / 1.4 subtitle in Grey-950
+          // (not muted).
           Text.rich(
             TextSpan(
               text: text,
-              // Figma: Satoshi 30 / Medium 500 / line height 140%.
-              style: TextFontStyle.headline30w500textDarkStyleSatoshi.copyWith(
-                height: 1.4,
+              style: figmaText(
+                titleSize,
+                titleSize * titleHeight,
+                weight: FontWeight.w500,
               ),
-              // Previously 26 / w700 / 1.2 — didn't match the design spec.
-              // style:
-              //     TextFontStyle.headline26w700textDarkStyleSatoshi.copyWith(
-              //   height: 1.2,
-              // ),
               children: highlight == null
                   ? null
                   : [
                       TextSpan(
                         text: highlight,
-                        style: TextFontStyle
-                            .headline30w500primaryColorStyleSatoshi
-                            .copyWith(height: 1.4),
-                        // style: TextFontStyle
-                        //     .headline26w700primaryColorStyleSatoshi
-                        //     .copyWith(height: 1.2),
+                        style: figmaText(
+                          titleSize,
+                          titleSize * titleHeight,
+                          weight: FontWeight.w500,
+                          color: AppColors.primaryColor,
+                        ),
                       ),
                     ],
             ),
           ),
           if (subtitle != null) ...[
-            SizedBox(height: 10.h),
+            SizedBox(height: subtitleGap.h),
             Text(
               subtitle!,
-              // Figma: Satoshi 16 / Regular 400 / 140%. Design color is
-              // Grey/950 #0A0A0A — kept on textMuted until tokens are updated.
-              style: TextFontStyle.headline16w400textMutedStyleSatoshi.copyWith(
-                height: 1.4,
-              ),
-              // style:
-              //     TextFontStyle.headline14w400textMutedStyleSatoshi.copyWith(
-              //   height: 1.4,
-              // ),
+              style: figmaText(16, 16 * subtitleHeight, color: subtitleColor),
             ),
           ],
         ],

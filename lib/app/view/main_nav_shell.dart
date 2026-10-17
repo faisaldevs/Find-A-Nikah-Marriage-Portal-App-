@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
@@ -26,13 +27,16 @@ class MainNavShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = navigationShell.currentIndex;
-    Widget item(int index, String label, Widget Function(Color) icon) =>
-        _NavItem(
-          label: label,
-          selected: current == index,
-          icon: icon,
-          onTap: () => _onTap(index),
-        );
+    Widget item(
+      int index,
+      String label,
+      Widget Function({required Color color, required bool active}) icon,
+    ) => _NavItem(
+      label: label,
+      selected: current == index,
+      icon: icon,
+      onTap: () => _onTap(index),
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -51,7 +55,7 @@ class MainNavShell extends StatelessWidget {
         // (Was: SafeArea + 14 top / 10 bottom.)
         child: Padding(
           padding: EdgeInsets.only(
-            top: 20.h,
+            top: 16.h,
             bottom: math.max(
               19.h,
               MediaQuery.viewPaddingOf(context).bottom - 15.h,
@@ -64,26 +68,53 @@ class MainNavShell extends StatelessWidget {
               item(
                 0,
                 'Marriage',
-                (c) => RingIcon(width: 18.8.r, color: c),
-                // (c) => Icon(Icons.diamond_outlined, color: c, size: 22.r),
+                ({required color, required active}) => Image.asset(
+                  active
+                      ? Assets.images.marriageNavIconActive
+                      : Assets.images.marriageNavIconInactive,
+                  width: 28.r,
+                  height: 28.r,
+                ),
               ),
               item(
                 1,
                 'Explore',
-                (c) => Icon(Icons.local_florist_outlined, color: c, size: 26.r),
+                ({required color, required active}) => Image.asset(
+                  active
+                      ? Assets.images.exploreNavIconActive
+                      : Assets.images.exploreNavIconInactive,
+                  width: 28.r,
+                  height: 28.r,
+                ),
               ),
               item(
                 2,
                 'Feed',
-                (c) => Icon(Icons.public, color: c, size: 27.5.r),
+                ({required color, required active}) => Image.asset(
+                  active
+                      ? Assets.images.feedNavIconActive
+                      : Assets.images.feedNavIconInactive,
+                  width: 28.r,
+                  height: 28.r,
+                ),
               ),
               item(
                 3,
                 'Chat',
-                (c) => Icon(Icons.forum_outlined, color: c, size: 26.r),
-                // (c) => Icon(Icons.chat_bubble_outline, color: c, size: 22.r),
+                ({required color, required active}) => Image.asset(
+                  active
+                      ? Assets.images.chatNavIconActive
+                      : Assets.images.chatNavIconInactive,
+                  width: 28.r,
+                  height: 28.r,
+                ),
               ),
-              item(4, 'Menu', (c) => _MenuAvatar(borderColor: c)),
+              item(
+                4,
+                'Menu',
+                ({required color, required active}) =>
+                    _MenuAvatar(borderColor: color),
+              ),
             ],
           ),
         ),
@@ -105,7 +136,7 @@ class _NavItem extends StatelessWidget {
 
   final String label;
   final bool selected;
-  final Widget Function(Color color) icon;
+  final Widget Function({required Color color, required bool active}) icon;
   final VoidCallback onTap;
 
   @override
@@ -121,9 +152,12 @@ class _NavItem extends StatelessWidget {
             // Fixed 24-high slot (mockup); glyphs may draw slightly past it.
             SizedBox(
               height: 24.h,
-              child: OverflowBox(maxHeight: 32.h, child: icon(color)),
+              child: OverflowBox(
+                maxHeight: 32.h,
+                child: icon(color: color, active: selected),
+              ),
             ),
-            SizedBox(height: 9.h),
+            SizedBox(height: 5.h),
             Text(
               label,
               // Mockup: bold 12, line 16.
@@ -157,10 +191,8 @@ class _MenuAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 24.3.r,
-      height: 24.3.r,
-      // width: 24.r,
-      // height: 24.r,
+      width: 28.r,
+      height: 28.r,
       padding: const EdgeInsets.all(1.5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,

@@ -1,6 +1,7 @@
 {
   "FLAVOR": "prod",
   "API_BASE_URL": "https://api.findanikah.com/api",
+  "IMAGE_BASE_URL": "https://api.findanikah.com",
   "SOCKET_URL": "https://api.findanikah.com",
   "PRIVACY_POLICY_URL": "https://findanikah.com/privacy",
   "TERMS_URL": "https://findanikah.com/terms"

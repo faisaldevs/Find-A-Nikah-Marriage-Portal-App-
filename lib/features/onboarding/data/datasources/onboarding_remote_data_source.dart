@@ -32,7 +32,21 @@ abstract class OnboardingRemoteDataSource {
   @PATCH('/v1/onboarding/step')
   Future<void> submitBio(@Body() OnboardingBioRequestDto body);
 
-  /// Built for the images step; not called anywhere yet.
+  // Replaced: step 8 takes the image files themselves as multipart, not a
+  // JSON list of already-uploaded URLs.
+  // /// Built for the images step; not called anywhere yet.
+  // @PATCH('/v1/onboarding/step')
+  // Future<void> submitImages(@Body() OnboardingImagesRequestDto body);
+
+  /// Step 8 — Photos, multipart: `step=8` plus one repeated `images` file
+  /// field per photo (built by `OnboardingSubmissionRepositoryImpl`). The
+  /// server stores them and returns their `/public/upload/...` paths in
+  /// `profile.images` (not read yet — nothing needs them).
   @PATCH('/v1/onboarding/step')
-  Future<void> submitImages(@Body() OnboardingImagesRequestDto body);
+  Future<void> submitPhotos(@Body() FormData body);
+
+  /// Deletes one already-uploaded photo by its file name (the last segment
+  /// of `/public/upload/<filename>`).
+  @DELETE('/v1/onboarding/images')
+  Future<void> deletePhoto(@Query('filename') String filename);
 }

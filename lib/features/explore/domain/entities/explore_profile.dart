@@ -30,5 +30,11 @@ abstract class ExploreProfile with _$ExploreProfile {
 
     /// Shown instead of [area] on "Active near you".
     double? distanceKm,
+
+    /// Display-ready relative time of the liked/favourited/passed/
+    /// complimented action ("10 seconds ago", "Yesterday") — "My history"
+    /// tab only, shown alongside [isActiveToday] rather than replacing it
+    /// like [postedAt] does.
+    String? interactedAt,
   }) = _ExploreProfile;
 }

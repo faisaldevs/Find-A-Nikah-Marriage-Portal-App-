@@ -1,13 +1,19 @@
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/app/view/main_nav_shell.dart';
-import 'package:find_a_nikah/app/view/menu_page.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/presentation.dart';
+import 'package:find_a_nikah/features/chat/presentation/presentation.dart';
 import 'package:find_a_nikah/features/discovery/presentation/presentation.dart';
 import 'package:find_a_nikah/features/explore/presentation/presentation.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/presentation.dart';
+import 'package:find_a_nikah/features/feed/domain/domain.dart';
+import 'package:find_a_nikah/features/feed/presentation/presentation.dart';
 import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
+// import 'package:find_a_nikah/app/view/menu_page.dart'; // replaced by features/menu
+import 'package:find_a_nikah/features/menu/presentation/presentation.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
+// Only needed for the livenessEnabled flag lookup (now disabled).
+// import 'package:find_a_nikah/features/remote_config/domain/domain.dart';
 import 'package:find_a_nikah/features/remote_config/presentation/presentation.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:find_a_nikah/router/wizard_sections.dart';
@@ -92,6 +98,7 @@ final List<RouteBase> appRoutes = [
       child: RoutedWizardShell(
         sections: phoneVerificationSections,
         exitPath: RoutePaths.bio,
+        bareHeaderFor: const {RoutePaths.phoneCode},
         child: child,
       ),
     ),
@@ -132,8 +139,34 @@ final List<RouteBase> appRoutes = [
               : null,
         ),
       ),
+      // Liveness is the only verification path now — no flag lookup.
+      // GoRoute(
+      //   path: RoutePaths.startVerification,
+      //   builder: (context, _) => StartVerificationPage(
+      //     livenessEnabled: context.read<RemoteConfigBloc>().state.isEnabled(
+      //       FeatureFlag.livenessEnabled,
+      //     ),
+      //   ),
+      // ),
       _page(RoutePaths.startVerification, const StartVerificationPage()),
-      _page(RoutePaths.photoVerification, const PhotoVerificationPage()),
+      // Own bloc per visit (camera capture state shouldn't outlive the page).
+      // _page(RoutePaths.livenessCapture, const LivenessCapturePage()),
+      _page(
+        RoutePaths.livenessCapture,
+        BlocProvider(
+          create: (_) => getIt<LivenessCaptureBloc>(),
+          child: const LivenessCapturePage(),
+        ),
+      ),
+      // _page(RoutePaths.photoVerification, const PhotoVerificationPage()),
+      // The greeting names the user (Figma); the name lives in the
+      // onboarding draft, which this shell already provides.
+      GoRoute(
+        path: RoutePaths.photoVerification,
+        builder: (context, _) => PhotoVerificationPage(
+          userName: context.read<OnboardingBloc>().state.draft.fullName,
+        ),
+      ),
     ],
   ),
 
@@ -145,6 +178,33 @@ final List<RouteBase> appRoutes = [
 
   // ── App ────────────────────────────────────────────────────────────────
   _page(RoutePaths.updateRequired, const UpdateRequiredPage()),
+
+  // Feed flow pages, over the bottom nav.
+  GoRoute(
+    path: RoutePaths.feedPost,
+    builder: (_, state) => PostDetailPage(post: state.extra! as FeedPost),
+  ),
+  GoRoute(
+    path: RoutePaths.feedProfile,
+    builder: (_, state) => ProfilePage(author: state.extra! as FeedAuthor),
+  ),
+  GoRoute(
+    path: RoutePaths.feedProfileSearch,
+    builder: (_, state) =>
+        ProfileSearchPage(author: state.extra! as FeedAuthor),
+  ),
+  _page(RoutePaths.feedCompose, const CreatePostPage()),
+
+  // Menu flow pages over the bottom nav (Figma: no nav bar on these).
+  GoRoute(
+    path: RoutePaths.settings,
+    builder: (context, _) => SettingsPage(
+      onSignOut: () =>
+          context.read<AuthBloc>().add(const AuthSignOutRequested()),
+    ),
+  ),
+  _page(RoutePaths.editProfile, const EditProfilePage()),
+  _page(RoutePaths.chatArchived, const ChatArchivedPage()),
 
   // Bottom nav: Marriage · Explore · Feed · Chat · Menu. Each tab keeps its
   // own stack and state.
@@ -158,17 +218,20 @@ final List<RouteBase> appRoutes = [
         routes: [_page(RoutePaths.explore, const ExplorePage())],
       ),
       StatefulShellBranch(
+        routes: [_page(RoutePaths.feed, const FeedPage())],
+      ),
+      StatefulShellBranch(
         routes: [
-          _page(RoutePaths.feed, const PlaceholderScreen(title: 'Feed')),
+          _page(RoutePaths.chat, const ChatPage()),
+          _page(RoutePaths.chatUnmatched, const ChatUnmatchedPage()),
         ],
       ),
       StatefulShellBranch(
         routes: [
-          _page(RoutePaths.chat, const PlaceholderScreen(title: 'Chat')),
+          _page(RoutePaths.menu, const MenuPage()),
+          // Help keeps the bottom nav (Figma "menu_help").
+          _page(RoutePaths.menuHelp, const HelpPage()),
         ],
-      ),
-      StatefulShellBranch(
-        routes: [_page(RoutePaths.menu, const MenuPage())],
       ),
     ],
   ),

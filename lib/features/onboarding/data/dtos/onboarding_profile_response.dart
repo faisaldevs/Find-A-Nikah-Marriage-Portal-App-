@@ -68,6 +68,9 @@ abstract class OnboardingProfileDto with _$OnboardingProfileDto {
     @Default(<String>[]) List<String> religiousPractices,
     @Default(<String>[]) List<String> personalityTraits,
     String? aboutMe,
+
+    /// Step 8 photos as server-relative paths (`/public/upload/x.jpg`).
+    @Default(<String>[]) List<String> images,
     OnboardingProfileAboutYouDto? aboutYou,
     OnboardingProfileLifestyleDto? lifestyle,
     OnboardingProfileInterestsDto? interests,

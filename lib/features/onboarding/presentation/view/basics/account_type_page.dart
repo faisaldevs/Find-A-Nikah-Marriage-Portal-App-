@@ -51,7 +51,8 @@ class _AccountTypePageState extends State<AccountTypePage> {
                 'Tell us about yourself so we can help you find '
                 'meaningful, compatible matches nearby.',
           ),
-          SizedBox(height: 8.h),
+          // SizedBox(height: 8.h),
+          SizedBox(height: 50.h),
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),

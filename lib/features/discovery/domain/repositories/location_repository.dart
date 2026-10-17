@@ -12,6 +12,10 @@ abstract interface class LocationRepository {
   /// Fails with `DeviceFailure` when access is missing or the fix times out.
   Future<Either<Failure, GeoPoint>> currentPosition();
 
+  /// ISO country code at [point] (e.g. `BD`), or Right(null) when the
+  /// platform geocoder has no answer.
+  Future<Either<Failure, String?>> countryCodeAt(GeoPoint point);
+
   Future<void> openAppSettings();
 
   Future<void> openLocationSettings();

@@ -59,11 +59,25 @@ const WizardSections phoneVerificationSections = [
 /// against it, so it's a single flow with multiple steps, from three
 /// features (auth, onboarding, face_verification) — hence the shell being
 /// assembled in the router.
+// const WizardSections photoFaceVerificationSections = [
+//   [
+//     (RoutePaths.addPhotos, 'Photos'),
+//     (RoutePaths.scanYourFace, 'Scan your face'),
+//     (RoutePaths.startVerification, 'Start Verification'),
+//     // Opened by "Start verification" (liveness is the only path).
+//     (RoutePaths.livenessCapture, 'Liveness check'),
+//     (RoutePaths.photoVerification, 'Photo Verification'),
+//   ],
+// ];
+// Four sections so the bar shows Figma's 4 segments (audit #34/#38/#40) —
+// one continuous bar looked unlike every other wizard page.
 const WizardSections photoFaceVerificationSections = [
+  [(RoutePaths.addPhotos, 'Photos')],
   [
-    (RoutePaths.addPhotos, 'Photos'),
     (RoutePaths.scanYourFace, 'Scan your face'),
     (RoutePaths.startVerification, 'Start Verification'),
-    (RoutePaths.photoVerification, 'Photo Verification'),
   ],
+  // Opened by "Start verification" (liveness is the only path).
+  [(RoutePaths.livenessCapture, 'Liveness check')],
+  [(RoutePaths.photoVerification, 'Photo Verification')],
 ];

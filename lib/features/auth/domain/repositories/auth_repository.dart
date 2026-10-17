@@ -11,6 +11,12 @@ abstract interface class AuthRepository {
 
   AuthStatus get currentStatus;
 
+  /// Dev-only shortcut: emits `authenticated` with onboarding already
+  /// complete, without touching the backend or stored credentials. Backs
+  /// the intro carousel's "Skip", which only renders in dev builds (see
+  /// `IntroPage._showSkip`).
+  void devSkipToApp();
+
   /// Reads stored credentials, refreshes onboarding completion from the
   /// authenticated status endpoint, then emits `authenticated` or
   /// `unauthenticated`. Called once at app start.
@@ -41,8 +47,12 @@ abstract interface class AuthRepository {
   });
 
   /// Sends a one-time code to [phoneNumber] (E.164) over WhatsApp/SMS.
-  Future<Either<Failure, Unit>> requestPhoneCode(String phoneNumber);
+  /// Right(code) when the backend runs in demo mode and echoes the code
+  /// back (dev builds autofill it), Right(null) otherwise.
+  Future<Either<Failure, String?>> requestPhoneCode(String phoneNumber);
 
+  /// Verifies [code]; on success the session is marked phone-verified so a
+  /// resumed onboarding skips the phone step.
   Future<Either<Failure, Unit>> verifyPhoneCode({
     required String phoneNumber,
     required String code,

@@ -14,7 +14,11 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SignInState {
 
- SignInStatus get status;/// On [SignInStatus.success]: the account still has onboarding to do.
+ SignInStatus get status;/// On [SignInStatus.success]: the account hasn't started the wizard
+/// yet (`resumeStep <= 4` — same threshold `resumeRouteFor` uses for
+/// "Get started"). Not the same as "onboarding incomplete": a
+/// returning user mid-wizard is also incomplete but isn't new, and
+/// is moved on by the router instead.
  bool get isNewAccount;/// Shown once by the page's listener.
  Failure? get failure;
 /// Create a copy of SignInState
@@ -214,7 +218,11 @@ class _SignInState implements SignInState {
   
 
 @override@JsonKey() final  SignInStatus status;
-/// On [SignInStatus.success]: the account still has onboarding to do.
+/// On [SignInStatus.success]: the account hasn't started the wizard
+/// yet (`resumeStep <= 4` — same threshold `resumeRouteFor` uses for
+/// "Get started"). Not the same as "onboarding incomplete": a
+/// returning user mid-wizard is also incomplete but isn't new, and
+/// is moved on by the router instead.
 @override@JsonKey() final  bool isNewAccount;
 /// Shown once by the page's listener.
 @override final  Failure? failure;

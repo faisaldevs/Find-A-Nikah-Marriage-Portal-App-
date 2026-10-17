@@ -41,6 +41,23 @@ class _SplashPageState extends State<SplashPage> {
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decode the next screens' full-bleed images while the brand beat
+    // plays, so intro/welcome paint them on their first frame instead of
+    // flashing an empty background.
+    for (final path in [
+      Assets.images.onboardingPhoto1,
+      Assets.images.onboardingPhoto2,
+      Assets.images.onboardingPhoto3,
+      Assets.images.authBackground,
+      Assets.images.findANikahFullLogoImage4xColored,
+    ]) {
+      unawaited(precacheImage(AssetImage(path), context));
+    }
+  }
+
   void _maybeContinue(AuthStatus status) {
     if (!mounted ||
         !_beatDone ||

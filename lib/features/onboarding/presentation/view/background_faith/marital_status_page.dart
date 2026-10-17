@@ -39,7 +39,8 @@ class _MaritalStatusPageState extends State<MaritalStatusPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const WizardHeadline(text: "What's your marital status?"),
-          SizedBox(height: 8.h),
+          // SizedBox(height: 8.h),
+          SizedBox(height: 50.h),
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),

@@ -52,7 +52,8 @@ class _HowHeardPageState extends State<HowHeardPage> {
             text: 'How did you hear about\n',
             highlight: 'Find A Nikah?',
           ),
-          SizedBox(height: 8.h),
+          // SizedBox(height: 8.h),
+          SizedBox(height: 50.h),
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -65,13 +66,23 @@ class _HowHeardPageState extends State<HowHeardPage> {
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Text(
-              'This will never be shown on your profile',
-              textAlign: TextAlign.center,
-              style: TextFontStyle.headline12w400textMutedStyleSatoshi,
+            // child: Text(
+            //   'This will never be shown on your profile',
+            //   textAlign: TextAlign.center,
+            //   style: TextFontStyle.headline12w400textMutedStyleSatoshi,
+            // ),
+            // Figma: centred Regular 15 Grey-500, 20pt above Continue.
+            child: SizedBox(
+              width: double.infinity,
+              child: Text(
+                'This will never be shown on your profile',
+                textAlign: TextAlign.center,
+                style: figmaText(15, 21, color: const Color(0xFF737373)),
+              ),
             ),
           ),
-          SizedBox(height: 12.h),
+          // SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
         ],
       ),
     );

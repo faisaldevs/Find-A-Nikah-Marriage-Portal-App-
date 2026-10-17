@@ -308,7 +308,9 @@ void main() {
     blocTest<PhoneVerificationBloc, PhoneVerificationState>(
       'number → code sent → verified',
       setUp: () {
-        when(() => repo.requestPhoneCode(any())).thenAnswer((_) => _ok());
+        when(
+          () => repo.requestPhoneCode(any()),
+        ).thenAnswer((_) async => right('715208'));
         when(
           () => repo.verifyPhoneCode(
             phoneNumber: any(named: 'phoneNumber'),
@@ -327,14 +329,17 @@ void main() {
         const PhoneVerificationState(
           phoneNumber: '+8801700000000',
           status: PhoneVerificationStatus.codeSent,
+          demoCode: '715208',
         ),
         const PhoneVerificationState(
           phoneNumber: '+8801700000000',
           status: PhoneVerificationStatus.submitting,
+          demoCode: '715208',
         ),
         const PhoneVerificationState(
           phoneNumber: '+8801700000000',
           status: PhoneVerificationStatus.verified,
+          demoCode: '715208',
         ),
       ],
       verify: (_) => verify(
@@ -351,8 +356,9 @@ void main() {
         phoneNumber: '+8801700000000',
         status: PhoneVerificationStatus.codeSent,
       ),
-      setUp: () =>
-          when(() => repo.requestPhoneCode(any())).thenAnswer((_) => _ok()),
+      setUp: () => when(
+        () => repo.requestPhoneCode(any()),
+      ).thenAnswer((_) async => right(null)),
       build: () => PhoneVerificationBloc(repo),
       act: (bloc) => bloc.add(const PhoneCodeResendRequested()),
       verify: (_) =>

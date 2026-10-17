@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/onboarding/data/datasources/onboarding_remote_data_source.dart';
 import 'package:find_a_nikah/features/onboarding/data/dtos/onboarding_step_request.dart';
@@ -24,13 +25,20 @@ class OnboardingSubmissionRepositoryImpl
             religion: draft.religion,
             dateOfBirth: _isoDate(draft.dateOfBirth),
             intent: draft.lookingForIntent,
-            referralSource: draft.howHeard,
+            // referralSource: draft.howHeard,
+            // Required by the backend (null or missing → 400 "must be one
+            // of …"); "Skip" on How did you hear sends `other`.
+            referralSource: draft.howHeard ?? 'other',
             nationality: draft.nationalities.map(_countryName).toList(),
-            grewUpIn: draft.grewUpCountry == null
-                ? null
-                : _countryName(draft.grewUpCountry!),
+            // grewUpIn: draft.grewUpCountry == null
+            //     ? null
+            //     : _countryName(draft.grewUpCountry!),
+            grewUpIn: [
+              if (draft.grewUpCountry case final code?) _countryName(code),
+            ],
             ethnicity: draft.ethnicities.map(_countryName).toList(),
             heightCm: draft.heightCm,
+            languages: draft.languages,
           ),
         );
         return unit;
@@ -83,6 +91,54 @@ class OnboardingSubmissionRepositoryImpl
         await _remote.submitBio(OnboardingBioRequestDto(aboutMe: draft.bio));
         return unit;
       });
+
+  @override
+  Future<Either<Failure, Unit>> submitPhotos(OnboardingData draft) =>
+      _guard(() async {
+        // `TODO(api)`: photos already on the server (prefilled as URLs)
+        // can't be re-sent as files, and how step 8 keeps/removes them is
+        // unconfirmed (replace vs append, kept-paths field, delete API) —
+        // see resources/docs/PENDING.md. For now only newly picked local
+        // files go up, and nothing is sent when there are none.
+        final local = draft.photoPaths.where((p) => !_isRemote(p)).toList();
+        if (local.isEmpty) return unit;
+        final form = FormData()..fields.add(const MapEntry('step', '8'));
+        // Before: every draft photo was a local file.
+        // for (final (i, path) in draft.photoPaths.indexed) {
+        for (final (i, path) in local.indexed) {
+          form.files.add(
+            MapEntry(
+              'images',
+              await MultipartFile.fromFile(path, filename: _fileName(path, i)),
+            ),
+          );
+        }
+        await _remote.submitPhotos(form);
+        return unit;
+      });
+
+  @override
+  Future<Either<Failure, Unit>> deleteUploadedPhoto(String url) =>
+      _guard(() async {
+        final segments = Uri.parse(url).pathSegments;
+        if (segments.isEmpty || segments.last.isEmpty) {
+          throw const DeviceException('no file name in photo url');
+        }
+        await _remote.deletePhoto(segments.last);
+        return unit;
+      });
+
+  static bool _isRemote(String path) =>
+      path.startsWith('http://') || path.startsWith('https://');
+
+  /// Keeps the picked file's extension (the server stores it as-is).
+  String _fileName(String path, int index) {
+    final dot = path.lastIndexOf('.');
+    final ext = dot == -1 || dot < path.lastIndexOf('/')
+        ? '.jpg'
+        : path.substring(dot);
+    return 'photo_${index + 1}$ext';
+  }
 
   String _countryName(String code) {
     for (final country in [...allCountries, ...suggestedCountries]) {

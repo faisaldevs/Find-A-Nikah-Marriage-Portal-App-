@@ -64,6 +64,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  void devSkipToApp() {
+    _emit(
+      const AuthStatus.authenticated(
+        UserSession(userId: 'dev-skip', onboardingComplete: true),
+      ),
+    );
+  }
+
+  @override
   Future<void> restoreSession() async {
     final restored = await _guard(() async {
       final tokens = await _local.read();
@@ -109,7 +118,8 @@ class AuthRepositoryImpl implements AuthRepository {
           },
           (data) => session.copyWith(
             onboardingComplete: data.isCompleted,
-            resumeStep: data.currentStep,
+            // resumeStep: data.currentStep,
+            resumeStep: data.resumeStep,
             isPhoneVerified: data.user?.isPhoneVerified ?? false,
           ),
         );
@@ -155,7 +165,8 @@ class AuthRepositoryImpl implements AuthRepository {
       ),
       (data) {
         onboardingComplete = data.isCompleted;
-        resumeStep = data.currentStep;
+        // resumeStep = data.currentStep;
+        resumeStep = data.resumeStep;
         isPhoneVerified = data.user?.isPhoneVerified ?? false;
       },
     );
@@ -237,24 +248,54 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
-  Future<Either<Failure, Unit>> requestPhoneCode(String phoneNumber) =>
+  Future<Either<Failure, String?>> requestPhoneCode(String phoneNumber) =>
       _guard(() async {
-        await _remote.requestPhoneCode(
+        final sent = await _remote.requestPhoneCode(
           PhoneRequestDto(phoneNumber: phoneNumber),
         );
-        return unit;
+        return sent.data?.devCode ?? sent.data?.code;
       });
 
   @override
   Future<Either<Failure, Unit>> verifyPhoneCode({
     required String phoneNumber,
     required String code,
-  }) => _guard(() async {
-    await _remote.verifyPhoneCode(
-      PhoneCodeRequestDto(phoneNumber: phoneNumber, code: code),
+  }) async {
+    final result = await _guard(() async {
+      final res = await _remote.verifyPhoneCode(
+        PhoneCodeRequestDto(phoneNumber: phoneNumber, code: code),
+      );
+      final data = res.data;
+      // A 2xx without a positive verdict still means "not verified".
+      if (data == null || !(data.isPhoneVerified || data.verified)) {
+        throw const ValidationException(
+          {'code': 'invalid'},
+          'That code didn’t work. Please try again.',
+        );
+      }
+      return unit;
+    });
+    if (result.isLeft()) return result;
+    await _markPhoneVerified();
+    return result;
+  }
+
+  /// Persists + emits the session with `isPhoneVerified: true`. Best
+  /// effort: the server already has it, so a storage hiccup isn't surfaced.
+  Future<void> _markPhoneVerified() async {
+    final current = _status;
+    if (current is! Authenticated || current.session.isPhoneVerified) return;
+    final session = current.session.copyWith(isPhoneVerified: true);
+    final saved = await _guard(
+      () => _local.saveSession(
+        userId: session.userId,
+        onboardingComplete: session.onboardingComplete,
+        resumeStep: session.resumeStep,
+        isPhoneVerified: true,
+      ),
     );
-    return unit;
-  });
+    if (saved.isRight()) _emit(AuthStatus.authenticated(session));
+  }
 
   @override
   Future<Either<Failure, Unit>> completeOnboarding() async {

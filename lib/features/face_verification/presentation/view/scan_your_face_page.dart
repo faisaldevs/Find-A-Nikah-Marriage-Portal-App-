@@ -1,4 +1,4 @@
-import 'dart:io';
+// import 'dart:io'; // only the commented-out Image.file used it
 
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/bloc/face_verification_bloc.dart';
@@ -7,10 +7,12 @@ import 'package:find_a_nikah/features/face_verification/presentation/presentatio
 import 'package:find_a_nikah/features/face_verification/presentation/view/start_verification_page.dart'
     show StartVerificationPage;
 import 'package:find_a_nikah/features/face_verification/presentation/widgets/verification_legal_footer.dart';
+import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 /// Step 1 of face verification: "Confirm it's you in this photo".
@@ -69,6 +71,9 @@ class _ScanYourFacePageState extends State<ScanYourFacePage> {
                   'This ensures that you only meet genuine people on '
                   'Find A Nikah.',
               padding: EdgeInsets.zero,
+              titleHeight: 1.3,
+              subtitleGap: 10,
+              subtitleColor: Color(0xFFA3A3A3),
             ),
             SizedBox(height: 40.h),
             const _ScanExplainerRow(),
@@ -108,7 +113,9 @@ class _ProfilePhotoThumb extends StatelessWidget {
                         color: Colors.grey.shade500,
                       ),
                     )
-                  : Image.file(File(path!), fit: BoxFit.cover),
+                  // The main photo may be an already-uploaded URL.
+                  // : Image.file(File(path!), fit: BoxFit.cover),
+                  : AppPhoto(path!),
             ),
           ),
           Positioned(
@@ -142,14 +149,25 @@ class _ScanExplainerRow extends StatelessWidget {
         Container(
           width: 40.r,
           height: 40.r,
+          // decoration: BoxDecoration(
+          //   color: AppColors.primaryColor.withValues(alpha: 0.08),
+          //   borderRadius: BorderRadius.circular(6.r),
+          // ),
+          // child: Icon(
+          //   Icons.face_retouching_natural_outlined,
+          //   size: 22.r,
+          //   color: AppColors.primaryColor,
+          // ),
+          // Figma 883:5663: pink-50 square (2pt radius), 24pt scan-face icon.
           decoration: BoxDecoration(
-            color: AppColors.primaryColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6.r),
+            color: const Color(0xFFFDE6EF),
+            borderRadius: BorderRadius.circular(2.r),
           ),
-          child: Icon(
-            Icons.face_retouching_natural_outlined,
-            size: 22.r,
-            color: AppColors.primaryColor,
+          alignment: Alignment.center,
+          child: SvgPicture.asset(
+            Assets.icons.scanFace,
+            width: 24.r,
+            height: 24.r,
           ),
         ),
         SizedBox(width: 16.w),

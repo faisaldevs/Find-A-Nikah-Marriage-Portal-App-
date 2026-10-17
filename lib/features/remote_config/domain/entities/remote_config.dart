@@ -7,7 +7,13 @@ part 'remote_config.freezed.dart';
 /// can't be fetched or doesn't mention the flag.
 enum FeatureFlag {
   /// Selfie verification step after "Add your photos".
-  faceVerification(defaultValue: true);
+  faceVerification(defaultValue: true),
+
+  /// Guided 3-pose liveness capture instead of the single-selfie flow, on
+  /// "Start verification". Off by default: the backend endpoints it calls
+  /// (`/profile/face-verification*`) aren't confirmed yet — see
+  /// `FaceVerificationRemoteDataSource`'s `TODO(api)` notes.
+  livenessEnabled(defaultValue: false);
 
   const FeatureFlag({required this.defaultValue});
 

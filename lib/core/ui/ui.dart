@@ -4,7 +4,9 @@ library;
 export 'package:find_a_nikah/gen/colors.gen.dart';
 export 'package:find_a_nikah/gen/fonts.gen.dart';
 
+export 'components/app_photo.dart';
 export 'components/app_primary_button.dart';
+export 'components/asset_icon.dart';
 export 'components/circle_icon_button.dart';
 export 'components/legal_footer_text.dart';
 export 'components/placeholder_screen.dart';
@@ -21,4 +23,5 @@ export 'states/failure_toast.dart';
 export 'states/state_views.dart';
 export 'text/failure_text.dart';
 export 'theme/app_theme.dart';
+export 'theme/figma_text.dart';
 export 'theme/text_font_style.dart';

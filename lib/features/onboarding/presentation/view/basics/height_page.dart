@@ -1,6 +1,7 @@
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/widgets/wizard_options.dart';
+import 'package:find_a_nikah/features/onboarding/presentation/widgets/wizard_radio_tile.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,7 +22,16 @@ class _HeightPageState extends State<HeightPage> {
   @override
   void initState() {
     super.initState();
-    _cm = context.read<OnboardingBloc>().state.draft.heightCm;
+    // _cm = context.read<OnboardingBloc>().state.draft.heightCm;
+    // Snap an older per-cm value to the nearest per-inch row.
+    final saved = context.read<OnboardingBloc>().state.draft.heightCm;
+    _cm = saved == null
+        ? null
+        : _options
+              .reduce(
+                (a, b) => (a.cm - saved).abs() <= (b.cm - saved).abs() ? a : b,
+              )
+              .cm;
   }
 
   void _continue() {
@@ -52,59 +62,94 @@ class _HeightPageState extends State<HeightPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const WizardHeadline(text: 'How tall are you?'),
-            SizedBox(height: 8.h),
+            // SizedBox(height: 8.h),
+            // Expanded(
+            // child: ListView.builder(
+            // padding: EdgeInsets.symmetric(horizontal: 20.w),
+            // itemCount: _options.length,
+            // itemBuilder: (context, i) {
+            // final option = _options[i];
+            // final selected = option.cm == _cm;
+            // return InkWell(
+            // onTap: () => setState(() => _cm = option.cm),
+            // child: Padding(
+            // padding: EdgeInsets.symmetric(vertical: 12.h),
+            // child: Row(
+            // children: [
+            // Container(
+            // width: 22.r,
+            // height: 22.r,
+            // decoration: BoxDecoration(
+            // shape: BoxShape.circle,
+            // border: Border.all(
+            // color: selected
+            // ? AppColors.primaryColor
+            // : AppColors.textMuted,
+            // width: 2,
+            // ),
+            // ),
+            // child: selected
+            // ? Center(
+            // child: Container(
+            // width: 11.r,
+            // height: 11.r,
+            // decoration: const BoxDecoration(
+            // shape: BoxShape.circle,
+            // color: AppColors.primaryColor,
+            // ),
+            // ),
+            // )
+            // : null,
+            // ),
+            // SizedBox(width: 12.w),
+            // Text(
+            // option.label,
+            // style: selected
+            // ? TextFontStyle
+            // .headline15w500primaryColorStyleSatoshi
+            // : TextFontStyle
+            // .headline15w500textDarkStyleSatoshi,
+            // ),
+            // ],
+            // ),
+            // ),
+            // );
+            // },
+            // ),
+            // ),
+            // Figma: list 26pt under the title, standard Bold 16 radio rows
+            // 14pt apart, fading out above the CTA.
+            SizedBox(height: 26.h),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                itemCount: _options.length,
-                itemBuilder: (context, i) {
-                  final option = _options[i];
-                  final selected = option.cm == _cm;
-                  return InkWell(
-                    onTap: () => setState(() => _cm = option.cm),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 22.r,
-                            height: 22.r,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.primaryColor
-                                    : AppColors.textMuted,
-                                width: 2,
-                              ),
-                            ),
-                            child: selected
-                                ? Center(
-                                    child: Container(
-                                      width: 11.r,
-                                      height: 11.r,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.primaryColor,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          SizedBox(width: 12.w),
-                          Text(
-                            option.label,
-                            style: selected
-                                ? TextFontStyle
-                                      .headline15w500primaryColorStyleSatoshi
-                                : TextFontStyle
-                                      .headline15w500textDarkStyleSatoshi,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (rect) => LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: const [
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                  stops: [
+                    0,
+                    1 - 56 / rect.height.clamp(56, double.infinity),
+                    1,
+                  ],
+                ).createShader(rect),
+                child: ListView.separated(
+                  padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 40.h),
+                  itemCount: _options.length,
+                  separatorBuilder: (_, _) => SizedBox(height: 14.h),
+                  itemBuilder: (context, i) {
+                    final option = _options[i];
+                    return WizardRadioTile(
+                      title: option.label,
+                      selected: option.cm == _cm,
+                      onTap: () => setState(() => _cm = option.cm),
+                    );
+                  },
+                ),
               ),
             ),
           ],

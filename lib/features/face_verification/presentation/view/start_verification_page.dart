@@ -8,20 +8,52 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
-/// Step 2 of face verification: capture a private selfie.
-///
-/// Empty state shows the dashed "Won't be shown on your profile" circle;
-/// once a selfie passes the on-device face check it fills the circle and the
-/// CTA flips to "Continue", which submits for server-side review.
+/// Step 2 of face verification: "Start verification" opens the guided
+/// liveness capture (`LivenessCapturePage`), which photographs the user
+/// front/left/right and uploads the stills for server-side verification.
 class StartVerificationPage extends StatelessWidget {
   const StartVerificationPage({super.key});
 
+  // Liveness is now the only path — the `livenessEnabled` flag and the old
+  // single-selfie capture (system camera → on-device check → submit) are
+  // disabled below, kept for reference.
+  // const StartVerificationPage({required this.livenessEnabled, super.key});
+  //
+  // /// Resolved by the router (the one place allowed to see every feature's
+  // /// state) from the `livenessEnabled` remote-config flag.
+  // final bool livenessEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = context.select<FaceVerificationBloc, bool>(
+      (b) => b.state.busy,
+    );
+    return WizardScaffold(
+      continueLabel: 'Start verification',
+      onContinue: busy
+          ? null
+          : () => context.push<void>(RoutePaths.livenessCapture),
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Column(
+          children: [
+            SizedBox(height: 48.h),
+            _SelfieCircle(path: null, busy: busy),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /*
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FaceVerificationBloc>().state;
     final bloc = context.read<FaceVerificationBloc>();
     final rejection = state.check;
 
+    // Also reacted to the liveness flow's statuses while LivenessCapturePage
+    // sat on top of this page — pushing the result page twice.
     return BlocListener<FaceVerificationBloc, FaceVerificationState>(
       listenWhen: (prev, next) =>
           prev.status != next.status || prev.failure != next.failure,
@@ -38,6 +70,8 @@ class StartVerificationPage extends StatelessWidget {
             ? null
             : state.hasSelfie
             ? () => bloc.add(const FaceVerificationSubmitted())
+            : livenessEnabled
+            ? () => context.push<void>(RoutePaths.livenessCapture)
             : () => bloc.add(const SelfieCaptureRequested()),
         secondaryLabel: state.hasSelfie ? 'Retake selfie' : null,
         onSecondary: state.hasSelfie
@@ -68,6 +102,7 @@ class StartVerificationPage extends StatelessWidget {
       ),
     );
   }
+  */
 }
 
 /// 270pt dashed circle. Empty: grey fill + eye-off badge + caption. Filled:

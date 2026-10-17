@@ -50,7 +50,8 @@ class _LifestylePreferencesPageState extends State<LifestylePreferencesPage> {
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // Full width (the wizard body is loosely constrained).
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const WizardHeadline(
               text: 'Lifestyle preferences',
@@ -58,8 +59,11 @@ class _LifestylePreferencesPageState extends State<LifestylePreferencesPage> {
                   'Tell us about your daily habits to help us personalize '
                   'your matches.',
               padding: EdgeInsets.zero,
+              subtitleGap: 10,
             ),
-            SizedBox(height: 20.h),
+            // SizedBox(height: 20.h),
+            // Figma: subtitle sits in a 10pt-padded box, then 40pt.
+            SizedBox(height: 50.h),
             YesNoQuestion(
               label: 'Do you only eat Halal food?',
               value: _halal,

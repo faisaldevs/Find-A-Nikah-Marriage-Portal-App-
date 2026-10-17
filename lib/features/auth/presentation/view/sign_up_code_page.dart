@@ -127,6 +127,9 @@ class _SignUpCodePageState extends State<SignUpCodePage> {
       },
       child: AuthStepScaffold(
         title: 'Enter verification code',
+        // Figma's 100pt is title → underline; the digit box above each
+        // underline is ~43pt tall, so the gap to the box is 57.
+        bodyGap: 57,
         isLoading: busy,
         loadingLabel: _isResending ? 'Sending code...' : 'Verifying...',
         onContinue: _isComplete && !busy
@@ -138,20 +141,26 @@ class _SignUpCodePageState extends State<SignUpCodePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(_codeLength, (i) {
                 return SizedBox(
-                  width: 42.w,
+                  // width: 42.w,
+                  width: 40.w,
                   child: TextField(
                     controller: _controllers[i],
                     focusNode: _focusNodes[i],
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
                     maxLength: 1,
-                    style: TextFontStyle.headline22w400textDarkStyleSatoshi,
+                    // style: TextFontStyle.headline22w400textDarkStyleSatoshi,
+                    style: figmaText(22, 28.6),
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (value) => _onDigitChanged(i, value),
                     decoration: const InputDecoration(
                       counterText: '',
+                      // enabledBorder: UnderlineInputBorder(
+                      //   borderSide: BorderSide(color: AppColors.textMuted),
+                      // ),
+                      // Figma 883:6085: 40pt #D4D4D4 rules.
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.textMuted),
+                        borderSide: BorderSide(color: Color(0xFFD4D4D4)),
                       ),
                       focusedBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: AppColors.primaryColor),
@@ -161,20 +170,31 @@ class _SignUpCodePageState extends State<SignUpCodePage> {
                 );
               }),
             ),
-            SizedBox(height: 20.h),
+            // SizedBox(height: 20.h),
+            SizedBox(height: 24.h),
             if (_secondsLeft > 0)
               Text(
                 'You can request a new code in $_secondsLeft seconds',
-                style: TextFontStyle.headline13w400textMutedStyleSatoshi,
+                // style: TextFontStyle.headline13w400textMutedStyleSatoshi,
+                textAlign: TextAlign.center,
+                style: figmaText(15, 21, color: const Color(0xFF737373)),
               )
             else
               GestureDetector(
                 onTap: busy ? null : _resend,
                 child: Text(
                   _isResending ? 'Sending code...' : 'Resend code',
-                  style: busy
-                      ? TextFontStyle.headline13w400textMutedStyleSatoshi
-                      : TextFontStyle.headline13w600primaryColorStyleSatoshi,
+                  // style: busy
+                  //     ? TextFontStyle.headline13w400textMutedStyleSatoshi
+                  //     : TextFontStyle.headline13w600primaryColorStyleSatoshi,
+                  style: figmaText(
+                    15,
+                    21,
+                    weight: busy ? FontWeight.w400 : FontWeight.w500,
+                    color: busy
+                        ? const Color(0xFF737373)
+                        : AppColors.primaryColor,
+                  ),
                 ),
               ),
           ],

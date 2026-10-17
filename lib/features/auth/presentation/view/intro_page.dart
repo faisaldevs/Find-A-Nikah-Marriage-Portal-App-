@@ -1,9 +1,11 @@
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:find_a_nikah/flavors/app_config.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
@@ -47,16 +49,19 @@ const _slides = [
 const _viewportFraction = 0.8; // was 0.72 — design card spans ~78% of width
 const _arcTilt = 0.04; // was 0.12 — swung side cards ~24pt into the centre card
 const _arcDrop = 14.0; // was 22.0 — design drops side cards ~13pt
-const _cardHeight =
-    400.0; // was 340 — bottom [_domeOverlap] now sits under the dome
+// const _cardHeight =
+//     400.0; // was 340 — bottom [_domeOverlap] now sits under the dome
+const _cardHeight = 402.0; // Figma 883:6149 (303×402)
 const _cardGap = 16.0; // was 12 (6.w padding each side)
-const _cardRadius = 14.0; // was 28 — design corners are much tighter
+// const _cardRadius = 14.0; // was 28 — design corners are much tighter
+const _cardRadius = 12.0; // Figma
 
 /// White dome that covers the bottom of every card (centre and side peeks)
 /// so the carousel ends in one continuous curve above the captions.
 /// [_domeOverlap] is how much of the centre card it hides; [_domeRise] is how
 /// much lower the dome's edge sits at the screen sides than at its centre.
-const _domeOverlap = 40.0;
+// const _domeOverlap = 40.0;
+const _domeOverlap = 23.0; // Figma: dome top 523, card bottom 546
 const _domeRise = 16.0;
 
 /// PageView has no infinite mode, so the slides repeat across a long page
@@ -154,8 +159,12 @@ class _IntroPageState extends State<_IntroView> {
     // }
   }
 
-  /// The development skip bypasses the intro carousel, not authentication.
-  void _skip() => context.push<void>(RoutePaths.welcome).ignore();
+  /// Dev-only skip: bypasses sign-in entirely and drops straight into the
+  /// app's bottom nav (marriage tab) via [AuthDevSkipRequested] — the
+  /// redirect guard in `app_router.dart` won't let a plain navigation
+  /// reach app routes while unauthenticated, so this goes through auth
+  /// state instead of `context.push`.
+  void _skip() => context.read<AuthBloc>().add(const AuthDevSkipRequested());
 
   /// "Skip" exists only in dev builds; staging/prod users always sign in.
   static final _showSkip = getIt<AppConfig>().flavors == Flavors.dev;
@@ -167,29 +176,32 @@ class _IntroPageState extends State<_IntroView> {
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 8.h),
+            // Figma 883:6164: 38pt under the status bar, 3 segments 2pt
+            // apart, only the CURRENT slide pink (others primary-400 @ 30%),
+            // card 48pt below.
+            SizedBox(height: 38.h),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(
                 children: List.generate(_slides.length, (i) {
                   return Expanded(
                     child: Container(
                       margin: EdgeInsets.only(
-                        right: i == _slides.length - 1 ? 0 : 8.w,
+                        right: i == _slides.length - 1 ? 0 : 2.w,
                       ),
                       height: 4.h,
                       decoration: BoxDecoration(
-                        color: i <= _index
+                        color: i == _index
                             ? AppColors.primaryColor
-                            : AppColors.primaryColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(2.r),
+                            : const Color(0xFFF23480).withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(4.r),
                       ),
                     ),
                   );
                 }),
               ),
             ),
-            SizedBox(height: 28.h),
+            SizedBox(height: 48.h),
             // Cards, dome and captions share one Stack so each caption can
             // travel with its card. The PageView fills the whole area (dome +
             // captions included) and both overlays ignore pointers, so a
@@ -264,7 +276,7 @@ class _IntroPageState extends State<_IntroView> {
                         ),
                       ),
                       Positioned(
-                        top: domeTop + 28.h,
+                        top: domeTop + 27.h,
                         left: 0,
                         right: 0,
                         child: IgnorePointer(
@@ -348,11 +360,20 @@ class _IntroPageState extends State<_IntroView> {
             //   ),
             // ),
             // const Spacer(),
+            // Figma: 48pt / 8pt-radius Continue, Medium 18; Skip Medium 18.
             Padding(
-              padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 8.h),
               child: AppPrimaryButton(
                 label: 'Continue',
                 onPressed: _onContinue,
+                height: 48.h,
+                borderRadius: 8.r,
+                labelStyle: figmaText(
+                  18,
+                  23.4,
+                  weight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
             ),
             if (_showSkip)
@@ -360,7 +381,7 @@ class _IntroPageState extends State<_IntroView> {
                 onPressed: _skip,
                 child: Text(
                   'Skip',
-                  style: TextFontStyle.headline14w500textDarkStyleSatoshi,
+                  style: figmaText(18, 24, weight: FontWeight.w500),
                 ),
               )
             else
@@ -384,25 +405,23 @@ class _Caption extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Figma 883:6162: Medium (not bold) 30 / 1.2 Grey-950; Regular 16 /
+        // 1.4 Grey-500 subtitle 16pt below, 316pt wide.
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 28.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             slide.title,
             textAlign: TextAlign.center,
-            style: TextFontStyle.headline30w700textDarkStyleSatoshi.copyWith(
-              height: 1.15,
-            ),
+            style: figmaText(30, 36, weight: FontWeight.w500),
           ),
         ),
-        SizedBox(height: 14.h),
+        SizedBox(height: 16.h),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32.w),
+          padding: EdgeInsets.symmetric(horizontal: 37.w),
           child: Text(
             slide.subtitle,
             textAlign: TextAlign.center,
-            style: TextFontStyle.headline15w400textMutedStyleSatoshi.copyWith(
-              height: 1.4,
-            ),
+            style: figmaText(16, 22.4, color: const Color(0xFF737373)),
           ),
         ),
       ],

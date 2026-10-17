@@ -44,13 +44,26 @@ abstract class AuthRemoteDataSource {
   @POST('/auth/logout')
   Future<void> logout(@Body() RefreshRequestDto body);
 
-  @POST('/me/phone/code')
-  Future<void> requestPhoneCode(@Body() PhoneRequestDto body);
+  // Placeholder paths, replaced by the real onboarding phone API:
+  // @POST('/me/phone/code')
+  // Future<void> requestPhoneCode(@Body() PhoneRequestDto body);
+  //
+  // @POST('/me/phone/verify')
+  // Future<void> verifyPhoneCode(@Body() PhoneCodeRequestDto body);
 
-  @POST('/me/phone/verify')
-  Future<void> verifyPhoneCode(@Body() PhoneCodeRequestDto body);
+  /// Sends a WhatsApp code. Demo mode echoes it back as `devCode`.
+  @POST('/onboarding/phone/send-code')
+  Future<PhoneCodeSentResponseDto> requestPhoneCode(
+    @Body() PhoneRequestDto body,
+  );
 
-  @POST('/me/onboarding/complete')
+  @POST('/onboarding/phone/verify-code')
+  Future<PhoneVerifiedResponseDto> verifyPhoneCode(
+    @Body() PhoneCodeRequestDto body,
+  );
+
+  // @POST('/me/onboarding/complete') — 404; the live route is below.
+  @POST('/onboarding/complete')
   Future<void> completeOnboarding();
 
   @GET('/onboarding/status')

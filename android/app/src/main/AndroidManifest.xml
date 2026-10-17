@@ -1,10 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- features/auth: distance map centring (geolocator). Camera needs no
-         manifest entry — image_picker delegates to the system camera app. -->
+    <!-- features/auth: distance map centring (geolocator). -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- OSM tiles + ML Kit model fetch -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- features/face_verification: live preview for the guided liveness
+         capture (the old single-selfie path uses image_picker, which
+         delegates to the system camera app and needs no entry here). -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <application
         android:label="Find A Nikah"
         android:name="${applicationName}"

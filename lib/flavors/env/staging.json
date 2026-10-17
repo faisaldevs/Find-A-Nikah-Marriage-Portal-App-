@@ -1,6 +1,7 @@
 {
   "FLAVOR": "staging",
   "API_BASE_URL": "https://staging-api.findanikah.com/api",
+  "IMAGE_BASE_URL": "https://staging-api.findanikah.com",
   "SOCKET_URL": "https://staging-api.findanikah.com",
   "PRIVACY_POLICY_URL": "https://findanikah.com/privacy",
   "TERMS_URL": "https://findanikah.com/terms"

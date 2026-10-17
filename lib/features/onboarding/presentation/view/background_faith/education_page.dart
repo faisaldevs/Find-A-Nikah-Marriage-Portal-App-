@@ -40,8 +40,10 @@ class _EducationPageState extends State<EducationPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const WizardHeadline(text: "What's your education level?"),
-          SizedBox(height: 8.h),
+          // const WizardHeadline(text: "What's your education level?"),
+          const WizardHeadline(text: "What's your\neducation level?"),
+          // SizedBox(height: 8.h),
+          SizedBox(height: 50.h),
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),

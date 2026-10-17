@@ -17,11 +17,12 @@ Map<String, dynamic> _$OnboardingBasicsRequestDtoToJson(
   'religion': instance.religion,
   'dateOfBirth': instance.dateOfBirth,
   'intent': instance.intent,
-  'referralSource': instance.referralSource,
+  'referralSource': ?instance.referralSource,
   'nationality': instance.nationality,
   'grewUpIn': instance.grewUpIn,
   'ethnicity': instance.ethnicity,
   'heightCm': instance.heightCm,
+  'languages': instance.languages,
 };
 
 Map<String, dynamic> _$OnboardingBackgroundFaithRequestDtoToJson(
@@ -56,7 +57,3 @@ Map<String, dynamic> _$OnboardingLifestylePersonalityRequestDtoToJson(
 Map<String, dynamic> _$OnboardingBioRequestDtoToJson(
   OnboardingBioRequestDto instance,
 ) => <String, dynamic>{'step': instance.step, 'aboutMe': instance.aboutMe};
-
-Map<String, dynamic> _$OnboardingImagesRequestDtoToJson(
-  OnboardingImagesRequestDto instance,
-) => <String, dynamic>{'step': instance.step, 'images': instance.images};

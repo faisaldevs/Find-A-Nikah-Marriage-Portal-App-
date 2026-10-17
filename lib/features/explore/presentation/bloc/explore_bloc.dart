@@ -13,6 +13,12 @@ final class ExploreSubscribed extends ExploreEvent {
   const ExploreSubscribed();
 }
 
+/// Fired once, the first time the "My history" tab is opened. The bloc
+/// guards against refetching on every tab switch.
+final class ExploreHistoryRequested extends ExploreEvent {
+  const ExploreHistoryRequested();
+}
+
 enum ExploreStatus { initial, loading, ready, failure }
 
 @freezed
@@ -21,6 +27,9 @@ abstract class ExploreState with _$ExploreState {
     @Default(ExploreStatus.initial) ExploreStatus status,
     @Default(ExploreFeed()) ExploreFeed feed,
     Failure? failure,
+    @Default(ExploreStatus.initial) ExploreStatus historyStatus,
+    @Default(ExploreHistoryFeed()) ExploreHistoryFeed history,
+    Failure? historyFailure,
   }) = _ExploreState;
 }
 
@@ -29,6 +38,7 @@ abstract class ExploreState with _$ExploreState {
 class ExploreBloc extends Bloc<ExploreEvent, ExploreState> {
   ExploreBloc(this._repo) : super(const ExploreState()) {
     on<ExploreSubscribed>(_onSubscribed);
+    on<ExploreHistoryRequested>(_onHistoryRequested);
   }
 
   final ExploreRepository _repo;
@@ -43,6 +53,30 @@ class ExploreBloc extends Bloc<ExploreEvent, ExploreState> {
       result.fold(
         (f) => state.copyWith(status: ExploreStatus.failure, failure: f),
         (feed) => state.copyWith(status: ExploreStatus.ready, feed: feed),
+      ),
+    );
+  }
+
+  Future<void> _onHistoryRequested(
+    ExploreHistoryRequested event,
+    Emitter<ExploreState> emit,
+  ) async {
+    if (state.historyStatus == ExploreStatus.loading ||
+        state.historyStatus == ExploreStatus.ready) {
+      return;
+    }
+    emit(state.copyWith(historyStatus: ExploreStatus.loading));
+    final result = await _repo.fetchHistory();
+    emit(
+      result.fold(
+        (f) => state.copyWith(
+          historyStatus: ExploreStatus.failure,
+          historyFailure: f,
+        ),
+        (history) => state.copyWith(
+          historyStatus: ExploreStatus.ready,
+          history: history,
+        ),
       ),
     );
   }

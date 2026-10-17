@@ -74,7 +74,16 @@ String resumeRouteFor(int step, {required bool isPhoneVerified}) =>
       5 => RoutePaths.education,
       6 => RoutePaths.lifestylePreferences,
       7 => RoutePaths.bio,
-      _ => isPhoneVerified ? RoutePaths.addPhotos : RoutePaths.phoneNumber,
+      // _ => isPhoneVerified ? RoutePaths.addPhotos : RoutePaths.phoneNumber,
+      // 8+ are derived from the status data (see `resumeStep` in
+      // auth_dtos.dart): 8 phone, 9 photos → face check, 11 location,
+      // 12 filters (finish).
+      // 8 also covers sessions cached by the old logic (any step ≥8).
+      8 ||
+      9 ||
+      10 => isPhoneVerified ? RoutePaths.addPhotos : RoutePaths.phoneNumber,
+      11 => RoutePaths.location,
+      _ => RoutePaths.addFilters,
     };
 
 /// Builds the app's [GoRouter]. Re-evaluates [appRedirect] whenever

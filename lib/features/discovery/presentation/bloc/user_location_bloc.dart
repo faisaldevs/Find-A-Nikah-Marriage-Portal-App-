@@ -30,6 +30,11 @@ abstract class UserLocationState with _$UserLocationState {
 
     /// True once [position] is a real fix.
     @Default(false) bool hasFix,
+
+    /// ISO code of the country at [position] (reverse geocoded) — drives
+    /// the Distance tab's "Limit to only {country}". Null until known, or
+    /// when the lookup fails (the toggle is hidden then).
+    String? countryCode,
   }) = _UserLocationState;
 }
 
@@ -61,9 +66,16 @@ class UserLocationBloc extends Bloc<UserLocationEvent, UserLocationState> {
       return;
     }
     final position = await _repository.currentPosition();
-    position.fold(
-      (_) {}, // keep the fallback centre
-      (p) => emit(state.copyWith(position: p, hasFix: true)),
+    final fix = position.fold<GeoPoint?>(
+      (_) => null, // keep the fallback centre
+      (p) => p,
+    );
+    if (fix == null) return;
+    emit(state.copyWith(position: fix, hasFix: true));
+    final country = await _repository.countryCodeAt(fix);
+    country.fold(
+      (_) {}, // no toggle
+      (code) => emit(state.copyWith(countryCode: code)),
     );
   }
 }

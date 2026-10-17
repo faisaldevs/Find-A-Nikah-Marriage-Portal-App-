@@ -85,6 +85,9 @@ _OnboardingProfileDto _$OnboardingProfileDtoFromJson(
           .toList() ??
       const <String>[],
   aboutMe: json['aboutMe'] as String?,
+  images:
+      (json['images'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
   aboutYou: json['aboutYou'] == null
       ? null
       : OnboardingProfileAboutYouDto.fromJson(
@@ -123,6 +126,7 @@ Map<String, dynamic> _$OnboardingProfileDtoToJson(
   'religiousPractices': instance.religiousPractices,
   'personalityTraits': instance.personalityTraits,
   'aboutMe': instance.aboutMe,
+  'images': instance.images,
   'aboutYou': instance.aboutYou,
   'lifestyle': instance.lifestyle,
   'interests': instance.interests,

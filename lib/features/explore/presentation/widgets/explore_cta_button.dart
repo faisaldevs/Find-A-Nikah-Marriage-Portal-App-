@@ -16,8 +16,8 @@ class ExploreCtaButton extends StatelessWidget {
   final bool expanded;
   final VoidCallback onTap;
 
-  static const _height = 52.0;
-  static const _expandedWidth = 224.0;
+  static const _height = 44.0;
+  static const _expandedWidth = 171.0;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class ExploreCtaButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 260),
         curve: Curves.easeOutCubic,
-        height: _height.h,
+        height: _height.w,
         width: (expanded ? _expandedWidth : _height).w,
         alignment: Alignment.center,
         // The label's Row is laid out against whatever width the
@@ -63,16 +63,16 @@ class ExploreCtaButton extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextFontStyle.headline15w600StyleSatoshi
-                            .copyWith(color: Colors.white),
+                            .copyWith(color: Colors.white, fontSize: 13.5.sp),
                       ),
                     ),
-                    SizedBox(width: 10.w),
-                    CrownIcon(width: 18.r, color: Colors.white),
+                    SizedBox(width: 9.w),
+                    CrownIcon(width: 17.5.r, color: Colors.white),
                   ],
                 )
               : CrownIcon(
                   key: const ValueKey('collapsed'),
-                  width: 18.r,
+                  width: 17.5.r,
                   color: Colors.white,
                 ),
         ),

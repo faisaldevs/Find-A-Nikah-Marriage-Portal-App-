@@ -1,2 +1,13 @@
+export 'entities/camera_permission_status.dart';
+export 'entities/capture_config.dart';
+export 'entities/face_session.dart';
+export 'entities/face_snapshot.dart';
+export 'entities/face_verification_result.dart';
+export 'entities/liveness_config.dart';
+export 'entities/liveness_pose.dart';
+export 'entities/liveness_step.dart';
+export 'entities/pose_feedback.dart';
 export 'entities/selfie_check_result.dart';
 export 'repositories/face_verification_repository.dart';
+export 'services/liveness_pose_evaluator.dart';
+export 'services/pose_scorer.dart';

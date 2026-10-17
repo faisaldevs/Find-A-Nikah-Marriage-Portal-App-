@@ -8,6 +8,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
+final List<Country> _alphabetical = [...allCountries]
+  ..sort((a, b) => a.name.compareTo(b.name));
+
 class EthnicityPage extends StatefulWidget {
   const EthnicityPage({super.key});
 
@@ -64,7 +67,9 @@ class _EthnicityPageState extends State<EthnicityPage> {
                 multiSelect: true,
                 selected: _selected,
                 onToggle: _toggle,
-                items: allCountries
+                // items: allCountries
+                // Figma 883:4951 lists ethnicities alphabetically.
+                items: _alphabetical
                     .map(
                       (c) => SelectListItem(
                         value: c.code,

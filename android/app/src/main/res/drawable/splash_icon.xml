@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ splash icon: the logo fitted inside the 160dp safe circle
+     of the 240dp icon area. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="100dp"
+        android:height="56dp"
+        android:gravity="center"
+        android:drawable="@drawable/splash_logo" />
+</layer-list>

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:find_a_nikah/features/onboarding/data/data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,8 +25,9 @@ class _FakeOnboardingRemoteDataSource implements OnboardingRemoteDataSource {
   Future<void> submitBio(OnboardingBioRequestDto body) =>
       throw UnimplementedError();
   @override
-  Future<void> submitImages(OnboardingImagesRequestDto body) =>
-      throw UnimplementedError();
+  Future<void> submitPhotos(FormData body) => throw UnimplementedError();
+  @override
+  Future<void> deletePhoto(String filename) => throw UnimplementedError();
 }
 
 /// A real post-Basics (`currentStep: 5`) payload — step 4 submitted, 5-7
@@ -34,6 +36,7 @@ class _FakeOnboardingRemoteDataSource implements OnboardingRemoteDataSource {
 Map<String, dynamic> _payloadAtStep(
   int step, {
   bool sectionsBeyondBasics = false,
+  List<String> images = const [],
 }) {
   return {
     'data': {
@@ -62,6 +65,7 @@ Map<String, dynamic> _payloadAtStep(
             ? ['Kind', 'Funny']
             : <String>[],
         'aboutMe': sectionsBeyondBasics ? 'Hello world' : null,
+        'images': images,
         'aboutYou': {
           'bornMuslim': true,
           'haveChildren': false,
@@ -88,7 +92,11 @@ void main() {
 
   setUp(() {
     remote = _FakeOnboardingRemoteDataSource();
-    repo = OnboardingProfileRepositoryImpl(remote, testGuard());
+    repo = OnboardingProfileRepositoryImpl(
+      remote,
+      testGuard(),
+      imageBaseUrl: 'https://img.example.com/',
+    );
   });
 
   test('nothing submitted yet (step 4) → null, nothing to prefill', () async {
@@ -173,5 +181,35 @@ void main() {
     final draft = (await repo.fetchSubmittedDraft()).getRight().toNullable();
 
     expect(draft!.bio, 'Hello world');
+  });
+
+  test('uploaded photos prefill as full URLs, in order', () async {
+    remote.response = OnboardingProfileResponseDto.fromJson(
+      _payloadAtStep(
+        9,
+        sectionsBeyondBasics: true,
+        images: [
+          '/public/upload/a.png',
+          'public/upload/b.jpg',
+          'https://cdn.example.com/c.jpg',
+        ],
+      ),
+    );
+
+    final draft = (await repo.fetchSubmittedDraft()).getRight().toNullable();
+
+    expect(draft!.photoPaths, [
+      'https://img.example.com/public/upload/a.png',
+      'https://img.example.com/public/upload/b.jpg',
+      'https://cdn.example.com/c.jpg',
+    ]);
+  });
+
+  test('no uploaded photos → photo slots stay empty', () async {
+    remote.response = OnboardingProfileResponseDto.fromJson(
+      _payloadAtStep(8, sectionsBeyondBasics: true),
+    );
+    final draft = (await repo.fetchSubmittedDraft()).getRight().toNullable();
+    expect(draft!.photoPaths, isEmpty);
   });
 }

@@ -8,6 +8,7 @@ import 'package:find_a_nikah/features/auth/presentation/presentation.dart'
 import 'package:find_a_nikah/features/auth/presentation/view/sign_up_code_page.dart'
     show SignUpCodePage;
 import 'package:find_a_nikah/router/route_paths.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -44,6 +45,7 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
   void initState() {
     super.initState();
     _startCountdown();
+    _autofillDemoCode(context.read<PhoneVerificationBloc>().state.demoCode);
   }
 
   void _startCountdown() {
@@ -81,14 +83,22 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
     setState(() {});
   }
 
-  // ignore: unused_element — only used by the commented-out API call below.
   String get _code => _controllers.map((c) => c.text.trim()).join();
 
   void _submit() {
-    // TODO(phone-api): no phone verification API yet — skip straight to
-    // photos. Re-enable once it exists.
-    // context.read<PhoneVerificationBloc>().add(PhoneCodeSubmitted(_code));
-    context.push<void>(RoutePaths.addPhotos).ignore();
+    context.read<PhoneVerificationBloc>().add(PhoneCodeSubmitted(_code));
+    // Before the phone API existed: skip straight to photos.
+    // context.push<void>(RoutePaths.addPhotos).ignore();
+  }
+
+  /// Debug builds only: fill the boxes with the code the backend echoed
+  /// back in demo mode, so testing doesn't need WhatsApp.
+  void _autofillDemoCode(String? code) {
+    if (!kDebugMode || code == null || code.length != _codeLength) return;
+    for (var i = 0; i < _codeLength; i++) {
+      _controllers[i].text = code[i];
+    }
+    setState(() {});
   }
 
   void _resend() {
@@ -102,8 +112,15 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
     final phone = state.phoneNumber;
     final busy = state.status == PhoneVerificationStatus.submitting;
     return BlocListener<PhoneVerificationBloc, PhoneVerificationState>(
-      listenWhen: (prev, next) => prev.status != next.status,
+      listenWhen: (prev, next) =>
+          (prev.status != next.status || prev.demoCode != next.demoCode) &&
+          (ModalRoute.of(context)?.isCurrent ?? true),
       listener: (context, state) => switch (state.status) {
+        // A resend in demo mode brings a fresh code.
+        _
+            when state.demoCode != null &&
+                state.status == PhoneVerificationStatus.idle =>
+          _autofillDemoCode(state.demoCode),
         // Phone verified → profile photos (then face verification).
         PhoneVerificationStatus.verified => context.push<void>(
           RoutePaths.addPhotos,
@@ -119,11 +136,79 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // WizardHeadline(
+            // text: 'Enter verification code',
+            // subtitle: 'Enter the 6-digit code sent to $phone via WhatsApp.',
+            // ),
+            // SizedBox(height: 28.h),
+            // Padding(
+            // padding: EdgeInsets.symmetric(horizontal: 20.w),
+            // child: Column(
+            // children: [
+            // Row(
+            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // children: List.generate(_codeLength, (i) {
+            // return SizedBox(
+            // width: 42.w,
+            // child: TextField(
+            // controller: _controllers[i],
+            // focusNode: _focusNodes[i],
+            // textAlign: TextAlign.center,
+            // keyboardType: TextInputType.number,
+            // maxLength: 1,
+            // style:
+            // TextFontStyle.headline22w400textDarkStyleSatoshi,
+            // inputFormatters: [
+            // FilteringTextInputFormatter.digitsOnly,
+            // ],
+            // onChanged: (value) => _onDigitChanged(i, value),
+            // decoration: const InputDecoration(
+            // counterText: '',
+            // enabledBorder: UnderlineInputBorder(
+            // borderSide: BorderSide(
+            // color: AppColors.textMuted,
+            // ),
+            // ),
+            // focusedBorder: UnderlineInputBorder(
+            // borderSide: BorderSide(
+            // color: AppColors.primaryColor,
+            // ),
+            // ),
+            // ),
+            // ),
+            // );
+            // }),
+            // ),
+            // SizedBox(height: 20.h),
+            // if (_secondsLeft > 0)
+            // Text(
+            // 'You can request a new code in $_secondsLeft seconds',
+            // style: TextFontStyle.headline13w400textMutedStyleSatoshi,
+            // )
+            // else
+            // GestureDetector(
+            // onTap: _resend,
+            // child: Text(
+            // 'Resend code',
+            // style: TextFontStyle
+            // .headline13w600primaryColorStyleSatoshi,
+            // ),
+            // ),
+            // ],
+            // ),
+            // ),
+            // Figma 883:6648: Medium 28 / 1.3 title, Regular 16 / 1.5
+            // subtitle 10pt below, 100pt to six 40pt #D4D4D4 rules (the
+            // digit box above each rule is ~43pt), resend line 24pt below.
             WizardHeadline(
               text: 'Enter verification code',
               subtitle: 'Enter the 6-digit code sent to $phone via WhatsApp.',
+              titleSize: 28,
+              titleHeight: 1.3,
+              subtitleHeight: 1.5,
+              subtitleGap: 10,
             ),
-            SizedBox(height: 28.h),
+            SizedBox(height: 57.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Column(
@@ -132,15 +217,14 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(_codeLength, (i) {
                       return SizedBox(
-                        width: 42.w,
+                        width: 40.w,
                         child: TextField(
                           controller: _controllers[i],
                           focusNode: _focusNodes[i],
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
                           maxLength: 1,
-                          style:
-                              TextFontStyle.headline22w400textDarkStyleSatoshi,
+                          style: figmaText(22, 28.6),
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
@@ -148,9 +232,7 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
                           decoration: const InputDecoration(
                             counterText: '',
                             enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(
-                                color: AppColors.textMuted,
-                              ),
+                              borderSide: BorderSide(color: Color(0xFFD4D4D4)),
                             ),
                             focusedBorder: UnderlineInputBorder(
                               borderSide: BorderSide(
@@ -162,19 +244,24 @@ class _PhoneCodePageState extends State<PhoneCodePage> {
                       );
                     }),
                   ),
-                  SizedBox(height: 20.h),
+                  SizedBox(height: 24.h),
                   if (_secondsLeft > 0)
                     Text(
                       'You can request a new code in $_secondsLeft seconds',
-                      style: TextFontStyle.headline13w400textMutedStyleSatoshi,
+                      textAlign: TextAlign.center,
+                      style: figmaText(15, 21, color: const Color(0xFF737373)),
                     )
                   else
                     GestureDetector(
                       onTap: _resend,
                       child: Text(
                         'Resend code',
-                        style: TextFontStyle
-                            .headline13w600primaryColorStyleSatoshi,
+                        style: figmaText(
+                          15,
+                          21,
+                          weight: FontWeight.w500,
+                          color: AppColors.primaryColor,
+                        ),
                       ),
                     ),
                 ],

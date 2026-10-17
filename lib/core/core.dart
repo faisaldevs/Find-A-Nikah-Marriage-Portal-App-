@@ -10,4 +10,5 @@ export 'error/app_exception.dart';
 export 'error/failure.dart';
 export 'error/guard.dart';
 export 'logging/logger.dart';
+export 'media/image_compressor.dart';
 export 'usecase/use_case.dart';

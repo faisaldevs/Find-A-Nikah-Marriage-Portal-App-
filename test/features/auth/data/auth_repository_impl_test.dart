@@ -89,10 +89,20 @@ class _Remote implements AuthRemoteDataSource {
       throw UnimplementedError();
 
   @override
-  Future<void> requestPhoneCode(PhoneRequestDto body) async {}
+  Future<PhoneCodeSentResponseDto> requestPhoneCode(
+    PhoneRequestDto body,
+  ) async => const PhoneCodeSentResponseDto(
+    data: PhoneCodeSentDataDto(devCode: '715208'),
+  );
+
+  bool phoneCodeAccepted = true;
 
   @override
-  Future<void> verifyPhoneCode(PhoneCodeRequestDto body) async {}
+  Future<PhoneVerifiedResponseDto> verifyPhoneCode(
+    PhoneCodeRequestDto body,
+  ) async => PhoneVerifiedResponseDto(
+    data: PhoneVerifiedDataDto(isPhoneVerified: phoneCodeAccepted),
+  );
 
   @override
   Future<void> completeOnboarding() async {
@@ -282,6 +292,49 @@ void main() {
     expect(responseFailure.message, 'rejected by test backend');
     expect(repo.currentStatus, isNot(isA<Authenticated>()));
     expect(await local.read(), isNull);
+  });
+
+  test('requestPhoneCode passes the demo-mode code through', () async {
+    final result = await repo.requestPhoneCode('+8801700000000');
+    expect(result.getRight().toNullable(), '715208');
+  });
+
+  test('verifyPhoneCode marks the session phone-verified', () async {
+    await repo.register(email: 'a@b.co', password: 'abcdefg1');
+    expect(
+      (repo.currentStatus as Authenticated).session.isPhoneVerified,
+      isFalse,
+    );
+
+    final result = await repo.verifyPhoneCode(
+      phoneNumber: '+8801700000000',
+      code: '715208',
+    );
+
+    expect(result.isRight(), isTrue);
+    expect(
+      (repo.currentStatus as Authenticated).session.isPhoneVerified,
+      isTrue,
+    );
+    expect((await local.readSession())!.isPhoneVerified, isTrue);
+  });
+
+  test('a 2xx without a positive verdict is a failure', () async {
+    await repo.register(email: 'a@b.co', password: 'abcdefg1');
+    remote.phoneCodeAccepted = false;
+
+    final result = await repo.verifyPhoneCode(
+      phoneNumber: '+8801700000000',
+      code: '000000',
+    );
+
+    final failure = result.getLeft().toNullable();
+    expect(failure, isA<ApiResponseFailure>());
+    expect((failure! as ApiResponseFailure).fallback, isA<ValidationFailure>());
+    expect(
+      (repo.currentStatus as Authenticated).session.isPhoneVerified,
+      isFalse,
+    );
   });
 
   test('completeOnboarding flips the session flag and persists it', () async {

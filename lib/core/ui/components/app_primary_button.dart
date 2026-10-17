@@ -15,6 +15,7 @@ class AppPrimaryButton extends StatelessWidget {
     this.borderRadius,
     this.isLoading = false,
     this.loadingLabel = 'Please wait...',
+    this.labelStyle,
   });
 
   final String label;
@@ -26,6 +27,10 @@ class AppPrimaryButton extends StatelessWidget {
   final double? borderRadius;
   final bool isLoading;
   final String loadingLabel;
+
+  /// Overrides the label's text style (default Satoshi 16 w600 white) —
+  /// for screens whose Figma frame specifies a different label.
+  final TextStyle? labelStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +71,10 @@ class AppPrimaryButton extends StatelessWidget {
                   ),
                 ],
               )
-            : Text(label, style: TextFontStyle.headline16w600StyleSatoshi),
+            : Text(
+                label,
+                style: labelStyle ?? TextFontStyle.headline16w600StyleSatoshi,
+              ),
       ),
     );
   }

@@ -43,6 +43,10 @@ abstract final class RoutePaths {
   static const addPhotos = '/onboarding/photos';
   static const scanYourFace = '/verification/scan-your-face';
   static const startVerification = '/verification/start';
+
+  /// Guided-liveness capture (`livenessEnabled`) — reached from
+  /// [startVerification] instead of the old single-selfie capture.
+  static const livenessCapture = '/verification/liveness';
   static const photoVerification = '/verification/photo';
 
   /// Location step between face verification and Add filters.
@@ -58,6 +62,25 @@ abstract final class RoutePaths {
   static const feed = '/feed';
   static const chat = '/chat';
   static const menu = '/menu';
+
+  // Feed flow, pushed over the tabs (no bottom nav). Each page's subject
+  // (post / author) travels as go_router `extra`.
+  static const feedPost = '/feed/post';
+  static const feedProfile = '/feed/profile';
+  static const feedProfileSearch = '/feed/profile/search';
+  static const feedCompose = '/feed/compose';
+
+  /// Inside the Chat tab (bottom nav stays).
+  static const chatUnmatched = '/chat/unmatched';
+
+  /// Menu flow. Help sits inside the Menu tab (bottom nav stays); Settings
+  /// and Edit profile are pushed over the tabs (no bottom nav), per Figma.
+  static const menuHelp = '/menu/help';
+  static const settings = '/settings';
+  static const editProfile = '/profile/edit';
+
+  /// Over the tabs (no bottom nav).
+  static const chatArchived = '/chat/archived';
 
   /// Shown in place of everything while this build is too old.
   static const updateRequired = '/update-required';
@@ -85,6 +108,7 @@ abstract final class RoutePaths {
   static const Set<String> faceVerification = {
     scanYourFace,
     startVerification,
+    livenessCapture,
     photoVerification,
   };
 
@@ -127,5 +151,14 @@ abstract final class RoutePaths {
     menu,
     addFilters,
     locationFilter,
+    feedPost,
+    feedProfile,
+    feedProfileSearch,
+    feedCompose,
+    chatUnmatched,
+    chatArchived,
+    menuHelp,
+    settings,
+    editProfile,
   };
 }

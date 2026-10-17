@@ -18,6 +18,7 @@ ExploreProfile _profile(
   String? profession,
   String? postedAt,
   double? distanceKm,
+  String? interactedAt,
 }) => ExploreProfile(
   id: id,
   name: name,
@@ -30,6 +31,7 @@ ExploreProfile _profile(
   profession: profession,
   postedAt: postedAt,
   distanceKm: distanceKm,
+  interactedAt: interactedAt,
 );
 
 /// Dev-flavor stand-in for the Explore API: every section on the "For you"
@@ -361,6 +363,118 @@ class DummyExploreDataSource {
           ),
         ],
       ),
+    );
+  }
+
+  /// Dev-flavor stand-in for the "My history" tab's 4 filter lists.
+  Future<ExploreHistoryFeed> fetchHistory() async {
+    await Future<void>.delayed(latency);
+    return ExploreHistoryFeed(
+      liked: [
+        _profile(
+          'lk1',
+          'Tanjina',
+          29,
+          16,
+          'Chittagong',
+          verified: true,
+          activeToday: true,
+          profession: 'Teacher',
+          interactedAt: '48 minutes ago',
+        ),
+        _profile(
+          'lk2',
+          'Monalisa',
+          24,
+          9,
+          'Cumilla',
+          verified: true,
+          activeToday: true,
+          profession: 'Student',
+          interactedAt: 'Yesterday',
+        ),
+      ],
+      favourited: [
+        _profile(
+          'fv1',
+          'Naushin',
+          32,
+          47,
+          'Chittagong',
+          verified: true,
+          activeToday: true,
+          profession: 'Teacher',
+          interactedAt: '10 seconds ago',
+        ),
+        _profile(
+          'fv2',
+          'Sharmin',
+          27,
+          25,
+          'Narayanganj',
+          verified: true,
+          activeToday: true,
+          profession: 'Engineer',
+          interactedAt: '1 minute ago',
+        ),
+        _profile(
+          'fv3',
+          'Tanjina',
+          29,
+          16,
+          'Chittagong',
+          verified: true,
+          activeToday: true,
+          profession: 'Teacher',
+          interactedAt: '48 minutes ago',
+        ),
+      ],
+      passed: [
+        _profile(
+          'ps1',
+          'Tanjina',
+          29,
+          16,
+          'Chittagong',
+          verified: true,
+          activeToday: true,
+          profession: 'Teacher',
+          interactedAt: '48 minutes ago',
+        ),
+        _profile(
+          'ps2',
+          'Monalisa',
+          24,
+          9,
+          'Cumilla',
+          verified: true,
+          activeToday: true,
+          profession: 'Student',
+          interactedAt: 'Yesterday',
+        ),
+        _profile(
+          'ps3',
+          'Nafisa',
+          31,
+          48,
+          'Chittagong',
+          verified: true,
+          activeToday: true,
+          profession: 'Teacher',
+          interactedAt: '48 minutes ago',
+        ),
+        _profile(
+          'ps4',
+          'Sharmin',
+          24,
+          25,
+          'Cumilla',
+          verified: true,
+          activeToday: true,
+          profession: 'Student',
+          interactedAt: 'Yesterday',
+        ),
+      ],
     );
   }
 }

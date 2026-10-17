@@ -17,6 +17,7 @@ class OnboardingBasicsRequestDto {
     required this.grewUpIn,
     required this.ethnicity,
     required this.heightCm,
+    required this.languages,
     this.profileFor,
     this.step = 4,
   });
@@ -35,14 +36,27 @@ class OnboardingBasicsRequestDto {
   /// `yyyy-MM-dd`.
   final String? dateOfBirth;
   final String? intent;
+
+  /// Optional (the page has Skip). Sending `null` gets a 400 "Referral
+  /// source must be one of …", so it's left out when skipped (audit #15).
+  @JsonKey(includeIfNull: false)
   final String? referralSource;
 
   /// Full country names (not ISO codes) — see
   /// `OnboardingSubmissionRepositoryImpl` for the code→name mapping.
   final List<String> nationality;
-  final String? grewUpIn;
+  // final String? grewUpIn;
+  /// The backend stores `grewUpIn` as a list (the status response returns
+  /// an array); a bare string left it empty — the AI bio read "grew up in ."
+  /// (audit #33).
+  final List<String> grewUpIn;
   final List<String> ethnicity;
   final int? heightCm;
+
+  /// Spoken languages from Basic information — previously never sent
+  /// (audit #12). Same labels the status response's `profile.languages`
+  /// returns.
+  final List<String> languages;
 
   Map<String, dynamic> toJson() => _$OnboardingBasicsRequestDtoToJson(this);
 }
@@ -121,14 +135,16 @@ class OnboardingBioRequestDto {
   Map<String, dynamic> toJson() => _$OnboardingBioRequestDtoToJson(this);
 }
 
-/// Step 8 — Images. Built per spec but not called anywhere yet: the actual
-/// upload flow (`/public/upload`) is a separate, not-yet-wired concern.
-@JsonSerializable(createFactory: false)
-class OnboardingImagesRequestDto {
-  const OnboardingImagesRequestDto({required this.images, this.step = 8});
-
-  final int step;
-  final List<String> images;
-
-  Map<String, dynamic> toJson() => _$OnboardingImagesRequestDtoToJson(this);
-}
+// Replaced: step 8 is a multipart upload of the files themselves (see
+// `OnboardingRemoteDataSource.submitPhotos`), not a JSON list of URLs.
+// /// Step 8 — Images. Built per spec but not called anywhere yet: the actual
+// /// upload flow (`/public/upload`) is a separate, not-yet-wired concern.
+// @JsonSerializable(createFactory: false)
+// class OnboardingImagesRequestDto {
+//   const OnboardingImagesRequestDto({required this.images, this.step = 8});
+//
+//   final int step;
+//   final List<String> images;
+//
+//   Map<String, dynamic> toJson() => _$OnboardingImagesRequestDtoToJson(this);
+// }

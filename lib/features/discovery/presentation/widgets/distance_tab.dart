@@ -55,19 +55,33 @@ class _DistanceTabState extends State<DistanceTab> {
   String get _distanceLabel =>
       _isEverywhere ? 'Everywhere' : 'Upto ${_miles.round()} miles away';
 
-  String get _homeCountryName => allCountries
-      .firstWhere(
-        (c) => c.code == kHomeCountryCode,
-        orElse: () => suggestedCountries.first,
-      )
-      .name;
+  // Before: always the fixed launch country (kHomeCountryCode).
+  // String get _homeCountryName => allCountries
+  //     .firstWhere(
+  //       (c) => c.code == kHomeCountryCode,
+  //       orElse: () => suggestedCountries.first,
+  //     )
+  //     .name;
+
+  /// The country the member is in (reverse geocoded), as spelled in the
+  /// app's country list; null when unknown — the toggle is then hidden.
+  String? _countryName(String? code) {
+    if (code == null) return null;
+    for (final c in [...suggestedCountries, ...allCountries]) {
+      if (c.code == code) return c.name;
+    }
+    return null;
+  }
 
   /// Re-frames the map so the radius circle fills the viewport (or zooms
   /// out to a country-scale view when "Everywhere").
   void _fitToRadius(LatLng center) {
     if (!_mapReady) return;
     if (_isEverywhere) {
-      _mapController.move(center, 5);
+      // _mapController.move(center, 5);
+      // Zoom 5 never painted tiles on device (blank grey, audit #41);
+      // 6 is still a country-scale view and loads.
+      _mapController.move(center, 6);
       return;
     }
     final meters = _miles * _metersPerMile;
@@ -97,9 +111,14 @@ class _DistanceTabState extends State<DistanceTab> {
       DistanceFilterConfirmed(
         miles: _miles,
         limitToHomeCountry: _limitToHomeCountry,
+        center: context.read<UserLocationBloc>().state.position,
+        countryName: _countryName(
+          context.read<UserLocationBloc>().state.countryCode,
+        ),
       ),
     );
-    widget.onConfirmed();
+    // The page moves on once the backend save succeeds (its listener).
+    // widget.onConfirmed();
   }
 
   @override
@@ -126,9 +145,19 @@ class _DistanceTabState extends State<DistanceTab> {
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 ),
+                // onMapReady: () {
+                //   _mapReady = true;
+                //   _fitToRadius(center);
+                // },
+                // Frame on the *current* position: `center` is from the
+                // build that created the map — often the fallback before
+                // the GPS fix, and the fix listener skips while the map
+                // isn't ready, so "Everywhere" stayed on an empty sea
+                // (audit #41).
                 onMapReady: () {
                   _mapReady = true;
-                  _fitToRadius(center);
+                  final p = context.read<UserLocationBloc>().state.position;
+                  _fitToRadius(LatLng(p.latitude, p.longitude));
                 },
               ),
               children: [
@@ -166,6 +195,21 @@ class _DistanceTabState extends State<DistanceTab> {
                   ],
                 ),
                 // OSM tile usage policy requires visible attribution.
+                // const SimpleAttributionWidget(
+                //   source: Text('OpenStreetMap contributors'),
+                //   alignment: Alignment.topRight,
+                // ),
+                // Collapsible (i) button instead of a box over the map was
+                // tried (audit #41), but it only docks at the bottom where
+                // the distance card hides it — keep the visible box (OSM
+                // policy).
+                // const RichAttributionWidget(
+                //   alignment: AttributionAlignment.bottomLeft,
+                //   showFlutterMapAttribution: false,
+                //   attributions: [
+                //     TextSourceAttribution('OpenStreetMap contributors'),
+                //   ],
+                // ),
                 const SimpleAttributionWidget(
                   source: Text('OpenStreetMap contributors'),
                   alignment: Alignment.topRight,
@@ -187,10 +231,21 @@ class _DistanceTabState extends State<DistanceTab> {
               miles: _miles,
               onMilesChanged: (v) => setState(() => _miles = v),
               onMilesChangeEnd: (_) => _fitToRadius(center),
-              homeCountryName: _homeCountryName,
+              homeCountryName: _countryName(
+                context.select<UserLocationBloc, String?>(
+                  (b) => b.state.countryCode,
+                ),
+              ),
               limitToHomeCountry: _limitToHomeCountry,
               onLimitChanged: (v) => setState(() => _limitToHomeCountry = v),
-              onConfirm: _confirm,
+              // Disabled while the step-11 save is in flight.
+              onConfirm:
+                  context.select<DiscoveryFiltersBloc, bool>(
+                    (b) =>
+                        b.state.status == DiscoveryFiltersStatus.savingLocation,
+                  )
+                  ? null
+                  : _confirm,
             ),
           ),
         ],
@@ -219,10 +274,12 @@ class _DistanceCard extends StatelessWidget {
   final double miles;
   final ValueChanged<double> onMilesChanged;
   final ValueChanged<double> onMilesChangeEnd;
-  final String homeCountryName;
+
+  /// Null hides the "Limit to only …" toggle (country unknown).
+  final String? homeCountryName;
   final bool limitToHomeCountry;
   final ValueChanged<bool> onLimitChanged;
-  final VoidCallback onConfirm;
+  final VoidCallback? onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -307,21 +364,25 @@ class _DistanceCard extends StatelessWidget {
                           padding: EdgeInsets.zero,
                         ),
                       ),
-                      SizedBox(height: 16.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Limit to only $homeCountryName',
-                            style: labelStyle,
-                          ),
-                          Switch.adaptive(
-                            value: limitToHomeCountry,
-                            onChanged: onLimitChanged,
-                            activeTrackColor: AppColors.primaryColor,
-                          ),
-                        ],
-                      ),
+                      if (homeCountryName != null) ...[
+                        SizedBox(height: 16.h),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Limit to only $homeCountryName',
+                                style: labelStyle,
+                              ),
+                            ),
+                            Switch.adaptive(
+                              value: limitToHomeCountry,
+                              onChanged: onLimitChanged,
+                              activeTrackColor: AppColors.primaryColor,
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   )
                 : const SizedBox(width: double.infinity),

@@ -18,6 +18,10 @@ class LocationRepositoryImpl implements LocationRepository {
       _guard(_device.currentPosition);
 
   @override
+  Future<Either<Failure, String?>> countryCodeAt(GeoPoint point) =>
+      _guard(() => _device.countryCodeAt(point));
+
+  @override
   Future<void> openAppSettings() => _device.openAppSettings();
 
   @override

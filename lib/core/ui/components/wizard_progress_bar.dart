@@ -40,10 +40,14 @@ class WizardProgressBar extends StatelessWidget {
           final fill = (value - i).clamp(0.0, 1.0);
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: i == segmentCount - 1 ? 0 : 8.w),
+              // Figma 883:3959: 14pt gaps, #EBECED track.
+              // margin:
+              //     EdgeInsets.only(right: i == segmentCount - 1 ? 0 : 8.w),
+              margin: EdgeInsets.only(right: i == segmentCount - 1 ? 0 : 14.w),
               height: 8.h,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                // color: Colors.grey.shade300,
+                color: const Color(0xFFEBECED),
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: fill == 0

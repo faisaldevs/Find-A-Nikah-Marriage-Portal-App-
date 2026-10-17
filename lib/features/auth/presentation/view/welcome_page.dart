@@ -51,8 +51,24 @@ class _WelcomeView extends StatelessWidget {
       body: AuthBackdrop(
         child: Column(
           children: [
+            // Padding(
+            //   padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       // TODO(i18n): wire a real language picker.
+            //       const _GhostPill(icon: Icons.language, label: 'English'),
+            //       _GhostIcon(icon: Icons.help_outline, onTap: () {}),
+            //     ],
+            //   ),
+            // ),
+            // SizedBox(height: 20.h),
+            // BrandLogo(width: 175.w),
+            // const Spacer(flex: 4),
+            // Figma 883:3805: plain white globe + 'English' and a bare (?)
+            // icon — no pill/circle backgrounds.
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -62,12 +78,11 @@ class _WelcomeView extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 20.h),
-
-            BrandLogo(width: 175.w),
-            const Spacer(flex: 4),
+            SizedBox(height: 46.h),
+            BrandLogo(width: 172.w),
+            const Spacer(),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Column(
                 children: [
                   _SocialButton(
@@ -94,29 +109,43 @@ class _WelcomeView extends StatelessWidget {
                   SizedBox(height: 18.h),
                   SizedBox(
                     width: double.infinity,
-                    height: 52.h,
+                    // height: 52.h,
+                    height: 48.h,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
+                        // side: const BorderSide(color: Colors.white70),
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
+                          // borderRadius: BorderRadius.circular(14.r),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
                       ),
                       onPressed: () =>
                           context.push<void>(RoutePaths.login).ignore(),
                       child: Text(
                         'Continue with email',
-                        style:
-                            TextFontStyle.headline15w600textWhiteStyleSatoshi,
+                        // style: TextFontStyle
+                        //     .headline15w600textWhiteStyleSatoshi,
+                        style: TextFontStyle.headline16w700textDarkStyleSatoshi
+                            .copyWith(color: Colors.white),
                       ),
                     ),
                   ),
                   SizedBox(height: 46.h),
-                  const LegalFooterText(
-                    light: true,
-                    textAlign: TextAlign.center,
+                  // const LegalFooterText(
+                  //   light: true,
+                  //   textAlign: TextAlign.center,
+                  // ),
+                  // Figma keeps this on one line; scale down rather than wrap.
+                  const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: LegalFooterText(
+                      light: true,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  SizedBox(height: 16.h),
+                  // SizedBox(height: 16.h),
+                  SizedBox(height: 12.h),
                 ],
               ),
             ),
@@ -142,13 +171,15 @@ class _SocialButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52.h,
+      // height: 52.h,
+      height: 48.h,
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14.r),
+            // borderRadius: BorderRadius.circular(14.r),
+            borderRadius: BorderRadius.circular(8.r),
           ),
         ),
         onPressed: onPressed,
@@ -161,7 +192,8 @@ class _SocialButton extends StatelessWidget {
               child: Center(
                 child: Text(
                   label,
-                  style: TextFontStyle.headline15w600StyleSatoshi,
+                  // style: TextFontStyle.headline15w600StyleSatoshi,
+                  style: TextFontStyle.headline16w700textDarkStyleSatoshi,
                 ),
               ),
             ),
@@ -180,20 +212,29 @@ class _GhostPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 18.r),
-          SizedBox(width: 6.w),
-          Text(label, style: TextFontStyle.headline14w400textWhiteStyleSatoshi),
-        ],
-      ),
+    // return Container(
+    //   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+    //   decoration: BoxDecoration(
+    //     color: Colors.black.withValues(alpha: 0.3),
+    //     borderRadius: BorderRadius.circular(20.r),
+    //   ),
+    //   child: Row(
+    //     mainAxisSize: MainAxisSize.min,
+    //     children: [
+    //       Icon(icon, color: Colors.white, size: 18.r),
+    //       SizedBox(width: 6.w),
+    //       Text(label,
+    //           style: TextFontStyle.headline14w400textWhiteStyleSatoshi),
+    //     ],
+    //   ),
+    // );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white, size: 20.r),
+        SizedBox(width: 10.w),
+        Text(label, style: TextFontStyle.headline16w500textWhiteStyleSatoshi),
+      ],
     );
   }
 }
@@ -209,12 +250,16 @@ class _GhostIcon extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
-      child: Container(
-        padding: EdgeInsets.all(8.r),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
-          shape: BoxShape.circle,
-        ),
+      // child: Container(
+      //   padding: EdgeInsets.all(8.r),
+      //   decoration: BoxDecoration(
+      //     color: Colors.black.withValues(alpha: 0.3),
+      //     shape: BoxShape.circle,
+      //   ),
+      //   child: Icon(icon, color: Colors.white, size: 18.r),
+      // ),
+      child: Padding(
+        padding: EdgeInsets.all(4.r),
         child: Icon(icon, color: Colors.white, size: 18.r),
       ),
     );

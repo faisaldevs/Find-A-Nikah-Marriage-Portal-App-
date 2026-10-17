@@ -1,4 +1,4 @@
-import 'dart:io';
+// import 'dart:io'; // only the commented-out Image.file used it
 
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/bloc/face_verification_bloc.dart';
@@ -22,9 +22,22 @@ class PhotoVerificationPage extends StatelessWidget {
     final photoPath = context.select<FaceVerificationBloc, String?>(
       (b) => b.state.profilePhotoPath,
     );
-    final greeting = userName == null
-        ? "Jazakallah. We're reviewing your profile."
-        : "Jazakallah, $userName. We're reviewing your profile.";
+    // final greeting = userName == null
+    //     ? "Jazakallah. We're reviewing your profile."
+    //     : "Jazakallah, $userName. We're reviewing your profile.";
+    // Figma: "Jazakallah, {full name}." — the router passes the name from
+    // the onboarding draft; an instant approval says so instead of
+    // "reviewing" (audit #40).
+    final verified = context.select<FaceVerificationBloc, bool>(
+      (b) => b.state.verified,
+    );
+    final name = userName?.trim();
+    final hello = name == null || name.isEmpty
+        ? 'Jazakallah.'
+        : 'Jazakallah, $name.';
+    final greeting = verified
+        ? '$hello Your profile is verified.'
+        : "$hello We're reviewing your profile.";
 
     return WizardScaffold(
       // Verification done → mandatory Location step, then Add filters.
@@ -39,10 +52,13 @@ class PhotoVerificationPage extends StatelessWidget {
             SizedBox(height: 36.h),
             WizardHeadline(
               text: greeting,
-              subtitle:
-                  'Once approved, your profile will be shown to other '
-                  'single Muslims.',
+              subtitle: verified
+                  ? 'Your profile will now be shown to other single Muslims.'
+                  : 'Once approved, your profile will be shown to other '
+                        'single Muslims.',
               padding: EdgeInsets.zero,
+              titleHeight: 1.3,
+              subtitleColor: const Color(0xFFA3A3A3),
             ),
           ],
         ),
@@ -85,7 +101,9 @@ class _ProfileAvatar extends StatelessWidget {
                   color: Colors.grey.shade500,
                 ),
               )
-            : Image.file(File(path!), fit: BoxFit.cover),
+            // The main photo may be an already-uploaded URL.
+            // : Image.file(File(path!), fit: BoxFit.cover),
+            : AppPhoto(path!),
       ),
     );
   }

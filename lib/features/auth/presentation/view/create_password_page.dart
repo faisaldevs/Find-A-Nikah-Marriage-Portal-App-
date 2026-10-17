@@ -60,6 +60,9 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
       },
       child: AuthStepScaffold(
         title: 'Create your password',
+        bodyGap: 60,
+        // Figma 883:6098 has no Terms line on this step.
+        showLegalFooter: false,
         isLoading: busy,
         loadingLabel: 'Creating account...',
         onContinue: _canContinue && !busy
@@ -73,7 +76,8 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
               controller: _passwordController,
               hint: 'Enter new password',
               icon: Icons.lock_outline,
-              filled: false,
+              // filled: false,
+              fontSize: 15,
               obscureText: _obscurePassword,
               onChanged: (_) => setState(() {}),
               trailing: IconButton(
@@ -81,19 +85,22 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                   _obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textMuted,
+                  // color: AppColors.textMuted,
+                  color: AppColors.greyColor,
                   size: 20.r,
                 ),
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
-            SizedBox(height: 14.h),
+            // SizedBox(height: 14.h),
+            SizedBox(height: 24.h),
             AppTextField(
               controller: _confirmController,
               hint: 'Confirm your password',
               icon: Icons.lock_outline,
-              filled: false,
+              // filled: false,
+              fontSize: 15,
               obscureText: _obscureConfirm,
               onChanged: (_) => setState(() {}),
               trailing: IconButton(
@@ -101,7 +108,8 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                   _obscureConfirm
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textMuted,
+                  // color: AppColors.textMuted,
+                  color: AppColors.greyColor,
                   size: 20.r,
                 ),
                 onPressed: () =>
@@ -109,13 +117,23 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
               ),
             ),
             SizedBox(height: 16.h),
-            _RuleRow(met: _hasMinLength, label: 'Minimum 8 characters'),
-            SizedBox(height: 6.h),
-            _RuleRow(met: _hasNumber, label: 'At least 1 number (1-9)'),
-            SizedBox(height: 6.h),
-            _RuleRow(
-              met: _hasLetter,
-              label: 'At least lowercase or uppercase letters',
+            // Figma 883:6130: rules inset 10pt, 8pt apart.
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              child: Column(
+                children: [
+                  _RuleRow(met: _hasMinLength, label: 'Minimum 8 characters'),
+                  // SizedBox(height: 6.h),
+                  SizedBox(height: 8.h),
+                  _RuleRow(met: _hasNumber, label: 'At least 1 number (1-9)'),
+                  // SizedBox(height: 6.h),
+                  SizedBox(height: 8.h),
+                  _RuleRow(
+                    met: _hasLetter,
+                    label: 'At least lowercase or uppercase letters',
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -124,9 +142,7 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   }
 
   void _onAccountCreated(BuildContext context) {
-    context
-        .push<void>(RoutePaths.getStarted, extra: true)
-        .ignore();
+    context.push<void>(RoutePaths.getStarted, extra: true).ignore();
   }
 }
 
@@ -140,13 +156,26 @@ class _RuleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        // Icon(
+        //   met ? Icons.check_circle : Icons.cancel,
+        //   size: 18.r,
+        //   color: met ? AppColors.successColor : AppColors.errorColor,
+        // ),
+        // SizedBox(width: 8.w),
+        // Text(label, style: TextFontStyle.headline13w400textDarkStyleSatoshi),
+        // Figma: outlined check/x circles — green-500 met, red-500 unmet.
         Icon(
-          met ? Icons.check_circle : Icons.cancel,
+          met ? Icons.check_circle_outline : Icons.highlight_off,
           size: 18.r,
-          color: met ? AppColors.successColor : AppColors.errorColor,
+          color: met ? const Color(0xFF00C191) : const Color(0xFFE54848),
         ),
         SizedBox(width: 8.w),
-        Text(label, style: TextFontStyle.headline13w400textDarkStyleSatoshi),
+        Expanded(
+          child: Text(
+            label,
+            style: figmaText(12, 18, color: const Color(0xFF121212)),
+          ),
+        ),
       ],
     );
   }

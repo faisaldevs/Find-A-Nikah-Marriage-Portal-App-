@@ -110,6 +110,10 @@ class AuthInterceptor extends QueuedInterceptor {
     options
       ..headers['Authorization'] = _bearer(accessToken)
       ..extra[_retriedExtraKey] = true;
+    // A multipart body is a one-shot stream — resending the same instance
+    // throws "FormData has already been finalized".
+    final data = options.data;
+    if (data is FormData) options.data = data.clone();
     try {
       handler.resolve(await _bareDio.fetch<dynamic>(options));
     } on DioException catch (e) {

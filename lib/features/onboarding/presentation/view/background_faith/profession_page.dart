@@ -44,6 +44,7 @@ class _ProfessionPageState extends State<ProfessionPage> {
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: SearchableSelectList(
                 hintText: 'Search jobs',
+                radioFirst: true,
                 selected: _value == null ? {} : {_value!},
                 onToggle: (v) => setState(() => _value = v),
                 items: professionOptions

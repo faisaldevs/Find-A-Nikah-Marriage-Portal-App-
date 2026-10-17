@@ -14,7 +14,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PhoneVerificationState {
 
- String get phoneNumber; PhoneVerificationStatus get status; Failure? get failure;
+ String get phoneNumber; PhoneVerificationStatus get status;/// The code the backend echoed back in demo mode (`devCode`), if any —
+/// the code page autofills it in debug builds only.
+ String? get demoCode; Failure? get failure;
 /// Create a copy of PhoneVerificationState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +27,16 @@ $PhoneVerificationStateCopyWith<PhoneVerificationState> get copyWith => _$PhoneV
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PhoneVerificationState&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.status, status) || other.status == status)&&(identical(other.failure, failure) || other.failure == failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PhoneVerificationState&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.status, status) || other.status == status)&&(identical(other.demoCode, demoCode) || other.demoCode == demoCode)&&(identical(other.failure, failure) || other.failure == failure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,phoneNumber,status,failure);
+int get hashCode => Object.hash(runtimeType,phoneNumber,status,demoCode,failure);
 
 @override
 String toString() {
-  return 'PhoneVerificationState(phoneNumber: $phoneNumber, status: $status, failure: $failure)';
+  return 'PhoneVerificationState(phoneNumber: $phoneNumber, status: $status, demoCode: $demoCode, failure: $failure)';
 }
 
 
@@ -45,7 +47,7 @@ abstract mixin class $PhoneVerificationStateCopyWith<$Res>  {
   factory $PhoneVerificationStateCopyWith(PhoneVerificationState value, $Res Function(PhoneVerificationState) _then) = _$PhoneVerificationStateCopyWithImpl;
 @useResult
 $Res call({
- String phoneNumber, PhoneVerificationStatus status, Failure? failure
+ String phoneNumber, PhoneVerificationStatus status, String? demoCode, Failure? failure
 });
 
 
@@ -62,11 +64,12 @@ class _$PhoneVerificationStateCopyWithImpl<$Res>
 
 /// Create a copy of PhoneVerificationState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? phoneNumber = null,Object? status = null,Object? failure = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? phoneNumber = null,Object? status = null,Object? demoCode = freezed,Object? failure = freezed,}) {
   return _then(_self.copyWith(
 phoneNumber: null == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as PhoneVerificationStatus,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as PhoneVerificationStatus,demoCode: freezed == demoCode ? _self.demoCode : demoCode // ignore: cast_nullable_to_non_nullable
+as String?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }
@@ -152,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String phoneNumber,  PhoneVerificationStatus status,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String phoneNumber,  PhoneVerificationStatus status,  String? demoCode,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PhoneVerificationState() when $default != null:
-return $default(_that.phoneNumber,_that.status,_that.failure);case _:
+return $default(_that.phoneNumber,_that.status,_that.demoCode,_that.failure);case _:
   return orElse();
 
 }
@@ -173,10 +176,10 @@ return $default(_that.phoneNumber,_that.status,_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String phoneNumber,  PhoneVerificationStatus status,  Failure? failure)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String phoneNumber,  PhoneVerificationStatus status,  String? demoCode,  Failure? failure)  $default,) {final _that = this;
 switch (_that) {
 case _PhoneVerificationState():
-return $default(_that.phoneNumber,_that.status,_that.failure);case _:
+return $default(_that.phoneNumber,_that.status,_that.demoCode,_that.failure);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +196,10 @@ return $default(_that.phoneNumber,_that.status,_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String phoneNumber,  PhoneVerificationStatus status,  Failure? failure)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String phoneNumber,  PhoneVerificationStatus status,  String? demoCode,  Failure? failure)?  $default,) {final _that = this;
 switch (_that) {
 case _PhoneVerificationState() when $default != null:
-return $default(_that.phoneNumber,_that.status,_that.failure);case _:
+return $default(_that.phoneNumber,_that.status,_that.demoCode,_that.failure);case _:
   return null;
 
 }
@@ -208,11 +211,14 @@ return $default(_that.phoneNumber,_that.status,_that.failure);case _:
 
 
 class _PhoneVerificationState implements PhoneVerificationState {
-  const _PhoneVerificationState({this.phoneNumber = '', this.status = PhoneVerificationStatus.idle, this.failure});
+  const _PhoneVerificationState({this.phoneNumber = '', this.status = PhoneVerificationStatus.idle, this.demoCode, this.failure});
   
 
 @override@JsonKey() final  String phoneNumber;
 @override@JsonKey() final  PhoneVerificationStatus status;
+/// The code the backend echoed back in demo mode (`devCode`), if any —
+/// the code page autofills it in debug builds only.
+@override final  String? demoCode;
 @override final  Failure? failure;
 
 /// Create a copy of PhoneVerificationState
@@ -225,16 +231,16 @@ _$PhoneVerificationStateCopyWith<_PhoneVerificationState> get copyWith => __$Pho
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PhoneVerificationState&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.status, status) || other.status == status)&&(identical(other.failure, failure) || other.failure == failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PhoneVerificationState&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.status, status) || other.status == status)&&(identical(other.demoCode, demoCode) || other.demoCode == demoCode)&&(identical(other.failure, failure) || other.failure == failure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,phoneNumber,status,failure);
+int get hashCode => Object.hash(runtimeType,phoneNumber,status,demoCode,failure);
 
 @override
 String toString() {
-  return 'PhoneVerificationState(phoneNumber: $phoneNumber, status: $status, failure: $failure)';
+  return 'PhoneVerificationState(phoneNumber: $phoneNumber, status: $status, demoCode: $demoCode, failure: $failure)';
 }
 
 
@@ -245,7 +251,7 @@ abstract mixin class _$PhoneVerificationStateCopyWith<$Res> implements $PhoneVer
   factory _$PhoneVerificationStateCopyWith(_PhoneVerificationState value, $Res Function(_PhoneVerificationState) _then) = __$PhoneVerificationStateCopyWithImpl;
 @override @useResult
 $Res call({
- String phoneNumber, PhoneVerificationStatus status, Failure? failure
+ String phoneNumber, PhoneVerificationStatus status, String? demoCode, Failure? failure
 });
 
 
@@ -262,11 +268,12 @@ class __$PhoneVerificationStateCopyWithImpl<$Res>
 
 /// Create a copy of PhoneVerificationState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? phoneNumber = null,Object? status = null,Object? failure = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? phoneNumber = null,Object? status = null,Object? demoCode = freezed,Object? failure = freezed,}) {
   return _then(_PhoneVerificationState(
 phoneNumber: null == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as PhoneVerificationStatus,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as PhoneVerificationStatus,demoCode: freezed == demoCode ? _self.demoCode : demoCode // ignore: cast_nullable_to_non_nullable
+as String?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }

@@ -106,7 +106,14 @@ class _AddFiltersView extends StatelessWidget {
     return WizardScaffold(
       title: 'Add filters',
       // Standalone page after verification — header only, no progress bar.
-      continueLabel: 'Discover profiles',
+      // Figma does show the segmented bar; last onboarding step → all four.
+      step: 1,
+      totalSteps: 1,
+      activeSegment: 3,
+      // continueLabel: 'Discover profiles',
+      continueLabel: state.status == DiscoveryFiltersStatus.submitting
+          ? 'Setting up...'
+          : 'Discover profiles',
       onContinue: state.status == DiscoveryFiltersStatus.submitting
           ? null
           : () => bloc.add(const DiscoverProfilesRequested()),
@@ -115,7 +122,7 @@ class _AddFiltersView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 16.h),
+            // SizedBox(height: 16.h),
             const WizardHeadline(
               text: 'Add filters to tell us about your ideal partner',
               subtitle:
@@ -188,6 +195,8 @@ class _AgeRange extends StatelessWidget {
             divisions: kMaxAge - kMinAge,
             onChanged: (v) => onChanged(v.start.round(), v.end.round()),
             padding: EdgeInsets.zero,
+            // Screen readers announced "0%"/"100%" (audit #44).
+            semanticFormatterCallback: (v) => 'Age ${v.round()}',
           ),
         ),
       ],

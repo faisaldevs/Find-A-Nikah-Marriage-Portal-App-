@@ -1,5 +1,6 @@
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/discovery/domain/entities/discovery_filters.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 /// `geolocator` wrapper. Requires `NSLocationWhenInUseUsageDescription`
@@ -39,6 +40,25 @@ class DeviceLocationDataSource {
       return GeoPoint(position.latitude, position.longitude);
     } on Object catch (e) {
       throw DeviceException('location: ${e.runtimeType}');
+    }
+  }
+
+  /// ISO country code (e.g. `BD`) at [point], from the platform's
+  /// reverse geocoder (Android Geocoder / iOS CLGeocoder — no API key).
+  /// Null when there's no result (offline, at sea, no geocoder).
+  Future<String?> countryCodeAt(GeoPoint point) async {
+    try {
+      final places = await Geocoding().placemarkFromCoordinates(
+        point.latitude,
+        point.longitude,
+      );
+      for (final place in places) {
+        final code = place.isoCountryCode;
+        if (code != null && code.isNotEmpty) return code.toUpperCase();
+      }
+      return null;
+    } on Object catch (e) {
+      throw DeviceException('reverse geocode: ${e.runtimeType}');
     }
   }
 

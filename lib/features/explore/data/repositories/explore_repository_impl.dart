@@ -12,4 +12,8 @@ class ExploreRepositoryImpl implements ExploreRepository {
 
   @override
   Future<Either<Failure, ExploreFeed>> fetchFeed() => _guard(_dummy.fetchFeed);
+
+  @override
+  Future<Either<Failure, ExploreHistoryFeed>> fetchHistory() =>
+      _guard(_dummy.fetchHistory);
 }

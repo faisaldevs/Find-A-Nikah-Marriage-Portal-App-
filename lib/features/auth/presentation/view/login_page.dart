@@ -46,6 +46,9 @@ class _LoginView extends StatefulWidget {
 }
 
 class _LoginPageState extends State<_LoginView> {
+  // Hard-coded dev credentials shipped in every build type (audit #6).
+  // final _emailController = TextEditingController(text: 'user@gmail.com');
+  // final _passwordController = TextEditingController(text: '12345678');
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -92,25 +95,153 @@ class _LoginPageState extends State<_LoginView> {
               padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, keyboardHeight),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                //   child: Column(
+                //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //     children: [
+                //       Column(
+                //         children: [
+                //           SizedBox(height: 48.h),
+                //           BrandLogo(width: 172.w),
+                //           SizedBox(height: 32.h),
+                //         ],
+                //       ),
+                //       Column(
+                //         children: [
+                //           AppTextField(
+                //             controller: _emailController,
+                //             hint: 'Enter your email',
+                //             icon: Icons.mail_outline,
+                //             keyboardType: TextInputType.emailAddress,
+                //           ),
+                //           SizedBox(height: 14.h),
+                //           AppTextField(
+                //             controller: _passwordController,
+                //             hint: 'Enter your password',
+                //             icon: Icons.lock_outline,
+                //             obscureText: _obscurePassword,
+                //             trailing: IconButton(
+                //               icon: Icon(
+                //                 _obscurePassword
+                //                     ? Icons.visibility_outlined
+                //                     : Icons.visibility_off_outlined,
+                //                 color: Colors.black45,
+                //                 size: 20.r,
+                //               ),
+                //               onPressed: () => setState(
+                //                 () => _obscurePassword = !_obscurePassword,
+                //               ),
+                //             ),
+                //           ),
+                //           Align(
+                //             alignment: Alignment.centerRight,
+                //             child: TextButton(
+                //               // TODO(auth): password reset.
+                //               onPressed: () {},
+                //               child: Text(
+                //                 'Forgot Password?',
+                //                 style: TextFontStyle
+                //                     .headline14w500textWhiteStyleSatoshi,
+                //               ),
+                //             ),
+                //           ),
+                //           SizedBox(height: 8.h),
+                //           AppPrimaryButton(
+                //             label: 'Sign In',
+                //             height: 52.h,
+                //             borderRadius: 14.r,
+                //             isLoading: busy,
+                //             loadingLabel: 'Signing in...',
+                //             onPressed: _submit,
+                //           ),
+                //           SizedBox(height: 20.h),
+                //           Row(
+                //             children: [
+                //               const Expanded(
+                //                 child: Divider(color: Colors.white38),
+                //               ),
+                //               Padding(
+                //                 padding:
+                //                     EdgeInsets.symmetric(horizontal: 12.w),
+                //                 child: Text(
+                //                   'or continue with',
+                //                   style: TextFontStyle
+                //                       .headline13w400white70StyleSatoshi,
+                //                 ),
+                //               ),
+                //               const Expanded(
+                //                 child: Divider(color: Colors.white38),
+                //               ),
+                //             ],
+                //           ),
+                //           SizedBox(height: 20.h),
+                //           Row(
+                //             mainAxisAlignment: MainAxisAlignment.center,
+                //             children: [
+                //               _CircleSocialButton(
+                //                 onTap: busy
+                //                     ? null
+                //                     : () => _social(SocialProvider.google),
+                //                 child: Image.asset(
+                //                   Assets.images.googleIcon,
+                //                   height: 24.h,
+                //                   width: 24.w,
+                //                 ),
+                //               ),
+                //               SizedBox(width: 16.w),
+                //               _CircleSocialButton(
+                //                 onTap: busy
+                //                     ? null
+                //                     : () => _social(SocialProvider.apple),
+                //                 child: Image.asset(
+                //                   Assets.images.appleIcon,
+                //                   height: 24.h,
+                //                   width: 24.w,
+                //                 ),
+                //               ),
+                //             ],
+                //           ),
+                //           SizedBox(height: 28.h),
+                //           Text.rich(
+                //             TextSpan(
+                //               text: "Don't have an account? ",
+                //               style:
+                //                   TextFontStyle
+                //                       .headline13w400white70StyleSatoshi,
+                //               children: [
+                //                 TextSpan(
+                //                   text: 'Sign up now',
+                //                   style: TextFontStyle
+                //                 .headline13w700primaryColorStyleSatoshi,
+                //                   recognizer: _signUpRecognizer,
+                //                 ),
+                //               ],
+                //             ),
+                //           ),
+                //           SizedBox(height: 24.h),
+                //         ],
+                //       ),
+                //     ],
+                //   ),
+                // ),
+                // Figma 883:3856: logo 102pt below the status bar, form 90pt
+                // under it (fields 24 apart, Sign In 32 below "Forgot", 40 to
+                // the divider, 40 to the social row), footer 20pt off the
+                // bottom.
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       children: [
-                        SizedBox(height: 48.h),
+                        SizedBox(height: 102.h),
                         BrandLogo(width: 172.w),
-                        SizedBox(height: 32.h),
-                      ],
-                    ),
-                    Column(
-                      children: [
+                        SizedBox(height: 90.h),
                         AppTextField(
                           controller: _emailController,
                           hint: 'Enter your email',
                           icon: Icons.mail_outline,
                           keyboardType: TextInputType.emailAddress,
                         ),
-                        SizedBox(height: 14.h),
+                        SizedBox(height: 24.h),
                         AppTextField(
                           controller: _passwordController,
                           hint: 'Enter your password',
@@ -121,7 +252,7 @@ class _LoginPageState extends State<_LoginView> {
                               _obscurePassword
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
-                              color: Colors.black45,
+                              color: AppColors.greyColor,
                               size: 20.r,
                             ),
                             onPressed: () => setState(
@@ -129,47 +260,54 @@ class _LoginPageState extends State<_LoginView> {
                             ),
                           ),
                         ),
+                        SizedBox(height: 14.h),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton(
+                          child: GestureDetector(
                             // TODO(auth): password reset.
-                            onPressed: () {},
+                            onTap: () {},
                             child: Text(
                               'Forgot Password?',
                               style: TextFontStyle
-                                  .headline14w500textWhiteStyleSatoshi,
+                                  .headline14w500textWhiteStyleSatoshi
+                                  .copyWith(height: 1.3),
                             ),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 32.h),
                         AppPrimaryButton(
                           label: 'Sign In',
-                          height: 52.h,
-                          borderRadius: 14.r,
+                          height: 48.h,
+                          borderRadius: 8.r,
                           isLoading: busy,
                           loadingLabel: 'Signing in...',
                           onPressed: _submit,
                         ),
-                        SizedBox(height: 20.h),
+                        SizedBox(height: 40.h),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Expanded(
-                              child: Divider(color: Colors.white38),
+                            Container(
+                              width: 70.w,
+                              height: 1,
+                              color: Colors.white,
                             ),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
                               child: Text(
                                 'or continue with',
                                 style: TextFontStyle
-                                    .headline13w400white70StyleSatoshi,
+                                    .headline16w500textWhiteStyleSatoshi,
                               ),
                             ),
-                            const Expanded(
-                              child: Divider(color: Colors.white38),
+                            Container(
+                              width: 70.w,
+                              height: 1,
+                              color: Colors.white,
                             ),
                           ],
                         ),
-                        SizedBox(height: 20.h),
+                        SizedBox(height: 40.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -179,41 +317,48 @@ class _LoginPageState extends State<_LoginView> {
                                   : () => _social(SocialProvider.google),
                               child: Image.asset(
                                 Assets.images.googleIcon,
-                                height: 24.h,
-                                width: 24.w,
+                                height: 30.r,
+                                width: 30.r,
                               ),
                             ),
-                            SizedBox(width: 16.w),
+                            SizedBox(width: 14.w),
                             _CircleSocialButton(
                               onTap: busy
                                   ? null
                                   : () => _social(SocialProvider.apple),
                               child: Image.asset(
                                 Assets.images.appleIcon,
-                                height: 24.h,
-                                width: 24.w,
+                                height: 31.5.r,
+                                width: 31.5.r,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 28.h),
-                        Text.rich(
-                          TextSpan(
-                            text: "Don't have an account? ",
-                            style:
-                                TextFontStyle.headline13w400white70StyleSatoshi,
-                            children: [
-                              TextSpan(
-                                text: 'Sign up now',
-                                style: TextFontStyle
-                                    .headline13w700primaryColorStyleSatoshi,
-                                recognizer: _signUpRecognizer,
-                              ),
-                            ],
-                          ),
-                        ),
                         SizedBox(height: 24.h),
                       ],
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 20.h),
+                      child: Text.rich(
+                        TextSpan(
+                          text: "Don't have an account? ",
+                          style: TextFontStyle
+                              .headline14w400textWhiteStyleSatoshi
+                              .copyWith(height: 1.75),
+                          children: [
+                            TextSpan(
+                              text: 'Sign up now',
+                              style: TextFontStyle
+                                  .headline14w500textWhiteStyleSatoshi
+                                  .copyWith(
+                                    color: AppColors.errorColor,
+                                    height: 1.75,
+                                  ),
+                              recognizer: _signUpRecognizer,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -237,12 +382,23 @@ class _CircleSocialButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
+      // child: Container(
+      //   width: 48.r,
+      //   height: 48.r,
+      //   decoration: const BoxDecoration(
+      //     color: Colors.white,
+      //     shape: BoxShape.circle,
+      //   ),
+      //   child: Center(child: child),
+      // ),
+      // Figma 883:3910: 57pt white circle, 0.5px #E5E7EB border.
       child: Container(
-        width: 48.r,
-        height: 48.r,
-        decoration: const BoxDecoration(
+        width: 57.r,
+        height: 57.r,
+        decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 0.5),
         ),
         child: Center(child: child),
       ),

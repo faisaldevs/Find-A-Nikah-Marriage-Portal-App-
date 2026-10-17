@@ -64,6 +64,11 @@ abstract class OnboardingData with _$OnboardingData {
     photoPaths: [...photoPaths, ...paths.take(remainingPhotoSlots)],
   );
 
+  /// Already on the server (prefilled as a URL), vs a just-picked local
+  /// file.
+  static bool isUploadedPhoto(String path) =>
+      path.startsWith('http://') || path.startsWith('https://');
+
   OnboardingData withPhotoRemoved(int index) =>
       copyWith(photoPaths: [...photoPaths]..removeAt(index));
 

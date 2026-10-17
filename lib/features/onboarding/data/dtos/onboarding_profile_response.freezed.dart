@@ -876,7 +876,8 @@ as String?,
 /// @nodoc
 mixin _$OnboardingProfileDto {
 
- String? get accountType; String? get gender; String? get religion; String? get dateOfBirth; List<String> get languages; List<String> get nationality; List<String> get grewUpIn; List<String> get ethnicity; int? get heightCm; String? get educationLevel; String? get professionTitle; String? get maritalStatus; String? get getToknowDuration; String? get marriageTimeline; List<String> get faith; List<String> get religiousPractices; List<String> get personalityTraits; String? get aboutMe; OnboardingProfileAboutYouDto? get aboutYou; OnboardingProfileLifestyleDto? get lifestyle; OnboardingProfileInterestsDto? get interests;
+ String? get accountType; String? get gender; String? get religion; String? get dateOfBirth; List<String> get languages; List<String> get nationality; List<String> get grewUpIn; List<String> get ethnicity; int? get heightCm; String? get educationLevel; String? get professionTitle; String? get maritalStatus; String? get getToknowDuration; String? get marriageTimeline; List<String> get faith; List<String> get religiousPractices; List<String> get personalityTraits; String? get aboutMe;/// Step 8 photos as server-relative paths (`/public/upload/x.jpg`).
+ List<String> get images; OnboardingProfileAboutYouDto? get aboutYou; OnboardingProfileLifestyleDto? get lifestyle; OnboardingProfileInterestsDto? get interests;
 /// Create a copy of OnboardingProfileDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -889,16 +890,16 @@ $OnboardingProfileDtoCopyWith<OnboardingProfileDto> get copyWith => _$Onboarding
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfileDto&&(identical(other.accountType, accountType) || other.accountType == accountType)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.religion, religion) || other.religion == religion)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&const DeepCollectionEquality().equals(other.languages, languages)&&const DeepCollectionEquality().equals(other.nationality, nationality)&&const DeepCollectionEquality().equals(other.grewUpIn, grewUpIn)&&const DeepCollectionEquality().equals(other.ethnicity, ethnicity)&&(identical(other.heightCm, heightCm) || other.heightCm == heightCm)&&(identical(other.educationLevel, educationLevel) || other.educationLevel == educationLevel)&&(identical(other.professionTitle, professionTitle) || other.professionTitle == professionTitle)&&(identical(other.maritalStatus, maritalStatus) || other.maritalStatus == maritalStatus)&&(identical(other.getToknowDuration, getToknowDuration) || other.getToknowDuration == getToknowDuration)&&(identical(other.marriageTimeline, marriageTimeline) || other.marriageTimeline == marriageTimeline)&&const DeepCollectionEquality().equals(other.faith, faith)&&const DeepCollectionEquality().equals(other.religiousPractices, religiousPractices)&&const DeepCollectionEquality().equals(other.personalityTraits, personalityTraits)&&(identical(other.aboutMe, aboutMe) || other.aboutMe == aboutMe)&&(identical(other.aboutYou, aboutYou) || other.aboutYou == aboutYou)&&(identical(other.lifestyle, lifestyle) || other.lifestyle == lifestyle)&&(identical(other.interests, interests) || other.interests == interests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfileDto&&(identical(other.accountType, accountType) || other.accountType == accountType)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.religion, religion) || other.religion == religion)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&const DeepCollectionEquality().equals(other.languages, languages)&&const DeepCollectionEquality().equals(other.nationality, nationality)&&const DeepCollectionEquality().equals(other.grewUpIn, grewUpIn)&&const DeepCollectionEquality().equals(other.ethnicity, ethnicity)&&(identical(other.heightCm, heightCm) || other.heightCm == heightCm)&&(identical(other.educationLevel, educationLevel) || other.educationLevel == educationLevel)&&(identical(other.professionTitle, professionTitle) || other.professionTitle == professionTitle)&&(identical(other.maritalStatus, maritalStatus) || other.maritalStatus == maritalStatus)&&(identical(other.getToknowDuration, getToknowDuration) || other.getToknowDuration == getToknowDuration)&&(identical(other.marriageTimeline, marriageTimeline) || other.marriageTimeline == marriageTimeline)&&const DeepCollectionEquality().equals(other.faith, faith)&&const DeepCollectionEquality().equals(other.religiousPractices, religiousPractices)&&const DeepCollectionEquality().equals(other.personalityTraits, personalityTraits)&&(identical(other.aboutMe, aboutMe) || other.aboutMe == aboutMe)&&const DeepCollectionEquality().equals(other.images, images)&&(identical(other.aboutYou, aboutYou) || other.aboutYou == aboutYou)&&(identical(other.lifestyle, lifestyle) || other.lifestyle == lifestyle)&&(identical(other.interests, interests) || other.interests == interests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,accountType,gender,religion,dateOfBirth,const DeepCollectionEquality().hash(languages),const DeepCollectionEquality().hash(nationality),const DeepCollectionEquality().hash(grewUpIn),const DeepCollectionEquality().hash(ethnicity),heightCm,educationLevel,professionTitle,maritalStatus,getToknowDuration,marriageTimeline,const DeepCollectionEquality().hash(faith),const DeepCollectionEquality().hash(religiousPractices),const DeepCollectionEquality().hash(personalityTraits),aboutMe,aboutYou,lifestyle,interests]);
+int get hashCode => Object.hashAll([runtimeType,accountType,gender,religion,dateOfBirth,const DeepCollectionEquality().hash(languages),const DeepCollectionEquality().hash(nationality),const DeepCollectionEquality().hash(grewUpIn),const DeepCollectionEquality().hash(ethnicity),heightCm,educationLevel,professionTitle,maritalStatus,getToknowDuration,marriageTimeline,const DeepCollectionEquality().hash(faith),const DeepCollectionEquality().hash(religiousPractices),const DeepCollectionEquality().hash(personalityTraits),aboutMe,const DeepCollectionEquality().hash(images),aboutYou,lifestyle,interests]);
 
 @override
 String toString() {
-  return 'OnboardingProfileDto(accountType: $accountType, gender: $gender, religion: $religion, dateOfBirth: $dateOfBirth, languages: $languages, nationality: $nationality, grewUpIn: $grewUpIn, ethnicity: $ethnicity, heightCm: $heightCm, educationLevel: $educationLevel, professionTitle: $professionTitle, maritalStatus: $maritalStatus, getToknowDuration: $getToknowDuration, marriageTimeline: $marriageTimeline, faith: $faith, religiousPractices: $religiousPractices, personalityTraits: $personalityTraits, aboutMe: $aboutMe, aboutYou: $aboutYou, lifestyle: $lifestyle, interests: $interests)';
+  return 'OnboardingProfileDto(accountType: $accountType, gender: $gender, religion: $religion, dateOfBirth: $dateOfBirth, languages: $languages, nationality: $nationality, grewUpIn: $grewUpIn, ethnicity: $ethnicity, heightCm: $heightCm, educationLevel: $educationLevel, professionTitle: $professionTitle, maritalStatus: $maritalStatus, getToknowDuration: $getToknowDuration, marriageTimeline: $marriageTimeline, faith: $faith, religiousPractices: $religiousPractices, personalityTraits: $personalityTraits, aboutMe: $aboutMe, images: $images, aboutYou: $aboutYou, lifestyle: $lifestyle, interests: $interests)';
 }
 
 
@@ -909,7 +910,7 @@ abstract mixin class $OnboardingProfileDtoCopyWith<$Res>  {
   factory $OnboardingProfileDtoCopyWith(OnboardingProfileDto value, $Res Function(OnboardingProfileDto) _then) = _$OnboardingProfileDtoCopyWithImpl;
 @useResult
 $Res call({
- String? accountType, String? gender, String? religion, String? dateOfBirth, List<String> languages, List<String> nationality, List<String> grewUpIn, List<String> ethnicity, int? heightCm, String? educationLevel, String? professionTitle, String? maritalStatus, String? getToknowDuration, String? marriageTimeline, List<String> faith, List<String> religiousPractices, List<String> personalityTraits, String? aboutMe, OnboardingProfileAboutYouDto? aboutYou, OnboardingProfileLifestyleDto? lifestyle, OnboardingProfileInterestsDto? interests
+ String? accountType, String? gender, String? religion, String? dateOfBirth, List<String> languages, List<String> nationality, List<String> grewUpIn, List<String> ethnicity, int? heightCm, String? educationLevel, String? professionTitle, String? maritalStatus, String? getToknowDuration, String? marriageTimeline, List<String> faith, List<String> religiousPractices, List<String> personalityTraits, String? aboutMe, List<String> images, OnboardingProfileAboutYouDto? aboutYou, OnboardingProfileLifestyleDto? lifestyle, OnboardingProfileInterestsDto? interests
 });
 
 
@@ -926,7 +927,7 @@ class _$OnboardingProfileDtoCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfileDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? accountType = freezed,Object? gender = freezed,Object? religion = freezed,Object? dateOfBirth = freezed,Object? languages = null,Object? nationality = null,Object? grewUpIn = null,Object? ethnicity = null,Object? heightCm = freezed,Object? educationLevel = freezed,Object? professionTitle = freezed,Object? maritalStatus = freezed,Object? getToknowDuration = freezed,Object? marriageTimeline = freezed,Object? faith = null,Object? religiousPractices = null,Object? personalityTraits = null,Object? aboutMe = freezed,Object? aboutYou = freezed,Object? lifestyle = freezed,Object? interests = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? accountType = freezed,Object? gender = freezed,Object? religion = freezed,Object? dateOfBirth = freezed,Object? languages = null,Object? nationality = null,Object? grewUpIn = null,Object? ethnicity = null,Object? heightCm = freezed,Object? educationLevel = freezed,Object? professionTitle = freezed,Object? maritalStatus = freezed,Object? getToknowDuration = freezed,Object? marriageTimeline = freezed,Object? faith = null,Object? religiousPractices = null,Object? personalityTraits = null,Object? aboutMe = freezed,Object? images = null,Object? aboutYou = freezed,Object? lifestyle = freezed,Object? interests = freezed,}) {
   return _then(_self.copyWith(
 accountType: freezed == accountType ? _self.accountType : accountType // ignore: cast_nullable_to_non_nullable
 as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
@@ -946,7 +947,8 @@ as String?,faith: null == faith ? _self.faith : faith // ignore: cast_nullable_t
 as List<String>,religiousPractices: null == religiousPractices ? _self.religiousPractices : religiousPractices // ignore: cast_nullable_to_non_nullable
 as List<String>,personalityTraits: null == personalityTraits ? _self.personalityTraits : personalityTraits // ignore: cast_nullable_to_non_nullable
 as List<String>,aboutMe: freezed == aboutMe ? _self.aboutMe : aboutMe // ignore: cast_nullable_to_non_nullable
-as String?,aboutYou: freezed == aboutYou ? _self.aboutYou : aboutYou // ignore: cast_nullable_to_non_nullable
+as String?,images: null == images ? _self.images : images // ignore: cast_nullable_to_non_nullable
+as List<String>,aboutYou: freezed == aboutYou ? _self.aboutYou : aboutYou // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileAboutYouDto?,lifestyle: freezed == lifestyle ? _self.lifestyle : lifestyle // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileLifestyleDto?,interests: freezed == interests ? _self.interests : interests // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileInterestsDto?,
@@ -1070,10 +1072,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  List<String> images,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingProfileDto() when $default != null:
-return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.aboutYou,_that.lifestyle,_that.interests);case _:
+return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.images,_that.aboutYou,_that.lifestyle,_that.interests);case _:
   return orElse();
 
 }
@@ -1091,10 +1093,10 @@ return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  List<String> images,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfileDto():
-return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.aboutYou,_that.lifestyle,_that.interests);case _:
+return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.images,_that.aboutYou,_that.lifestyle,_that.interests);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1111,10 +1113,10 @@ return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? accountType,  String? gender,  String? religion,  String? dateOfBirth,  List<String> languages,  List<String> nationality,  List<String> grewUpIn,  List<String> ethnicity,  int? heightCm,  String? educationLevel,  String? professionTitle,  String? maritalStatus,  String? getToknowDuration,  String? marriageTimeline,  List<String> faith,  List<String> religiousPractices,  List<String> personalityTraits,  String? aboutMe,  List<String> images,  OnboardingProfileAboutYouDto? aboutYou,  OnboardingProfileLifestyleDto? lifestyle,  OnboardingProfileInterestsDto? interests)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfileDto() when $default != null:
-return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.aboutYou,_that.lifestyle,_that.interests);case _:
+return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,_that.languages,_that.nationality,_that.grewUpIn,_that.ethnicity,_that.heightCm,_that.educationLevel,_that.professionTitle,_that.maritalStatus,_that.getToknowDuration,_that.marriageTimeline,_that.faith,_that.religiousPractices,_that.personalityTraits,_that.aboutMe,_that.images,_that.aboutYou,_that.lifestyle,_that.interests);case _:
   return null;
 
 }
@@ -1126,7 +1128,7 @@ return $default(_that.accountType,_that.gender,_that.religion,_that.dateOfBirth,
 @JsonSerializable()
 
 class _OnboardingProfileDto implements OnboardingProfileDto {
-  const _OnboardingProfileDto({this.accountType, this.gender, this.religion, this.dateOfBirth, final  List<String> languages = const <String>[], final  List<String> nationality = const <String>[], final  List<String> grewUpIn = const <String>[], final  List<String> ethnicity = const <String>[], this.heightCm, this.educationLevel, this.professionTitle, this.maritalStatus, this.getToknowDuration, this.marriageTimeline, final  List<String> faith = const <String>[], final  List<String> religiousPractices = const <String>[], final  List<String> personalityTraits = const <String>[], this.aboutMe, this.aboutYou, this.lifestyle, this.interests}): _languages = languages,_nationality = nationality,_grewUpIn = grewUpIn,_ethnicity = ethnicity,_faith = faith,_religiousPractices = religiousPractices,_personalityTraits = personalityTraits;
+  const _OnboardingProfileDto({this.accountType, this.gender, this.religion, this.dateOfBirth, final  List<String> languages = const <String>[], final  List<String> nationality = const <String>[], final  List<String> grewUpIn = const <String>[], final  List<String> ethnicity = const <String>[], this.heightCm, this.educationLevel, this.professionTitle, this.maritalStatus, this.getToknowDuration, this.marriageTimeline, final  List<String> faith = const <String>[], final  List<String> religiousPractices = const <String>[], final  List<String> personalityTraits = const <String>[], this.aboutMe, final  List<String> images = const <String>[], this.aboutYou, this.lifestyle, this.interests}): _languages = languages,_nationality = nationality,_grewUpIn = grewUpIn,_ethnicity = ethnicity,_faith = faith,_religiousPractices = religiousPractices,_personalityTraits = personalityTraits,_images = images;
   factory _OnboardingProfileDto.fromJson(Map<String, dynamic> json) => _$OnboardingProfileDtoFromJson(json);
 
 @override final  String? accountType;
@@ -1189,6 +1191,15 @@ class _OnboardingProfileDto implements OnboardingProfileDto {
 }
 
 @override final  String? aboutMe;
+/// Step 8 photos as server-relative paths (`/public/upload/x.jpg`).
+ final  List<String> _images;
+/// Step 8 photos as server-relative paths (`/public/upload/x.jpg`).
+@override@JsonKey() List<String> get images {
+  if (_images is EqualUnmodifiableListView) return _images;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_images);
+}
+
 @override final  OnboardingProfileAboutYouDto? aboutYou;
 @override final  OnboardingProfileLifestyleDto? lifestyle;
 @override final  OnboardingProfileInterestsDto? interests;
@@ -1206,16 +1217,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfileDto&&(identical(other.accountType, accountType) || other.accountType == accountType)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.religion, religion) || other.religion == religion)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&const DeepCollectionEquality().equals(other._languages, _languages)&&const DeepCollectionEquality().equals(other._nationality, _nationality)&&const DeepCollectionEquality().equals(other._grewUpIn, _grewUpIn)&&const DeepCollectionEquality().equals(other._ethnicity, _ethnicity)&&(identical(other.heightCm, heightCm) || other.heightCm == heightCm)&&(identical(other.educationLevel, educationLevel) || other.educationLevel == educationLevel)&&(identical(other.professionTitle, professionTitle) || other.professionTitle == professionTitle)&&(identical(other.maritalStatus, maritalStatus) || other.maritalStatus == maritalStatus)&&(identical(other.getToknowDuration, getToknowDuration) || other.getToknowDuration == getToknowDuration)&&(identical(other.marriageTimeline, marriageTimeline) || other.marriageTimeline == marriageTimeline)&&const DeepCollectionEquality().equals(other._faith, _faith)&&const DeepCollectionEquality().equals(other._religiousPractices, _religiousPractices)&&const DeepCollectionEquality().equals(other._personalityTraits, _personalityTraits)&&(identical(other.aboutMe, aboutMe) || other.aboutMe == aboutMe)&&(identical(other.aboutYou, aboutYou) || other.aboutYou == aboutYou)&&(identical(other.lifestyle, lifestyle) || other.lifestyle == lifestyle)&&(identical(other.interests, interests) || other.interests == interests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfileDto&&(identical(other.accountType, accountType) || other.accountType == accountType)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.religion, religion) || other.religion == religion)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&const DeepCollectionEquality().equals(other._languages, _languages)&&const DeepCollectionEquality().equals(other._nationality, _nationality)&&const DeepCollectionEquality().equals(other._grewUpIn, _grewUpIn)&&const DeepCollectionEquality().equals(other._ethnicity, _ethnicity)&&(identical(other.heightCm, heightCm) || other.heightCm == heightCm)&&(identical(other.educationLevel, educationLevel) || other.educationLevel == educationLevel)&&(identical(other.professionTitle, professionTitle) || other.professionTitle == professionTitle)&&(identical(other.maritalStatus, maritalStatus) || other.maritalStatus == maritalStatus)&&(identical(other.getToknowDuration, getToknowDuration) || other.getToknowDuration == getToknowDuration)&&(identical(other.marriageTimeline, marriageTimeline) || other.marriageTimeline == marriageTimeline)&&const DeepCollectionEquality().equals(other._faith, _faith)&&const DeepCollectionEquality().equals(other._religiousPractices, _religiousPractices)&&const DeepCollectionEquality().equals(other._personalityTraits, _personalityTraits)&&(identical(other.aboutMe, aboutMe) || other.aboutMe == aboutMe)&&const DeepCollectionEquality().equals(other._images, _images)&&(identical(other.aboutYou, aboutYou) || other.aboutYou == aboutYou)&&(identical(other.lifestyle, lifestyle) || other.lifestyle == lifestyle)&&(identical(other.interests, interests) || other.interests == interests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,accountType,gender,religion,dateOfBirth,const DeepCollectionEquality().hash(_languages),const DeepCollectionEquality().hash(_nationality),const DeepCollectionEquality().hash(_grewUpIn),const DeepCollectionEquality().hash(_ethnicity),heightCm,educationLevel,professionTitle,maritalStatus,getToknowDuration,marriageTimeline,const DeepCollectionEquality().hash(_faith),const DeepCollectionEquality().hash(_religiousPractices),const DeepCollectionEquality().hash(_personalityTraits),aboutMe,aboutYou,lifestyle,interests]);
+int get hashCode => Object.hashAll([runtimeType,accountType,gender,religion,dateOfBirth,const DeepCollectionEquality().hash(_languages),const DeepCollectionEquality().hash(_nationality),const DeepCollectionEquality().hash(_grewUpIn),const DeepCollectionEquality().hash(_ethnicity),heightCm,educationLevel,professionTitle,maritalStatus,getToknowDuration,marriageTimeline,const DeepCollectionEquality().hash(_faith),const DeepCollectionEquality().hash(_religiousPractices),const DeepCollectionEquality().hash(_personalityTraits),aboutMe,const DeepCollectionEquality().hash(_images),aboutYou,lifestyle,interests]);
 
 @override
 String toString() {
-  return 'OnboardingProfileDto(accountType: $accountType, gender: $gender, religion: $religion, dateOfBirth: $dateOfBirth, languages: $languages, nationality: $nationality, grewUpIn: $grewUpIn, ethnicity: $ethnicity, heightCm: $heightCm, educationLevel: $educationLevel, professionTitle: $professionTitle, maritalStatus: $maritalStatus, getToknowDuration: $getToknowDuration, marriageTimeline: $marriageTimeline, faith: $faith, religiousPractices: $religiousPractices, personalityTraits: $personalityTraits, aboutMe: $aboutMe, aboutYou: $aboutYou, lifestyle: $lifestyle, interests: $interests)';
+  return 'OnboardingProfileDto(accountType: $accountType, gender: $gender, religion: $religion, dateOfBirth: $dateOfBirth, languages: $languages, nationality: $nationality, grewUpIn: $grewUpIn, ethnicity: $ethnicity, heightCm: $heightCm, educationLevel: $educationLevel, professionTitle: $professionTitle, maritalStatus: $maritalStatus, getToknowDuration: $getToknowDuration, marriageTimeline: $marriageTimeline, faith: $faith, religiousPractices: $religiousPractices, personalityTraits: $personalityTraits, aboutMe: $aboutMe, images: $images, aboutYou: $aboutYou, lifestyle: $lifestyle, interests: $interests)';
 }
 
 
@@ -1226,7 +1237,7 @@ abstract mixin class _$OnboardingProfileDtoCopyWith<$Res> implements $Onboarding
   factory _$OnboardingProfileDtoCopyWith(_OnboardingProfileDto value, $Res Function(_OnboardingProfileDto) _then) = __$OnboardingProfileDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String? accountType, String? gender, String? religion, String? dateOfBirth, List<String> languages, List<String> nationality, List<String> grewUpIn, List<String> ethnicity, int? heightCm, String? educationLevel, String? professionTitle, String? maritalStatus, String? getToknowDuration, String? marriageTimeline, List<String> faith, List<String> religiousPractices, List<String> personalityTraits, String? aboutMe, OnboardingProfileAboutYouDto? aboutYou, OnboardingProfileLifestyleDto? lifestyle, OnboardingProfileInterestsDto? interests
+ String? accountType, String? gender, String? religion, String? dateOfBirth, List<String> languages, List<String> nationality, List<String> grewUpIn, List<String> ethnicity, int? heightCm, String? educationLevel, String? professionTitle, String? maritalStatus, String? getToknowDuration, String? marriageTimeline, List<String> faith, List<String> religiousPractices, List<String> personalityTraits, String? aboutMe, List<String> images, OnboardingProfileAboutYouDto? aboutYou, OnboardingProfileLifestyleDto? lifestyle, OnboardingProfileInterestsDto? interests
 });
 
 
@@ -1243,7 +1254,7 @@ class __$OnboardingProfileDtoCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfileDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? accountType = freezed,Object? gender = freezed,Object? religion = freezed,Object? dateOfBirth = freezed,Object? languages = null,Object? nationality = null,Object? grewUpIn = null,Object? ethnicity = null,Object? heightCm = freezed,Object? educationLevel = freezed,Object? professionTitle = freezed,Object? maritalStatus = freezed,Object? getToknowDuration = freezed,Object? marriageTimeline = freezed,Object? faith = null,Object? religiousPractices = null,Object? personalityTraits = null,Object? aboutMe = freezed,Object? aboutYou = freezed,Object? lifestyle = freezed,Object? interests = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? accountType = freezed,Object? gender = freezed,Object? religion = freezed,Object? dateOfBirth = freezed,Object? languages = null,Object? nationality = null,Object? grewUpIn = null,Object? ethnicity = null,Object? heightCm = freezed,Object? educationLevel = freezed,Object? professionTitle = freezed,Object? maritalStatus = freezed,Object? getToknowDuration = freezed,Object? marriageTimeline = freezed,Object? faith = null,Object? religiousPractices = null,Object? personalityTraits = null,Object? aboutMe = freezed,Object? images = null,Object? aboutYou = freezed,Object? lifestyle = freezed,Object? interests = freezed,}) {
   return _then(_OnboardingProfileDto(
 accountType: freezed == accountType ? _self.accountType : accountType // ignore: cast_nullable_to_non_nullable
 as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
@@ -1263,7 +1274,8 @@ as String?,faith: null == faith ? _self._faith : faith // ignore: cast_nullable_
 as List<String>,religiousPractices: null == religiousPractices ? _self._religiousPractices : religiousPractices // ignore: cast_nullable_to_non_nullable
 as List<String>,personalityTraits: null == personalityTraits ? _self._personalityTraits : personalityTraits // ignore: cast_nullable_to_non_nullable
 as List<String>,aboutMe: freezed == aboutMe ? _self.aboutMe : aboutMe // ignore: cast_nullable_to_non_nullable
-as String?,aboutYou: freezed == aboutYou ? _self.aboutYou : aboutYou // ignore: cast_nullable_to_non_nullable
+as String?,images: null == images ? _self._images : images // ignore: cast_nullable_to_non_nullable
+as List<String>,aboutYou: freezed == aboutYou ? _self.aboutYou : aboutYou // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileAboutYouDto?,lifestyle: freezed == lifestyle ? _self.lifestyle : lifestyle // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileLifestyleDto?,interests: freezed == interests ? _self.interests : interests // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileInterestsDto?,

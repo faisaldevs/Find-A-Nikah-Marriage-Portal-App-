@@ -16,7 +16,10 @@ mixin _$UserLocationState {
 
  LocationAccess get access;/// Where the map centres. [GeoPoint.fallback] until a fix arrives.
  GeoPoint get position;/// True once [position] is a real fix.
- bool get hasFix;
+ bool get hasFix;/// ISO code of the country at [position] (reverse geocoded) — drives
+/// the Distance tab's "Limit to only {country}". Null until known, or
+/// when the lookup fails (the toggle is hidden then).
+ String? get countryCode;
 /// Create a copy of UserLocationState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,16 +30,16 @@ $UserLocationStateCopyWith<UserLocationState> get copyWith => _$UserLocationStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserLocationState&&(identical(other.access, access) || other.access == access)&&(identical(other.position, position) || other.position == position)&&(identical(other.hasFix, hasFix) || other.hasFix == hasFix));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserLocationState&&(identical(other.access, access) || other.access == access)&&(identical(other.position, position) || other.position == position)&&(identical(other.hasFix, hasFix) || other.hasFix == hasFix)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,access,position,hasFix);
+int get hashCode => Object.hash(runtimeType,access,position,hasFix,countryCode);
 
 @override
 String toString() {
-  return 'UserLocationState(access: $access, position: $position, hasFix: $hasFix)';
+  return 'UserLocationState(access: $access, position: $position, hasFix: $hasFix, countryCode: $countryCode)';
 }
 
 
@@ -47,7 +50,7 @@ abstract mixin class $UserLocationStateCopyWith<$Res>  {
   factory $UserLocationStateCopyWith(UserLocationState value, $Res Function(UserLocationState) _then) = _$UserLocationStateCopyWithImpl;
 @useResult
 $Res call({
- LocationAccess access, GeoPoint position, bool hasFix
+ LocationAccess access, GeoPoint position, bool hasFix, String? countryCode
 });
 
 
@@ -64,12 +67,13 @@ class _$UserLocationStateCopyWithImpl<$Res>
 
 /// Create a copy of UserLocationState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? access = null,Object? position = null,Object? hasFix = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? access = null,Object? position = null,Object? hasFix = null,Object? countryCode = freezed,}) {
   return _then(_self.copyWith(
 access: null == access ? _self.access : access // ignore: cast_nullable_to_non_nullable
 as LocationAccess,position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
 as GeoPoint,hasFix: null == hasFix ? _self.hasFix : hasFix // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,countryCode: freezed == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of UserLocationState
@@ -163,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( LocationAccess access,  GeoPoint position,  bool hasFix)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( LocationAccess access,  GeoPoint position,  bool hasFix,  String? countryCode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserLocationState() when $default != null:
-return $default(_that.access,_that.position,_that.hasFix);case _:
+return $default(_that.access,_that.position,_that.hasFix,_that.countryCode);case _:
   return orElse();
 
 }
@@ -184,10 +188,10 @@ return $default(_that.access,_that.position,_that.hasFix);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( LocationAccess access,  GeoPoint position,  bool hasFix)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( LocationAccess access,  GeoPoint position,  bool hasFix,  String? countryCode)  $default,) {final _that = this;
 switch (_that) {
 case _UserLocationState():
-return $default(_that.access,_that.position,_that.hasFix);case _:
+return $default(_that.access,_that.position,_that.hasFix,_that.countryCode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +208,10 @@ return $default(_that.access,_that.position,_that.hasFix);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( LocationAccess access,  GeoPoint position,  bool hasFix)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( LocationAccess access,  GeoPoint position,  bool hasFix,  String? countryCode)?  $default,) {final _that = this;
 switch (_that) {
 case _UserLocationState() when $default != null:
-return $default(_that.access,_that.position,_that.hasFix);case _:
+return $default(_that.access,_that.position,_that.hasFix,_that.countryCode);case _:
   return null;
 
 }
@@ -219,7 +223,7 @@ return $default(_that.access,_that.position,_that.hasFix);case _:
 
 
 class _UserLocationState implements UserLocationState {
-  const _UserLocationState({this.access = LocationAccess.checking, this.position = GeoPoint.fallback, this.hasFix = false});
+  const _UserLocationState({this.access = LocationAccess.checking, this.position = GeoPoint.fallback, this.hasFix = false, this.countryCode});
   
 
 @override@JsonKey() final  LocationAccess access;
@@ -227,6 +231,10 @@ class _UserLocationState implements UserLocationState {
 @override@JsonKey() final  GeoPoint position;
 /// True once [position] is a real fix.
 @override@JsonKey() final  bool hasFix;
+/// ISO code of the country at [position] (reverse geocoded) — drives
+/// the Distance tab's "Limit to only {country}". Null until known, or
+/// when the lookup fails (the toggle is hidden then).
+@override final  String? countryCode;
 
 /// Create a copy of UserLocationState
 /// with the given fields replaced by the non-null parameter values.
@@ -238,16 +246,16 @@ _$UserLocationStateCopyWith<_UserLocationState> get copyWith => __$UserLocationS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserLocationState&&(identical(other.access, access) || other.access == access)&&(identical(other.position, position) || other.position == position)&&(identical(other.hasFix, hasFix) || other.hasFix == hasFix));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserLocationState&&(identical(other.access, access) || other.access == access)&&(identical(other.position, position) || other.position == position)&&(identical(other.hasFix, hasFix) || other.hasFix == hasFix)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,access,position,hasFix);
+int get hashCode => Object.hash(runtimeType,access,position,hasFix,countryCode);
 
 @override
 String toString() {
-  return 'UserLocationState(access: $access, position: $position, hasFix: $hasFix)';
+  return 'UserLocationState(access: $access, position: $position, hasFix: $hasFix, countryCode: $countryCode)';
 }
 
 
@@ -258,7 +266,7 @@ abstract mixin class _$UserLocationStateCopyWith<$Res> implements $UserLocationS
   factory _$UserLocationStateCopyWith(_UserLocationState value, $Res Function(_UserLocationState) _then) = __$UserLocationStateCopyWithImpl;
 @override @useResult
 $Res call({
- LocationAccess access, GeoPoint position, bool hasFix
+ LocationAccess access, GeoPoint position, bool hasFix, String? countryCode
 });
 
 
@@ -275,12 +283,13 @@ class __$UserLocationStateCopyWithImpl<$Res>
 
 /// Create a copy of UserLocationState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? access = null,Object? position = null,Object? hasFix = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? access = null,Object? position = null,Object? hasFix = null,Object? countryCode = freezed,}) {
   return _then(_UserLocationState(
 access: null == access ? _self.access : access // ignore: cast_nullable_to_non_nullable
 as LocationAccess,position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
 as GeoPoint,hasFix: null == hasFix ? _self.hasFix : hasFix // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,countryCode: freezed == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

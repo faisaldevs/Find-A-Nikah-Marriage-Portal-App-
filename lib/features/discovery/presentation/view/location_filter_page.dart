@@ -93,6 +93,20 @@ class _LocationFilterPageState extends State<_LocationFilterView> {
     final hasFilter = context.select<DiscoveryFiltersBloc, bool>(
       (b) => b.state.filters.hasLocationFilter,
     );
+    return BlocListener<DiscoveryFiltersBloc, DiscoveryFiltersState>(
+      listenWhen: (prev, next) => prev.status != next.status,
+      listener: (context, state) => switch (state.status) {
+        // Step 11 saved → move on (Add filters, or back when editing).
+        DiscoveryFiltersStatus.locationSaved => _onConfirmed(),
+        DiscoveryFiltersStatus.failure when state.failure != null =>
+          showFailureToast(context, state.failure!),
+        _ => null,
+      },
+      child: _scaffold(hasFilter),
+    );
+  }
+
+  Widget _scaffold(bool hasFilter) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

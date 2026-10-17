@@ -1,4 +1,6 @@
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/features/face_verification/domain/entities/face_snapshot.dart';
+import 'package:find_a_nikah/features/face_verification/domain/entities/liveness_pose.dart';
 import 'package:find_a_nikah/features/face_verification/domain/entities/selfie_check_result.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
@@ -22,7 +24,15 @@ class SelfieFaceDetector {
   static const _maxPitchDegrees = 20.0;
   static const _minEyeOpenProbability = 0.3;
 
-  Future<SelfieCheckResult> check(String imagePath) async {
+  /// [expectedPose] relaxes the yaw check for the guided-liveness turn
+  /// steps — the frontal yaw/pitch bound only applies to
+  /// [LivenessPose.front]; left/right stills just need a face, one face,
+  /// and open eyes (the pose itself was already confirmed live by
+  /// `LivenessPoseEvaluator` before capture).
+  Future<SelfieCheckResult> check(
+    String imagePath, {
+    LivenessPose expectedPose = LivenessPose.front,
+  }) async {
     final List<Face> faces;
     try {
       faces = await _detector.processImage(InputImage.fromFilePath(imagePath));
@@ -33,10 +43,12 @@ class SelfieFaceDetector {
     if (faces.length > 1) return SelfieCheckResult.multipleFaces;
 
     final face = faces.single;
-    final yaw = face.headEulerAngleY?.abs() ?? 0;
-    final pitch = face.headEulerAngleX?.abs() ?? 0;
-    if (yaw > _maxYawDegrees || pitch > _maxPitchDegrees) {
-      return SelfieCheckResult.notFrontal;
+    if (expectedPose == LivenessPose.front) {
+      final yaw = face.headEulerAngleY?.abs() ?? 0;
+      final pitch = face.headEulerAngleX?.abs() ?? 0;
+      if (yaw > _maxYawDegrees || pitch > _maxPitchDegrees) {
+        return SelfieCheckResult.notFrontal;
+      }
     }
 
     final left = face.leftEyeOpenProbability;
@@ -50,6 +62,28 @@ class SelfieFaceDetector {
       return SelfieCheckResult.eyesClosed;
     }
     return SelfieCheckResult.ok;
+  }
+
+  /// Raw face metrics for the still at [imagePath] — used to pick the best
+  /// shot of a capture burst. No verdict: scoring lives in the domain's
+  /// `PoseScorer`. Box ratios are left null (stills only need pose + eyes).
+  Future<FaceSnapshot> analyze(String imagePath) async {
+    final List<Face> faces;
+    try {
+      faces = await _detector.processImage(InputImage.fromFilePath(imagePath));
+    } on Object catch (e) {
+      throw DeviceException('face detection: ${e.runtimeType}');
+    }
+    if (faces.length != 1) return FaceSnapshot(faceCount: faces.length);
+    final face = faces.single;
+    return FaceSnapshot(
+      faceCount: 1,
+      yaw: face.headEulerAngleY,
+      pitch: face.headEulerAngleX,
+      roll: face.headEulerAngleZ,
+      leftEyeOpenProbability: face.leftEyeOpenProbability,
+      rightEyeOpenProbability: face.rightEyeOpenProbability,
+    );
   }
 
   Future<void> dispose() => _detector.close();

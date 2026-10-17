@@ -27,8 +27,15 @@ class _CountryTabState extends State<CountryTab> {
   }
 
   void _confirm() {
-    context.read<DiscoveryFiltersBloc>().add(CountryFilterConfirmed(_code!));
-    widget.onConfirmed();
+    final country = [
+      ...suggestedCountries,
+      ...allCountries,
+    ].firstWhere((c) => c.code == _code);
+    context.read<DiscoveryFiltersBloc>().add(
+      CountryFilterConfirmed(_code!, countryName: country.name),
+    );
+    // The page moves on once the backend save succeeds (its listener).
+    // widget.onConfirmed();
   }
 
   SelectListItem _item(Country c) => SelectListItem(
@@ -57,7 +64,16 @@ class _CountryTabState extends State<CountryTab> {
           padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 8.h),
           child: AppPrimaryButton(
             label: 'Confirm',
-            onPressed: _code == null ? null : _confirm,
+            // Disabled while the step-11 save is in flight.
+            onPressed:
+                _code == null ||
+                    context.select<DiscoveryFiltersBloc, bool>(
+                      (b) =>
+                          b.state.status ==
+                          DiscoveryFiltersStatus.savingLocation,
+                    )
+                ? null
+                : _confirm,
           ),
         ),
       ],

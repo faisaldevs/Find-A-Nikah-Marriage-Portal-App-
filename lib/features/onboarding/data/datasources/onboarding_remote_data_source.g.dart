@@ -131,17 +131,35 @@ class _OnboardingRemoteDataSource implements OnboardingRemoteDataSource {
   }
 
   @override
-  Future<void> submitImages(OnboardingImagesRequestDto body) async {
+  Future<void> submitPhotos(FormData body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    final _data = body;
     final _options = _setStreamType<void>(
       Options(method: 'PATCH', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
             '/v1/onboarding/step',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> deletePhoto(String filename) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'filename': filename};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<void>(
+      Options(method: 'DELETE', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/v1/onboarding/images',
             queryParameters: queryParameters,
             data: _data,
           )

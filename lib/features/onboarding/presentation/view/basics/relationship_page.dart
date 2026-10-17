@@ -50,11 +50,14 @@ class _RelationshipPageState extends State<RelationshipPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const WizardHeadline(
-            text: 'Who are you creating\nthis profile for?',
+            // text: 'Who are you creating\nthis profile for?',
+            text: 'Who are you creating this profile for?',
             subtitle:
                 "Select your relationship with the person you're helping.",
+            subtitleGap: 24,
           ),
-          SizedBox(height: 8.h),
+          // SizedBox(height: 8.h),
+          SizedBox(height: 50.h),
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),

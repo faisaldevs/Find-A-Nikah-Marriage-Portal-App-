@@ -32,6 +32,10 @@ abstract class PhoneVerificationState with _$PhoneVerificationState {
   const factory PhoneVerificationState({
     @Default('') String phoneNumber,
     @Default(PhoneVerificationStatus.idle) PhoneVerificationStatus status,
+
+    /// The code the backend echoed back in demo mode (`devCode`), if any —
+    /// the code page autofills it in debug builds only.
+    String? demoCode,
     Failure? failure,
   }) = _PhoneVerificationState;
 }
@@ -49,11 +53,12 @@ class PhoneVerificationBloc
 
   final AuthRepository _repository;
 
-  Future<void> _step(
+  Future<void> _step<T>(
     Emitter<PhoneVerificationState> emit,
-    Future<Either<Failure, Unit>> Function() action,
-    PhoneVerificationStatus onSuccess,
-  ) async {
+    Future<Either<Failure, T>> Function() action,
+    PhoneVerificationStatus onSuccess, {
+    PhoneVerificationState Function(PhoneVerificationState s, T value)? onValue,
+  }) async {
     emit(
       state.copyWith(
         status: PhoneVerificationStatus.submitting,
@@ -67,7 +72,9 @@ class PhoneVerificationBloc
           status: PhoneVerificationStatus.failure,
           failure: f,
         ),
-        (_) => state.copyWith(status: onSuccess),
+        (value) => (onValue?.call(state, value) ?? state).copyWith(
+          status: onSuccess,
+        ),
       ),
     );
   }
@@ -81,6 +88,7 @@ class PhoneVerificationBloc
       emit,
       () => _repository.requestPhoneCode(event.phoneNumber),
       PhoneVerificationStatus.codeSent,
+      onValue: (s, demoCode) => s.copyWith(demoCode: demoCode),
     );
   }
 
@@ -91,6 +99,7 @@ class PhoneVerificationBloc
     emit,
     () => _repository.requestPhoneCode(state.phoneNumber),
     PhoneVerificationStatus.idle,
+    onValue: (s, demoCode) => s.copyWith(demoCode: demoCode),
   );
 
   Future<void> _onCode(

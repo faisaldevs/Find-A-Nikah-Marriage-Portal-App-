@@ -17,9 +17,15 @@ import 'package:find_a_nikah/features/explore/presentation/presentation.dart';
 import 'package:find_a_nikah/features/face_verification/data/data.dart';
 import 'package:find_a_nikah/features/face_verification/domain/domain.dart';
 import 'package:find_a_nikah/features/face_verification/presentation/presentation.dart';
+import 'package:find_a_nikah/features/feed/data/data.dart';
+import 'package:find_a_nikah/features/feed/domain/domain.dart';
+import 'package:find_a_nikah/features/feed/presentation/presentation.dart';
 import 'package:find_a_nikah/features/marriage/data/data.dart';
 import 'package:find_a_nikah/features/marriage/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
+import 'package:find_a_nikah/features/menu/data/data.dart';
+import 'package:find_a_nikah/features/menu/domain/domain.dart';
+import 'package:find_a_nikah/features/menu/presentation/presentation.dart';
 import 'package:find_a_nikah/features/onboarding/data/data.dart';
 import 'package:find_a_nikah/features/onboarding/domain/domain.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
@@ -31,6 +37,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// The app's service locator. Only this file, the router and pages (to
@@ -68,6 +76,13 @@ Future<void> configureDependencies(AppConfig config) async {
     logger: logger,
   );
   final picker = ImagePicker();
+  // Android: use the system Photo Picker (backported to older versions via
+  // Play services). The legacy gallery intent ignores the multi-select
+  // limit, so users could pick more than the 5-photo maximum.
+  final pickerPlatform = ImagePickerPlatform.instance;
+  if (pickerPlatform is ImagePickerAndroid) {
+    pickerPlatform.useAndroidPhotoPicker = true;
+  }
 
   getIt
     ..registerSingleton<AppConfig>(config)
@@ -97,21 +112,36 @@ Future<void> configureDependencies(AppConfig config) async {
         guard,
       ),
     )
+    // Onboarding step 11 (country / coordinates + distance in miles).
+    ..registerLazySingleton<LocationPreferenceRepository>(
+      () => LocationPreferenceRepositoryImpl(
+        DiscoveryRemoteDataSource(api.dio),
+        guard,
+      ),
+    )
     ..registerLazySingleton<LocationRepository>(
       () => LocationRepositoryImpl(const DeviceLocationDataSource(), guard),
     )
+    ..registerLazySingleton<ImageCompressor>(() => const ImageCompressor())
     ..registerLazySingleton<FaceVerificationRepository>(
       () => FaceVerificationRepositoryImpl(
         ImageCaptureDataSource(picker),
         SelfieFaceDetector(),
-        isDev
-            ? const FakeFaceVerificationRemoteDataSource()
-            : FaceVerificationRemoteDataSource(api.dio),
+        // Dev hits the real backend too now; the fake stays for offline use.
+        // isDev
+        //     ? const FakeFaceVerificationRemoteDataSource()
+        //     : FaceVerificationRemoteDataSource(api.dio),
+        FaceVerificationRemoteDataSource(api.dio),
         guard,
+        getIt<ImageCompressor>(),
       ),
     )
     ..registerLazySingleton<PhotoPickerRepository>(
-      () => PhotoPickerRepositoryImpl(GalleryDataSource(picker), guard),
+      () => PhotoPickerRepositoryImpl(
+        GalleryDataSource(picker),
+        guard,
+        getIt<ImageCompressor>(),
+      ),
     )
     ..registerLazySingleton<AiBioRepository>(
       () => AiBioRepositoryImpl(AiBioRemoteDataSource(api.dio), guard),
@@ -126,6 +156,7 @@ Future<void> configureDependencies(AppConfig config) async {
       () => OnboardingProfileRepositoryImpl(
         OnboardingRemoteDataSource(api.dio),
         guard,
+        imageBaseUrl: config.imageBaseUrl,
       ),
     )
     ..registerLazySingleton<MarriageRepository>(
@@ -139,6 +170,20 @@ Future<void> configureDependencies(AppConfig config) async {
     // Dummy-only for now — no Explore API exists yet.
     ..registerLazySingleton<ExploreRepository>(
       () => ExploreRepositoryImpl(const DummyExploreDataSource(), guard),
+    )
+    // Profile from /v1/onboarding/status (TODO(api): profile API);
+    // membership + settings dummy until their APIs exist.
+    ..registerLazySingleton<MenuRepository>(
+      () => MenuRepositoryImpl(
+        MenuRemoteDataSource(api.dio),
+        DummyMenuDataSource(),
+        guard,
+        imageBaseUrl: config.imageBaseUrl,
+      ),
+    )
+    // Dummy-only for now — no Feed API exists yet.
+    ..registerLazySingleton<FeedRepository>(
+      () => FeedRepositoryImpl(DummyFeedDataSource(), guard),
     )
     // ── Session ────────────────────────────────────────────────────────
     ..registerLazySingleton<SessionScopeManager>(
@@ -163,6 +208,9 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerFactory<FaceVerificationBloc>(
       () => FaceVerificationBloc(getIt<FaceVerificationRepository>()),
     )
+    ..registerFactory<LivenessCaptureBloc>(
+      () => LivenessCaptureBloc(getIt<FaceVerificationRepository>()),
+    )
     ..registerFactory<UserLocationBloc>(
       () => UserLocationBloc(getIt<LocationRepository>()),
     )
@@ -180,6 +228,7 @@ Future<void> configureDependencies(AppConfig config) async {
       () => DiscoveryFiltersBloc(
         getIt<DiscoveryFiltersRepository>(),
         getIt<AuthRepository>(),
+        getIt<LocationPreferenceRepository>(),
       ),
     )
     ..registerFactory<MarriageFeedBloc>(
@@ -190,6 +239,23 @@ Future<void> configureDependencies(AppConfig config) async {
     )
     ..registerFactory<ExploreBloc>(
       () => ExploreBloc(getIt<ExploreRepository>()),
+    )
+    ..registerFactory<FeedBloc>(() => FeedBloc(getIt<FeedRepository>()))
+    ..registerFactory<MenuBloc>(() => MenuBloc(getIt<MenuRepository>()))
+    ..registerFactory<SettingsBloc>(
+      () => SettingsBloc(getIt<MenuRepository>()),
+    )
+    ..registerFactory<EditProfileBloc>(
+      () => EditProfileBloc(getIt<MenuRepository>()),
+    )
+    ..registerFactoryParam<PostDetailBloc, FeedPost, void>(
+      (post, _) => PostDetailBloc(getIt<FeedRepository>(), post),
+    )
+    ..registerFactoryParam<ProfileBloc, FeedAuthor, void>(
+      (author, _) => ProfileBloc(getIt<FeedRepository>(), author),
+    )
+    ..registerFactory<CreatePostBloc>(
+      () => CreatePostBloc(getIt<FeedRepository>()),
     );
 }
 

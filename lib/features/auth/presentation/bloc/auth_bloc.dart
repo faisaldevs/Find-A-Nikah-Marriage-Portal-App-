@@ -16,6 +16,12 @@ final class AuthSignOutRequested extends AuthEvent {
   const AuthSignOutRequested();
 }
 
+/// Dev-only: the intro carousel's "Skip" button. See
+/// [AuthRepository.devSkipToApp].
+final class AuthDevSkipRequested extends AuthEvent {
+  const AuthDevSkipRequested();
+}
+
 /// App-scoped (sits above the router). Its state is the [AuthStatus] the
 /// router's redirect guards on.
 class AuthBloc extends Bloc<AuthEvent, AuthStatus> {
@@ -26,6 +32,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthStatus> {
       transformer: restartable(),
     );
     on<AuthSignOutRequested>(_onSignOutRequested, transformer: droppable());
+    on<AuthDevSkipRequested>(
+      (event, emit) => _repository.devSkipToApp(),
+      transformer: droppable(),
+    );
   }
 
   final AuthRepository _repository;

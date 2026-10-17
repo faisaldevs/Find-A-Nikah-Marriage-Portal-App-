@@ -21,7 +21,11 @@ mixin _$ExploreProfile {
 /// instead of an active-today dot on sections that are about when
 /// something happened rather than presence.
  String? get postedAt;/// Shown instead of [area] on "Active near you".
- double? get distanceKm;
+ double? get distanceKm;/// Display-ready relative time of the liked/favourited/passed/
+/// complimented action ("10 seconds ago", "Yesterday") — "My history"
+/// tab only, shown alongside [isActiveToday] rather than replacing it
+/// like [postedAt] does.
+ String? get interactedAt;
 /// Create a copy of ExploreProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +36,16 @@ $ExploreProfileCopyWith<ExploreProfile> get copyWith => _$ExploreProfileCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExploreProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.age, age) || other.age == age)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.area, area) || other.area == area)&&(identical(other.countryFlag, countryFlag) || other.countryFlag == countryFlag)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.isActiveToday, isActiveToday) || other.isActiveToday == isActiveToday)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.postedAt, postedAt) || other.postedAt == postedAt)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExploreProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.age, age) || other.age == age)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.area, area) || other.area == area)&&(identical(other.countryFlag, countryFlag) || other.countryFlag == countryFlag)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.isActiveToday, isActiveToday) || other.isActiveToday == isActiveToday)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.postedAt, postedAt) || other.postedAt == postedAt)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm)&&(identical(other.interactedAt, interactedAt) || other.interactedAt == interactedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,name,age,photoUrl,area,countryFlag,isVerified,isActiveToday,profession,postedAt,distanceKm);
+int get hashCode => Object.hash(runtimeType,id,name,age,photoUrl,area,countryFlag,isVerified,isActiveToday,profession,postedAt,distanceKm,interactedAt);
 
 @override
 String toString() {
-  return 'ExploreProfile(id: $id, name: $name, age: $age, photoUrl: $photoUrl, area: $area, countryFlag: $countryFlag, isVerified: $isVerified, isActiveToday: $isActiveToday, profession: $profession, postedAt: $postedAt, distanceKm: $distanceKm)';
+  return 'ExploreProfile(id: $id, name: $name, age: $age, photoUrl: $photoUrl, area: $area, countryFlag: $countryFlag, isVerified: $isVerified, isActiveToday: $isActiveToday, profession: $profession, postedAt: $postedAt, distanceKm: $distanceKm, interactedAt: $interactedAt)';
 }
 
 
@@ -52,7 +56,7 @@ abstract mixin class $ExploreProfileCopyWith<$Res>  {
   factory $ExploreProfileCopyWith(ExploreProfile value, $Res Function(ExploreProfile) _then) = _$ExploreProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, int age, String photoUrl, String area, String countryFlag, bool isVerified, bool isActiveToday, String? profession, String? postedAt, double? distanceKm
+ String id, String name, int age, String photoUrl, String area, String countryFlag, bool isVerified, bool isActiveToday, String? profession, String? postedAt, double? distanceKm, String? interactedAt
 });
 
 
@@ -69,7 +73,7 @@ class _$ExploreProfileCopyWithImpl<$Res>
 
 /// Create a copy of ExploreProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? age = null,Object? photoUrl = null,Object? area = null,Object? countryFlag = null,Object? isVerified = null,Object? isActiveToday = null,Object? profession = freezed,Object? postedAt = freezed,Object? distanceKm = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? age = null,Object? photoUrl = null,Object? area = null,Object? countryFlag = null,Object? isVerified = null,Object? isActiveToday = null,Object? profession = freezed,Object? postedAt = freezed,Object? distanceKm = freezed,Object? interactedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -82,7 +86,8 @@ as bool,isActiveToday: null == isActiveToday ? _self.isActiveToday : isActiveTod
 as bool,profession: freezed == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
 as String?,postedAt: freezed == postedAt ? _self.postedAt : postedAt // ignore: cast_nullable_to_non_nullable
 as String?,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,interactedAt: freezed == interactedAt ? _self.interactedAt : interactedAt // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -167,10 +172,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm,  String? interactedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExploreProfile() when $default != null:
-return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm);case _:
+return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm,_that.interactedAt);case _:
   return orElse();
 
 }
@@ -188,10 +193,10 @@ return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm,  String? interactedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ExploreProfile():
-return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm);case _:
+return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm,_that.interactedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +213,10 @@ return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int age,  String photoUrl,  String area,  String countryFlag,  bool isVerified,  bool isActiveToday,  String? profession,  String? postedAt,  double? distanceKm,  String? interactedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ExploreProfile() when $default != null:
-return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm);case _:
+return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.countryFlag,_that.isVerified,_that.isActiveToday,_that.profession,_that.postedAt,_that.distanceKm,_that.interactedAt);case _:
   return null;
 
 }
@@ -223,7 +228,7 @@ return $default(_that.id,_that.name,_that.age,_that.photoUrl,_that.area,_that.co
 
 
 class _ExploreProfile implements ExploreProfile {
-  const _ExploreProfile({required this.id, required this.name, required this.age, required this.photoUrl, required this.area, required this.countryFlag, this.isVerified = false, this.isActiveToday = false, this.profession, this.postedAt, this.distanceKm});
+  const _ExploreProfile({required this.id, required this.name, required this.age, required this.photoUrl, required this.area, required this.countryFlag, this.isVerified = false, this.isActiveToday = false, this.profession, this.postedAt, this.distanceKm, this.interactedAt});
   
 
 @override final  String id;
@@ -244,6 +249,11 @@ class _ExploreProfile implements ExploreProfile {
 @override final  String? postedAt;
 /// Shown instead of [area] on "Active near you".
 @override final  double? distanceKm;
+/// Display-ready relative time of the liked/favourited/passed/
+/// complimented action ("10 seconds ago", "Yesterday") — "My history"
+/// tab only, shown alongside [isActiveToday] rather than replacing it
+/// like [postedAt] does.
+@override final  String? interactedAt;
 
 /// Create a copy of ExploreProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -255,16 +265,16 @@ _$ExploreProfileCopyWith<_ExploreProfile> get copyWith => __$ExploreProfileCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExploreProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.age, age) || other.age == age)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.area, area) || other.area == area)&&(identical(other.countryFlag, countryFlag) || other.countryFlag == countryFlag)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.isActiveToday, isActiveToday) || other.isActiveToday == isActiveToday)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.postedAt, postedAt) || other.postedAt == postedAt)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExploreProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.age, age) || other.age == age)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.area, area) || other.area == area)&&(identical(other.countryFlag, countryFlag) || other.countryFlag == countryFlag)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.isActiveToday, isActiveToday) || other.isActiveToday == isActiveToday)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.postedAt, postedAt) || other.postedAt == postedAt)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm)&&(identical(other.interactedAt, interactedAt) || other.interactedAt == interactedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,name,age,photoUrl,area,countryFlag,isVerified,isActiveToday,profession,postedAt,distanceKm);
+int get hashCode => Object.hash(runtimeType,id,name,age,photoUrl,area,countryFlag,isVerified,isActiveToday,profession,postedAt,distanceKm,interactedAt);
 
 @override
 String toString() {
-  return 'ExploreProfile(id: $id, name: $name, age: $age, photoUrl: $photoUrl, area: $area, countryFlag: $countryFlag, isVerified: $isVerified, isActiveToday: $isActiveToday, profession: $profession, postedAt: $postedAt, distanceKm: $distanceKm)';
+  return 'ExploreProfile(id: $id, name: $name, age: $age, photoUrl: $photoUrl, area: $area, countryFlag: $countryFlag, isVerified: $isVerified, isActiveToday: $isActiveToday, profession: $profession, postedAt: $postedAt, distanceKm: $distanceKm, interactedAt: $interactedAt)';
 }
 
 
@@ -275,7 +285,7 @@ abstract mixin class _$ExploreProfileCopyWith<$Res> implements $ExploreProfileCo
   factory _$ExploreProfileCopyWith(_ExploreProfile value, $Res Function(_ExploreProfile) _then) = __$ExploreProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, int age, String photoUrl, String area, String countryFlag, bool isVerified, bool isActiveToday, String? profession, String? postedAt, double? distanceKm
+ String id, String name, int age, String photoUrl, String area, String countryFlag, bool isVerified, bool isActiveToday, String? profession, String? postedAt, double? distanceKm, String? interactedAt
 });
 
 
@@ -292,7 +302,7 @@ class __$ExploreProfileCopyWithImpl<$Res>
 
 /// Create a copy of ExploreProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? age = null,Object? photoUrl = null,Object? area = null,Object? countryFlag = null,Object? isVerified = null,Object? isActiveToday = null,Object? profession = freezed,Object? postedAt = freezed,Object? distanceKm = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? age = null,Object? photoUrl = null,Object? area = null,Object? countryFlag = null,Object? isVerified = null,Object? isActiveToday = null,Object? profession = freezed,Object? postedAt = freezed,Object? distanceKm = freezed,Object? interactedAt = freezed,}) {
   return _then(_ExploreProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -305,7 +315,8 @@ as bool,isActiveToday: null == isActiveToday ? _self.isActiveToday : isActiveTod
 as bool,profession: freezed == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
 as String?,postedAt: freezed == postedAt ? _self.postedAt : postedAt // ignore: cast_nullable_to_non_nullable
 as String?,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,interactedAt: freezed == interactedAt ? _self.interactedAt : interactedAt // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

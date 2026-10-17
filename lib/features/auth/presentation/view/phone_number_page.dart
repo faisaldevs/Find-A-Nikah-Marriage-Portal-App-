@@ -20,12 +20,11 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
   String? _completeNumber;
 
   void _next() {
-    // TODO(phone-api): no phone verification API yet — skip straight to
-    // the code screen. Re-enable once it exists.
-    // context.read<PhoneVerificationBloc>().add(
-    //   PhoneNumberSubmitted(_completeNumber!),
-    // );
-    context.push<void>(RoutePaths.phoneCode).ignore();
+    context.read<PhoneVerificationBloc>().add(
+      PhoneNumberSubmitted(_completeNumber!),
+    );
+    // Before the phone API existed: skip straight to the code screen.
+    // context.push<void>(RoutePaths.phoneCode).ignore();
   }
 
   @override
@@ -35,7 +34,11 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
     );
     final canContinue = (_completeNumber ?? '').length > 6 && !busy;
     return BlocListener<PhoneVerificationBloc, PhoneVerificationState>(
-      listenWhen: (prev, next) => prev.status != next.status,
+      // Only while on top: the code page (pushed over this one) handles
+      // its own results — otherwise its errors would toast twice.
+      listenWhen: (prev, next) =>
+          prev.status != next.status &&
+          (ModalRoute.of(context)?.isCurrent ?? true),
       listener: (context, state) => switch (state.status) {
         PhoneVerificationStatus.codeSent => context.push<void>(
           RoutePaths.phoneCode,

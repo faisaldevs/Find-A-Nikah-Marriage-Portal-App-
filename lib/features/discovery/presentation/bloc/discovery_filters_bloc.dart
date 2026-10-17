@@ -21,18 +21,33 @@ final class AgeRangeChanged extends DiscoveryFiltersEvent {
   final int max;
 }
 
+/// Saved to the backend (step 11, coordinates) before it's applied.
 final class DistanceFilterConfirmed extends DiscoveryFiltersEvent {
   const DistanceFilterConfirmed({
     required this.miles,
     required this.limitToHomeCountry,
+    required this.center,
+    this.countryName,
   });
   final double miles;
   final bool limitToHomeCountry;
+
+  /// The member's position — sent as the point the radius is around.
+  final GeoPoint center;
+
+  /// The country the member is in ("Bangladesh"). With
+  /// [limitToHomeCountry] on, step 11 sends this country instead of the
+  /// coordinates.
+  final String? countryName;
 }
 
+/// Saved to the backend (step 11, country) before it's applied.
 final class CountryFilterConfirmed extends DiscoveryFiltersEvent {
-  const CountryFilterConfirmed(this.countryCode);
+  const CountryFilterConfirmed(this.countryCode, {required this.countryName});
   final String countryCode;
+
+  /// As shown in the list ("Bangladesh") — what the backend stores.
+  final String countryName;
 }
 
 final class LocationFilterCleared extends DiscoveryFiltersEvent {
@@ -49,7 +64,18 @@ final class DiscoverProfilesRequested extends DiscoveryFiltersEvent {
   const DiscoverProfilesRequested();
 }
 
-enum DiscoveryFiltersStatus { idle, submitting, failure, readyToDiscover }
+enum DiscoveryFiltersStatus {
+  idle,
+  submitting,
+  failure,
+  readyToDiscover,
+
+  /// A location confirm is being saved to the backend.
+  savingLocation,
+
+  /// …and it succeeded — the Location page moves on.
+  locationSaved,
+}
 
 @freezed
 abstract class DiscoveryFiltersState with _$DiscoveryFiltersState {
@@ -64,7 +90,7 @@ abstract class DiscoveryFiltersState with _$DiscoveryFiltersState {
 /// because they all watch the same session repository.
 class DiscoveryFiltersBloc
     extends Bloc<DiscoveryFiltersEvent, DiscoveryFiltersState> {
-  DiscoveryFiltersBloc(this._filters, this._auth)
+  DiscoveryFiltersBloc(this._filters, this._auth, this._locationPreference)
     : super(DiscoveryFiltersState(filters: _filters.current)) {
     on<DiscoveryFiltersSubscribed>(
       (_, emit) => emit.forEach<DiscoveryFilters>(
@@ -78,19 +104,47 @@ class DiscoveryFiltersBloc
       (e, emit) => _save(emit, state.filters.withAgeRange(e.min, e.max)),
       transformer: sequential(),
     );
+    // Before step 11 existed, confirms only updated the local filters:
+    // on<DistanceFilterConfirmed>(
+    //   (e, emit) => _save(
+    //     emit,
+    //     state.filters.withDistance(
+    //       miles: e.miles,
+    //       limitToHomeCountry: e.limitToHomeCountry,
+    //     ),
+    //   ),
+    //   transformer: sequential(),
+    // );
+    // on<CountryFilterConfirmed>(
+    //   (e, emit) => _save(emit, state.filters.withCountry(e.countryCode)),
+    //   transformer: sequential(),
+    // );
     on<DistanceFilterConfirmed>(
-      (e, emit) => _save(
+      (e, emit) => _saveLocation(
         emit,
-        state.filters.withDistance(
+        remote: () => e.limitToHomeCountry && e.countryName != null
+            ? _locationPreference.saveCountry(e.countryName!)
+            : _locationPreference.saveArea(
+                center: e.center,
+                distanceMiles: e.miles.clamp(
+                  kMinDistanceMiles,
+                  kMaxDistanceMiles,
+                ),
+              ),
+        local: () => state.filters.withDistance(
           miles: e.miles,
           limitToHomeCountry: e.limitToHomeCountry,
         ),
       ),
-      transformer: sequential(),
+      transformer: droppable(),
     );
     on<CountryFilterConfirmed>(
-      (e, emit) => _save(emit, state.filters.withCountry(e.countryCode)),
-      transformer: sequential(),
+      (e, emit) => _saveLocation(
+        emit,
+        remote: () => _locationPreference.saveCountry(e.countryName),
+        local: () => state.filters.withCountry(e.countryCode),
+      ),
+      transformer: droppable(),
     );
     on<LocationFilterCleared>(
       (_, emit) => _save(emit, state.filters.withoutLocation()),
@@ -105,6 +159,36 @@ class DiscoveryFiltersBloc
 
   final DiscoveryFiltersRepository _filters;
   final AuthRepository _auth;
+  final LocationPreferenceRepository _locationPreference;
+
+  /// Backend first (step 11), then the local filters — so a failed save
+  /// leaves the previous filter in place and the page doesn't move on.
+  Future<void> _saveLocation(
+    Emitter<DiscoveryFiltersState> emit, {
+    required Future<Either<Failure, Unit>> Function() remote,
+    required DiscoveryFilters Function() local,
+  }) async {
+    emit(
+      state.copyWith(
+        status: DiscoveryFiltersStatus.savingLocation,
+        failure: null,
+      ),
+    );
+    final saved = await remote();
+    if (saved.isLeft()) {
+      emit(
+        state.copyWith(
+          status: DiscoveryFiltersStatus.failure,
+          failure: saved.getLeft().toNullable(),
+        ),
+      );
+      return;
+    }
+    await _save(emit, local());
+    if (state.status != DiscoveryFiltersStatus.failure) {
+      emit(state.copyWith(status: DiscoveryFiltersStatus.locationSaved));
+    }
+  }
 
   Future<void> _save(
     Emitter<DiscoveryFiltersState> emit,

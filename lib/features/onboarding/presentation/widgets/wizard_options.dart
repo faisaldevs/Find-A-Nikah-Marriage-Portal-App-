@@ -263,10 +263,20 @@ const interestCategories = {
 
 /// Height list: 122cm-220cm, per the design's discrete-list (not slider)
 /// pattern. Label matches "XXXcm • X'X\"" exactly as shown.
+// List<({int cm, String label})> buildHeightOptions() {
+// return [
+// for (var cm = 122; cm <= 220; cm++)
+// (cm: cm, label: '${cm}cm • ${_feetInches(cm)}'),
+// ];
+// }
+
+/// One row per inch, 4'0" → 7'3" (Figma 883:4992: 122, 124, 127, 130…) —
+/// every-cm rows repeated the imperial label (122 and 123 were both 4'0").
 List<({int cm, String label})> buildHeightOptions() {
   return [
-    for (var cm = 122; cm <= 220; cm++)
-      (cm: cm, label: '${cm}cm • ${_feetInches(cm)}'),
+    for (var inches = 48; inches <= 87; inches++)
+      if ((inches * 2.54).round() case final cm)
+        (cm: cm, label: '${cm}cm  •  ${_feetInches(cm)}'),
   ];
 }
 

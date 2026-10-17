@@ -1,9 +1,11 @@
 import 'dart:async';
 
-import 'package:find_a_nikah/core/network/network.dart';
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/network/network.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
+import 'package:find_a_nikah/features/face_verification/data/data.dart';
+import 'package:find_a_nikah/features/face_verification/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/domain/domain.dart';
 import 'package:find_a_nikah/features/onboarding/domain/domain.dart';
 import 'package:mocktail/mocktail.dart';
@@ -63,6 +65,14 @@ class MockMarriageRepository extends Mock implements MarriageRepository {}
 class MockLocationRepository extends Mock implements LocationRepository {}
 
 class MockPhotoPickerRepository extends Mock implements PhotoPickerRepository {}
+
+class MockFaceVerificationRepository extends Mock
+    implements FaceVerificationRepository {}
+
+class MockFaceVerificationRemoteDataSource extends Mock
+    implements FaceVerificationRemoteDataSource {}
+
+class MockImageCompressor extends Mock implements ImageCompressor {}
 
 class MockOnboardingSubmissionRepository extends Mock
     implements OnboardingSubmissionRepository {}

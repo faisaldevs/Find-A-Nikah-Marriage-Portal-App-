@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 /// "Take a second look" / "Visited you" card: a smaller unlocked photo with
-/// name/age/verified and a two-part meta row (area, posted-at).
+/// name/age/verified and one meta line — flag + area on the left, the
+/// posted-at time right-aligned (mockup: 120×168, text inset 6pt).
 class ExploreSmallCard extends StatelessWidget {
   const ExploreSmallCard({
     required this.profile,
@@ -17,16 +18,25 @@ class ExploreSmallCard extends StatelessWidget {
   final VoidCallback onTap;
 
   static const width = 120.0;
+  static const double height = width * kExploreCardAspect;
+
+  /// Gap to the next card in the row.
+  static const gap = 10.0;
 
   @override
   Widget build(BuildContext context) {
+    final meta = TextFontStyle.headline11w400white70StyleSatoshi.copyWith(
+      fontSize: 6.8.sp,
+      height: kExploreTightHeight,
+      color: Colors.white,
+    );
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
         width: width.w,
-        height: width.w * 1.4,
+        height: width.w * kExploreCardAspect,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(4.r),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -46,9 +56,9 @@ class ExploreSmallCard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: 10.w,
-                right: 10.w,
-                bottom: 10.h,
+                left: 6.w,
+                right: 6.75.w,
+                bottom: 10.9.w,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -61,54 +71,44 @@ class ExploreSmallCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextFontStyle.headline16w600StyleSatoshi
-                                .copyWith(color: Colors.white),
+                                .copyWith(
+                                  color: Colors.white,
+                                  fontSize: 9.75.sp,
+                                  fontWeight: FontWeight.w700,
+                                  height: kExploreTightHeight,
+                                ),
                           ),
                         ),
                         if (profile.isVerified) ...[
-                          SizedBox(width: 4.w),
+                          SizedBox(width: 3.25.w),
                           Icon(
                             Icons.verified,
                             color: kExploreVerifiedBlue,
-                            size: 14.r,
+                            size: 8.5.r,
                           ),
                         ],
                       ],
                     ),
-                    SizedBox(height: 3.h),
-                    // Area and posted-at are each on their own line — on
-                    // this card's width, fitting both ("Chittagong" +
-                    // "Last Month") on one row the way the mockup has it
-                    // truncated the area down to a couple of letters.
+                    SizedBox(height: 5.9.w),
                     Row(
                       children: [
                         Text(
                           profile.countryFlag,
-                          style: TextStyle(fontSize: 9.sp, height: 1),
+                          style: TextStyle(fontSize: 8.2.sp, height: 1),
                         ),
-                        SizedBox(width: 3.w),
-                        Flexible(
+                        SizedBox(width: 2.75.w),
+                        Expanded(
                           child: Text(
                             profile.area,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextFontStyle
-                                .headline11w400white70StyleSatoshi
-                                .copyWith(fontSize: 10.sp),
+                            style: meta,
                           ),
                         ),
+                        if (profile.postedAt != null)
+                          Text(profile.postedAt!, maxLines: 1, style: meta),
                       ],
                     ),
-                    if (profile.postedAt != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 1.h),
-                        child: Text(
-                          profile.postedAt!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextFontStyle.headline11w400white70StyleSatoshi
-                              .copyWith(fontSize: 10.sp),
-                        ),
-                      ),
                   ],
                 ),
               ),

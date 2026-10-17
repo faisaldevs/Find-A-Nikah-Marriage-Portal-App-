@@ -14,19 +14,20 @@ class AppLoadingView extends StatelessWidget {
   );
 }
 
-/// Standard empty / error / offline layout: icon, title, optional message
-/// and an optional action button. Text is passed in, never hard-coded here.
+/// Standard empty / error / offline layout: optional icon, title, optional
+/// message and an optional action button. Text is passed in, never
+/// hard-coded here.
 class AppMessageView extends StatelessWidget {
   const AppMessageView({
-    required this.icon,
     required this.title,
     super.key,
+    this.icon,
     this.message,
     this.actionLabel,
     this.onAction,
   });
 
-  final IconData icon;
+  final IconData? icon;
   final String title;
   final String? message;
   final String? actionLabel;
@@ -40,8 +41,10 @@ class AppMessageView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48.r, color: AppColors.textMuted),
-            SizedBox(height: 16.h),
+            if (icon != null) ...[
+              Icon(icon, size: 48.r, color: AppColors.textMuted),
+              SizedBox(height: 16.h),
+            ],
             Text(
               title,
               textAlign: TextAlign.center,

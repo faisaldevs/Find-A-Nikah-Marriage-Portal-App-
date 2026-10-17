@@ -44,7 +44,13 @@ enum SignUpStatus {
   registered,
 }
 
-enum SignUpOperation { none, requestCode, resendCode, verifyCode, createAccount }
+enum SignUpOperation {
+  none,
+  requestCode,
+  resendCode,
+  verifyCode,
+  createAccount,
+}
 
 @freezed
 abstract class SignUpState with _$SignUpState {

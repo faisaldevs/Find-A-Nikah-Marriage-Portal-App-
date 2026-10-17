@@ -52,7 +52,8 @@ class _ReligiousPracticePageState extends State<ReligiousPracticePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const WizardHeadline(text: 'How do you practise\nyour religion?'),
-            SizedBox(height: 8.h),
+            // SizedBox(height: 8.h),
+            SizedBox(height: 50.h),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
