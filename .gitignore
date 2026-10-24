@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# QA/audit tooling — screenshots, data dumps, QA emails; never commit
+/audit/
