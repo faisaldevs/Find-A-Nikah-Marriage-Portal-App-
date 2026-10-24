@@ -62,6 +62,12 @@ abstract interface class AuthRepository {
   /// with the onboarding status endpoint before the router enters the app.
   Future<Either<Failure, Unit>> completeOnboarding();
 
+  /// TEMP while the complete endpoint is broken: once Location (step 11)
+  /// is saved the server is at step 12, which counts as complete — mark
+  /// the session done without asking the server, so the router enters
+  /// the app.
+  Future<Either<Failure, Unit>> markOnboardingCompleteLocally();
+
   /// Sign-out step 1: revokes the refresh token server-side. Best effort —
   /// never fails, because sign-out must work offline.
   Future<void> revokeServerSession();

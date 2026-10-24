@@ -85,7 +85,7 @@ void main() {
                   (target.$1 == feature && target.$2 == 'data'),
               file,
               uri,
-              "data imports domains and its own data, never presentation or "
+              'data imports domains and its own data, never presentation or '
               "another feature's data",
             );
             check(

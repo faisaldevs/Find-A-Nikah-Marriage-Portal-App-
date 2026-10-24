@@ -117,7 +117,8 @@ class AuthRepositoryImpl implements AuthRepository {
             return session;
           },
           (data) => session.copyWith(
-            onboardingComplete: data.isCompleted,
+            // onboardingComplete: data.isCompleted,
+            onboardingComplete: data.isEffectivelyCompleted,
             // resumeStep: data.currentStep,
             resumeStep: data.resumeStep,
             isPhoneVerified: data.user?.isPhoneVerified ?? false,
@@ -164,7 +165,8 @@ class AuthRepositoryImpl implements AuthRepository {
         'Could not fetch onboarding completion status: $failure',
       ),
       (data) {
-        onboardingComplete = data.isCompleted;
+        // onboardingComplete = data.isCompleted;
+        onboardingComplete = data.isEffectivelyCompleted;
         // resumeStep = data.currentStep;
         resumeStep = data.resumeStep;
         isPhoneVerified = data.user?.isPhoneVerified ?? false;
@@ -340,6 +342,28 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> markOnboardingCompleteLocally() async {
+    final current = _status;
+    if (current is! Authenticated) return left(const UnauthorizedFailure());
+    final session = current.session.copyWith(
+      onboardingComplete: true,
+      resumeStep: 12,
+    );
+    final saved = await _guard(
+      () => _local.saveSession(
+        userId: session.userId,
+        onboardingComplete: true,
+        resumeStep: session.resumeStep,
+        isPhoneVerified: session.isPhoneVerified,
+      ),
+    );
+    return saved.fold(left, (_) {
+      _emit(AuthStatus.authenticated(session));
+      return right(unit);
+    });
+  }
+
+  @override
   Future<void> revokeServerSession() async {
     final tokens = await _local.read().catchError((Object _) => null);
     if (tokens == null) return;
@@ -378,7 +402,12 @@ TokenRefresher authTokenRefresher(AuthLocalDataSource local) =>
       final previous = await local.readSession();
       await local.saveSession(
         userId: dto.userId,
-        onboardingComplete: dto.onboardingComplete,
+        // onboardingComplete: dto.onboardingComplete,
+        // The refresh response only has the server flag, which stays false
+        // while step 12 is treated as complete client-side — don't let a
+        // silent refresh undo that.
+        onboardingComplete:
+            dto.onboardingComplete || (previous?.onboardingComplete ?? false),
         resumeStep: previous?.resumeStep ?? 4,
         isPhoneVerified: previous?.isPhoneVerified ?? false,
       );

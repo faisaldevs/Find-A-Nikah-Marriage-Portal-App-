@@ -59,7 +59,8 @@ final class EthnicitiesChanged extends DiscoveryFiltersEvent {
   final List<String> codes;
 }
 
-/// "Discover profiles": ends sign-up (first time) and enters the app.
+/// Ends sign-up (first time) and enters the app — sent by the Location
+/// onboarding step once its choice is saved.
 final class DiscoverProfilesRequested extends DiscoveryFiltersEvent {
   const DiscoverProfilesRequested();
 }
@@ -216,7 +217,10 @@ class DiscoveryFiltersBloc
       return;
     }
     emit(state.copyWith(status: DiscoveryFiltersStatus.submitting));
-    final result = await _auth.completeOnboarding();
+    // final result = await _auth.completeOnboarding();
+    // TEMP: the complete endpoint is broken — Location saved (step 12)
+    // counts as done client-side.
+    final result = await _auth.markOnboardingCompleteLocally();
     emit(
       result.fold(
         (f) => state.copyWith(

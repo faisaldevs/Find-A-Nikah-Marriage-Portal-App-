@@ -149,10 +149,22 @@ class _ProfileSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // final km = profile.distanceKm;
+    // final distance = km == km.roundToDouble()
+    //     ? '${km.round()} km'
+    //     : '${km.toStringAsFixed(1)} km';
+    // Real API: distance and area can be missing — join what's there.
     final km = profile.distanceKm;
-    final distance = km == km.roundToDouble()
-        ? '${km.round()} km'
-        : '${km.toStringAsFixed(1)} km';
+    final distance = km == null
+        ? null
+        : km == km.roundToDouble()
+        ? '${km.round()} km away'
+        : '${km.toStringAsFixed(1)} km away';
+    final location = [
+      ?distance,
+      profile.area,
+      profile.country,
+    ].where((s) => s.isNotEmpty).join(', ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -185,16 +197,19 @@ class _ProfileSummary extends StatelessWidget {
           children: [
             // height: 1 — the emoji font's own line height made this row
             // ~6 taller than the text, pushing the name up.
-            Text(
-              profile.countryFlag,
-              style: TextStyle(fontSize: 17.sp, height: 1),
-            ),
-            SizedBox(width: 7.w),
+            if (profile.countryFlag.isNotEmpty) ...[
+              Text(
+                profile.countryFlag,
+                style: TextStyle(fontSize: 17.sp, height: 1),
+              ),
+              SizedBox(width: 7.w),
+            ],
             // Text(profile.countryFlag, style: TextStyle(fontSize: 13.sp)),
             // SizedBox(width: 6.w),
             Expanded(
               child: Text(
-                '$distance away, ${profile.area}, ${profile.country}',
+                // '$distance away, ${profile.area}, ${profile.country}',
+                location,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 // Full-profile mockup: 14 (was 13).
@@ -345,14 +360,17 @@ class _Detail extends StatelessWidget {
         SizedBox(height: 4.h),
         Row(
           children: [
-            if (flag != null) ...[
+            // if (flag != null) ...[
+            if (flag?.isNotEmpty ?? false) ...[
               Text(flag!, style: TextStyle(fontSize: 11.5.sp, height: 1)),
               // Text(flag!, style: TextStyle(fontSize: 14.sp)),
               SizedBox(width: 7.w),
             ],
             Expanded(
               child: Text(
-                value,
+                // value,
+                // Not filled in (real API) → a dash, not a blank cell.
+                value.isEmpty ? '—' : value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextFontStyle.headline14w400textWhiteStyleSatoshi.lh(

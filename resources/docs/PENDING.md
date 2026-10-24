@@ -5,6 +5,114 @@ Work that's been scoped but not started. Newest first. Move an item out
 
 ---
 
+## Marriage tab — small copy/icon fixes (undecided)
+
+**Added:** 2026-10-18 · **Status:** owner undecided — don't change yet
+
+Found comparing against the reference app screenshots
+(`resources/reference/marriage/`). Decision on 2026-10-18: action buttons
+now pinned like the reference; button colours/icons, top bar, chip style
+and everything else stay as the Figma.
+
+- [ ] Stray space in "Don't wait , chat with {name} now." (compliment box)
+- [ ] Favourite in the footer uses the share/upload icon — reference uses
+      a star (☆)
+- [ ] Compliment placeholder "…about their profile or about her" —
+      reference is gender-neutral "…about their profile"
+
+---
+
+## Marriage tab → real `/profiles/cards` API
+
+**Added:** 2026-10-18 · **Status:** reviewed, not started — waiting on
+backend answers
+
+The Marriage tab still runs on `DummyMarriageDataSource` in dev
+(`di.dart`) and calls `GET /discovery/profiles` expecting
+`{items, nextCursor}`. The real API is `/v1/profiles/cards` →
+`{data: {cards, totalReturned, limit, hasMore, viewerGender,
+targetGender, targetReligion}}`.
+
+**Blocking before mapping**
+- Dev flavor: wire `MarriageRemoteDataSource` instead of the dummy.
+- Endpoint + wrapper DTO (`data.cards`).
+- Pagination: no cursor, just `hasMore` + `limit: 3` (swipe deck, server
+  excludes seen cards?) — adapt `MarriageFeedBloc`'s `nextCursor` logic.
+- `images` / `primaryPhoto` are relative (`/public/upload/...`) → prefix
+  `imageBaseUrl` (same as `menu_repository_impl.dart`).
+- `heightCm` comes back `null`; entity has it as required `int` → make
+  nullable, hide the chip.
+
+**Field mapping**
+| UI field | API | Note |
+|---|---|---|
+| id | `userId` / `profileId` | which one do like/pass use? |
+| name | `fullName` | rename |
+| age, distanceKm, isVerified | same | ok |
+| country | `country` | ok (own profile had `"dhaka"` — backend data inconsistent) |
+| countryFlag, ethnicityFlag | — | derive from name via `countries.dart` |
+| ethnicity | `ethnicity[]` | first / join |
+| profession | `professionTitle` | rename |
+| education | `educationLevel` (`bachelors`) | code→label map |
+| maritalStatus | `never_married` | code→label map |
+| faith | `faith[]` (`sunni`) | label map |
+| bio | `aboutMe` | rename |
+| photoUrls | `images` (+ `primaryPhoto`) | prefix base URL |
+| similarities | `sharedInterests` | good fit |
+| interests | `allInterests` | ok |
+| isActiveToday | `lastActiveAt` | derive (e.g. < 24h) |
+| practice | missing | `religiousPractices` exists on profile |
+| area | missing | only coordinates |
+| involveFamily / chatFor / marryWithin | missing | `marriageIntentions` on profile → intentions card empty |
+| children | missing | `aboutYou.haveChildren` on profile |
+| grewUpIn / grewUpFlag | missing | |
+| futurePlans, personality, languages | missing | `personalityTraits`, `languages` on profile |
+| isPhoto/Age/IdVerified | missing | |
+| isPremium | missing | default false |
+| (unused) | `matchScore`, `completeness`, `sharedCount` | no UI yet |
+
+**UI**
+- `profile_details.dart` renders every section unconditionally → empty
+  headings / blank intentions boxes / "Grew up in " with no value. Add
+  `isNotEmpty` guards.
+
+**Ask backend**
+- Privacy: card leaks the other user's exact `location.coordinates` —
+  drop it, `distanceKm` is enough.
+- GET or POST? (Postman curl had `--data ''` → POST.)
+- Which filter query params are accepted (age, distance, country,
+  ethnicity)? Without them the Filters page does nothing.
+- Add missing fields: `religiousPractices`, `marriageIntentions`,
+  `aboutYou.haveChildren`, `personalityTraits`, `languages`, `grewUpIn`,
+  verification flags, city/area.
+
+**Open questions (owner)**
+1. Hide sections with no data now, or wait for backend fields?
+2. `userId` vs `profileId` for actions?
+
+---
+
+## Revert client-side "step 12 = onboarding complete" once the API is fixed
+
+**Added:** 2026-10-18 · **Status:** waiting on backend
+
+The complete-onboarding endpoint is broken, so for now saving Location
+(step 11 → server `currentStep` 12) counts as complete on the client and
+the user goes straight to Marriage. Filters are no longer an onboarding
+step; they're opened from Marriage only ("Apply" goes back). When the
+backend is fixed, revert these (old code is kept commented out next to each):
+- `OnboardingStatusResume.isEffectivelyCompleted` (`auth_dtos.dart`) → back
+  to `data.isCompleted` in `AuthRepositoryImpl._startSession` /
+  `restoreSession`.
+- `DiscoveryFiltersBloc._onDiscover` → `_auth.completeOnboarding()` instead
+  of `markOnboardingCompleteLocally()` (then drop that repo method).
+- `authTokenRefresher` → `onboardingComplete: dto.onboardingComplete`.
+- Decide whether filters stay Marriage-only. The rest of the flow
+  (`resumeRouteFor`, `RoutePaths.onboarding`, Location page, Add filters
+  "Apply") depends on that decision.
+
+---
+
 ## profile_view — shared member profile as its own feature
 
 **Added:** 2026-10-16 · **Status:** design agreed in principle, one decision open

@@ -10,9 +10,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
-/// Final pre-app step: partner-preference filters. Age is edited inline;
-/// location and ethnicity open their own pickers. "Discover profiles" ends
-/// sign-up (first time) and drops the user into the app shell.
+/// Partner-preference filters, opened from Marriage. Age is edited inline;
+/// location and ethnicity open their own pickers. "Apply" goes back.
+/// (Was the final pre-app step, where "Discover profiles" ended sign-up —
+/// the Location step does that now.)
 class AddFiltersPage extends StatelessWidget {
   const AddFiltersPage({super.key});
 
@@ -111,12 +112,18 @@ class _AddFiltersView extends StatelessWidget {
       totalSteps: 1,
       activeSegment: 3,
       // continueLabel: 'Discover profiles',
-      continueLabel: state.status == DiscoveryFiltersStatus.submitting
-          ? 'Setting up...'
-          : 'Discover profiles',
-      onContinue: state.status == DiscoveryFiltersStatus.submitting
-          ? null
-          : () => bloc.add(const DiscoverProfilesRequested()),
+      // continueLabel: state.status == DiscoveryFiltersStatus.submitting
+      //     ? 'Setting up...'
+      //     : 'Discover profiles',
+      // onContinue: state.status == DiscoveryFiltersStatus.submitting
+      //     ? null
+      //     : () => bloc.add(const DiscoverProfilesRequested()),
+      // Opened from Marriage only now: every edit is already saved (the
+      // feed restarts on change), so Apply just goes back.
+      continueLabel: 'Apply',
+      onContinue: () => context.canPop()
+          ? context.pop()
+          : context.go(RoutePaths.marriage),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(

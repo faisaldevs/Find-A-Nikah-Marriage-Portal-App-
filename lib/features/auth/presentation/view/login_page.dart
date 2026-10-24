@@ -47,10 +47,11 @@ class _LoginView extends StatefulWidget {
 
 class _LoginPageState extends State<_LoginView> {
   // Hard-coded dev credentials shipped in every build type (audit #6).
-  // final _emailController = TextEditingController(text: 'user@gmail.com');
-  // final _passwordController = TextEditingController(text: '12345678');
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: 'user@gmail.com');
+  final _passwordController = TextEditingController(text: '12345678');
+  // final _emailController = TextEditingController();
+  // final _passwordController = TextEditingController();
+  
   bool _obscurePassword = true;
   late final _signUpRecognizer = TapGestureRecognizer()
     ..onTap = () => context.push<void>(RoutePaths.signUpEmail).ignore();
@@ -75,9 +76,11 @@ class _LoginPageState extends State<_LoginView> {
 
   @override
   Widget build(BuildContext context) {
+
     final busy = context.select<SignInBloc, bool>(
       (b) => b.state.status == SignInStatus.submitting,
     );
+    
     return Scaffold(
       // The background photo must never resize/stretch when the keyboard
       // opens — let the SingleChildScrollView below handle keyboard avoidance

@@ -10,7 +10,12 @@ abstract class MarriageProfile with _$MarriageProfile {
     required String id,
     required String name,
     required int age,
-    required double distanceKm,
+
+    /// Null when the API has no location for them (hidden in the hero).
+    required double? distanceKm,
+
+    /// Neighbourhood/city; '' when unknown. String fields below are '' when
+    /// not filled in, and the UI hides empty chips/sections.
     required String area,
     required String country,
     required String countryFlag,
@@ -24,7 +29,7 @@ abstract class MarriageProfile with _$MarriageProfile {
     required List<String> photoUrls,
 
     // About me
-    required int heightCm,
+    required int? heightCm,
     required String maritalStatus,
     required String children,
 

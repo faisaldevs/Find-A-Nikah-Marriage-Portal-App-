@@ -51,8 +51,32 @@ class ProfileDetails extends StatelessWidget {
             child: ProfilePhoto(url: p.photoUrls[i]),
           )
         : const SizedBox.shrink();
+    // List<ProfileChip> chips(List<String> labels) => [
+    //   for (final l in labels) ProfileChip(l),
+    // ];
+    // Real API: unanswered fields come through as '' — no blank chips, and
+    // a section with nothing in it is left out (with its gap).
     List<ProfileChip> chips(List<String> labels) => [
-      for (final l in labels) ProfileChip(l),
+      for (final l in labels)
+        if (l.isNotEmpty) ProfileChip(l),
+    ];
+    final aboutMe = chips([
+      if (p.heightCm case final cm?) _heightLabel(cm),
+      p.maritalStatus,
+      p.children,
+    ]);
+    final hasIntentions = [
+      p.involveFamily,
+      p.chatFor,
+      p.marryWithin,
+    ].any((s) => s.isNotEmpty);
+    final career = chips([p.education, p.profession]);
+    final languages = [
+      ...chips(p.languages),
+      if (p.grewUpIn.isNotEmpty)
+        ProfileChip('Grew up in ${p.grewUpIn}', flag: p.grewUpFlag),
+      if (p.ethnicity.isNotEmpty)
+        ProfileChip(p.ethnicity, flag: p.ethnicityFlag),
     ];
     final gap40 = SizedBox(height: 40.h);
 
@@ -61,70 +85,73 @@ class ProfileDetails extends StatelessWidget {
       children: [
         if (p.isPremium) FiltersTeaser(name: p.name, onCheck: onCheckFilters),
         if (p.similarities.isNotEmpty) _Similarities(profile: p),
-        ProfileSection(
-          title: 'About me',
-          top: 30,
-          child: ProfileChipList(
-            chips: chips([
-              _heightLabel(p.heightCm),
-              p.maritalStatus,
-              p.children,
-            ]),
+        // Each section below was unconditional before the real API (dummy
+        // data always filled every field); now each is skipped when empty.
+        if (aboutMe.isNotEmpty) ...[
+          ProfileSection(
+            title: 'About me',
+            top: 30,
+            child: ProfileChipList(chips: aboutMe),
           ),
-        ),
-        gap40,
-        MarriageIntentionsCard(
-          name: p.name,
-          involveFamily: p.involveFamily,
-          chatFor: p.chatFor,
-          marryWithin: p.marryWithin,
-        ),
-        gap40,
+          gap40,
+        ],
+        if (hasIntentions) ...[
+          MarriageIntentionsCard(
+            name: p.name,
+            involveFamily: p.involveFamily,
+            chatFor: p.chatFor,
+            marryWithin: p.marryWithin,
+          ),
+          gap40,
+        ],
         photo(1),
-        ProfileSection(
-          title: 'My Faith',
-          child: ProfileChipList(chips: chips(p.faith)),
-        ),
-        gap40,
+        if (p.faith.isNotEmpty) ...[
+          ProfileSection(
+            title: 'My Faith',
+            child: ProfileChipList(chips: chips(p.faith)),
+          ),
+          gap40,
+        ],
         photo(2),
-        ProfileSection(
-          title: 'Future plans',
-          child: ProfileChipList(chips: chips(p.futurePlans), stacked: true),
-        ),
-        gap40,
+        if (p.futurePlans.isNotEmpty) ...[
+          ProfileSection(
+            title: 'Future plans',
+            child: ProfileChipList(chips: chips(p.futurePlans), stacked: true),
+          ),
+          gap40,
+        ],
         photo(3),
-        ProfileSection(
-          title: 'Interests',
-          child: ProfileChipList(chips: chips(p.interests)),
-        ),
-        ProfileSection(
-          title: 'Personality',
-          child: ProfileChipList(chips: chips(p.personality)),
-        ),
+        if (p.interests.isNotEmpty)
+          ProfileSection(
+            title: 'Interests',
+            child: ProfileChipList(chips: chips(p.interests)),
+          ),
+        if (p.personality.isNotEmpty)
+          ProfileSection(
+            title: 'Personality',
+            child: ProfileChipList(chips: chips(p.personality)),
+          ),
         gap40,
         photo(4),
-        ProfileSection(
-          title: 'Education and career',
-          child: ProfileChipList(chips: chips([p.education, p.profession])),
-        ),
-        ProfileSection(
-          title: 'Languages and ethnicity',
-          child: ProfileChipList(
-            chips: [
-              ...chips(p.languages),
-              ProfileChip('Grew up in ${p.grewUpIn}', flag: p.grewUpFlag),
-              ProfileChip(p.ethnicity, flag: p.ethnicityFlag),
-            ],
+        if (career.isNotEmpty)
+          ProfileSection(
+            title: 'Education and career',
+            child: ProfileChipList(chips: career),
           ),
-        ),
-        ProfileSection(
-          title: 'Bio',
-          // Mockup's bio box ends ~366, short of the 371 gutter.
-          child: Padding(
-            padding: EdgeInsets.only(right: 4.5.w),
-            child: ProfileBio(p.bio),
+        if (languages.isNotEmpty)
+          ProfileSection(
+            title: 'Languages and ethnicity',
+            child: ProfileChipList(chips: languages),
           ),
-        ),
+        if (p.bio.isNotEmpty)
+          ProfileSection(
+            title: 'Bio',
+            // Mockup's bio box ends ~366, short of the 371 gutter.
+            child: Padding(
+              padding: EdgeInsets.only(right: 4.5.w),
+              child: ProfileBio(p.bio),
+            ),
+          ),
         if (p.isPhotoVerified || p.isAgeVerified || p.isIdVerified) ...[
           gap40,
           VerifiedProfileCard(

@@ -2,7 +2,7 @@ import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/data/datasources/marriage_remote_data_source.dart';
 import 'package:find_a_nikah/features/marriage/data/dtos/marriage_profile_dto.dart';
-import 'package:find_a_nikah/features/marriage/domain/repositories/marriage_repository.dart';
+import 'package:find_a_nikah/features/marriage/domain/domain.dart';
 
 class MarriageRepositoryImpl implements MarriageRepository {
   const MarriageRepositoryImpl(this._remote, this._guard);
@@ -25,6 +25,13 @@ class MarriageRepositoryImpl implements MarriageRepository {
       nextCursor: page.nextCursor,
     );
   });
+
+  /// The dummy/placeholder feed has no swipe API: accept and move on.
+  @override
+  Future<Either<Failure, SwipeOutcome>> swipe(
+    SwipeAction action, {
+    String? targetUserId,
+  }) async => right((isMatch: false));
 
   /// The query the discovery API expects. Only set filters are sent.
   static Map<String, dynamic> filtersToQuery(

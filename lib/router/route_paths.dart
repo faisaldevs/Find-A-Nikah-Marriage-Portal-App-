@@ -139,8 +139,9 @@ abstract final class RoutePaths {
     addPhotos,
     ...faceVerification,
     location,
-    addFilters,
-    locationFilter,
+    // Filters are opened from Marriage only (app routes below).
+    // addFilters,
+    // locationFilter,
   };
 
   static const Set<String> app = {

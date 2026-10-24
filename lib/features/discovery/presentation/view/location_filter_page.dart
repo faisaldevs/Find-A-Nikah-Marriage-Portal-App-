@@ -84,9 +84,25 @@ class _LocationFilterPageState extends State<_LocationFilterView> {
     if (!widget.isOnboardingStep) context.pop();
   }
 
+  // void _onConfirmed() => widget.isOnboardingStep
+  //     ? context.push<void>(RoutePaths.addFilters)
+  //     : context.pop();
+  // Location is the last onboarding step: saving it ends sign-up and
+  // enters the app (filters are opened later from Marriage).
   void _onConfirmed() => widget.isOnboardingStep
-      ? context.push<void>(RoutePaths.addFilters)
+      ? context.read<DiscoveryFiltersBloc>().add(
+          const DiscoverProfilesRequested(),
+        )
       : context.pop();
+
+  void _onReadyToDiscover() {
+    CustomToast.showSuccess(
+      context,
+      'You’re all set',
+      description: 'Your profile preferences are ready.',
+    );
+    context.go(RoutePaths.marriage);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +114,7 @@ class _LocationFilterPageState extends State<_LocationFilterView> {
       listener: (context, state) => switch (state.status) {
         // Step 11 saved → move on (Add filters, or back when editing).
         DiscoveryFiltersStatus.locationSaved => _onConfirmed(),
+        DiscoveryFiltersStatus.readyToDiscover => _onReadyToDiscover(),
         DiscoveryFiltersStatus.failure when state.failure != null =>
           showFailureToast(context, state.failure!),
         _ => null,

@@ -337,6 +337,44 @@ void main() {
     );
   });
 
+  test('status step 12 (Location saved) counts as complete on login', () {
+    const atStep12 = OnboardingStatusDataDto(
+      isCompleted: false,
+      currentStep: 12,
+      user: OnboardingStatusUserDto(isPhoneVerified: true),
+      profile: OnboardingStatusProfileDto(
+        images: ['a', 'b', 'c'],
+        faceVerification: {'isFaceVerified': true},
+      ),
+    );
+    expect(atStep12.isEffectivelyCompleted, isTrue);
+    expect(
+      const OnboardingStatusDataDto(
+        isCompleted: false,
+        currentStep: 11,
+        user: OnboardingStatusUserDto(isPhoneVerified: true),
+      ).isEffectivelyCompleted,
+      isFalse,
+    );
+  });
+
+  test('markOnboardingCompleteLocally skips the server', () async {
+    remote.onboardingStatusOverride = false;
+    await repo.register(email: 'a@b.co', password: 'abcdefg1');
+    final requestsBefore = remote.onboardingStatusRequests;
+
+    final result = await repo.markOnboardingCompleteLocally();
+
+    expect(result.isRight(), isTrue);
+    expect(
+      (repo.currentStatus as Authenticated).session.onboardingComplete,
+      isTrue,
+    );
+    expect((await local.readSession())!.onboardingComplete, isTrue);
+    expect(remote.onboardingStatusRequests, requestsBefore);
+    expect(remote.onboardingComplete, isFalse);
+  });
+
   test('completeOnboarding flips the session flag and persists it', () async {
     await repo.register(email: 'a@b.co', password: 'abcdefg1');
     final result = await repo.completeOnboarding();

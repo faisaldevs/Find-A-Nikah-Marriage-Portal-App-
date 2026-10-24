@@ -38,10 +38,15 @@ String? appRedirect({
     // New account: sign-up screens stay reachable (back from "Get started"
     // returns into sign-up, as before); splash/intro move on. A returning,
     // still-incomplete user lands on the wizard section matching their
-    // onboarding-status step, not always the start.
+    // onboarding-status step, not always the start. Sign-up screens are
+    // only kept for a new account (step ≤4) — otherwise a returning user
+    // signing in on /login is never moved off it.
     Authenticated(:final session) when !session.onboardingComplete =>
+      // RoutePaths.onboarding.contains(location) ||
+      //         RoutePaths.signUpFlow.contains(location)
       RoutePaths.onboarding.contains(location) ||
-              RoutePaths.signUpFlow.contains(location)
+              (session.resumeStep <= 4 &&
+                  RoutePaths.signUpFlow.contains(location))
           ? null
           : resumeRouteFor(
               session.resumeStep,
@@ -82,8 +87,12 @@ String resumeRouteFor(int step, {required bool isPhoneVerified}) =>
       8 ||
       9 ||
       10 => isPhoneVerified ? RoutePaths.addPhotos : RoutePaths.phoneNumber,
-      11 => RoutePaths.location,
-      _ => RoutePaths.addFilters,
+      // 11 => RoutePaths.location,
+      // _ => RoutePaths.addFilters,
+      // Filters left onboarding (Marriage → filters) and step 12 counts as
+      // complete, so anything past photos resumes at Location — 12 is only
+      // reached here by a stale cached session.
+      _ => RoutePaths.location,
     };
 
 /// Builds the app's [GoRouter]. Re-evaluates [appRedirect] whenever

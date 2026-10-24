@@ -197,6 +197,11 @@ extension OnboardingStatusResume on OnboardingStatusDataDto {
     if (step < 12) return 11;
     return 12;
   }
+
+  /// TEMP until the backend's complete endpoint is fixed: saving Location
+  /// (step 11) moves `currentStep` to 12, and that's treated as done —
+  /// filters are no longer an onboarding step (Marriage → filters).
+  bool get isEffectivelyCompleted => isCompleted || resumeStep >= 12;
 }
 
 @freezed

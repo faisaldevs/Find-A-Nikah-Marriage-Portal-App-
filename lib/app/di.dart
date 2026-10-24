@@ -159,12 +159,22 @@ Future<void> configureDependencies(AppConfig config) async {
         imageBaseUrl: config.imageBaseUrl,
       ),
     )
+    // ..registerLazySingleton<MarriageRepository>(
+    //   () => MarriageRepositoryImpl(
+    //     isDev
+    //         ? const DummyMarriageDataSource()
+    //         : MarriageRemoteDataSource(api.dio),
+    //     guard,
+    //   ),
+    // )
+    // Real `/v1/profiles/cards` everywhere (dev too). For offline work,
+    // swap back to `MarriageRepositoryImpl(const DummyMarriageDataSource(),
+    // guard)`.
     ..registerLazySingleton<MarriageRepository>(
-      () => MarriageRepositoryImpl(
-        isDev
-            ? const DummyMarriageDataSource()
-            : MarriageRemoteDataSource(api.dio),
+      () => MarriageCardsRepositoryImpl(
+        MarriageCardsRemoteDataSource(api.dio),
         guard,
+        config.imageBaseUrl,
       ),
     )
     // Dummy-only for now — no Explore API exists yet.

@@ -1,7 +1,7 @@
 {
   "FLAVOR": "dev",
-  "API_BASE_URL": "https://b4eb-160-30-189-152.ngrok-free.app/api",
-  "IMAGE_BASE_URL": "https://b4eb-160-30-189-152.ngrok-free.app",
-  "AUTH_API_BASE_URL": "https://b4eb-160-30-189-152.ngrok-free.app/api/v1",
+  "API_BASE_URL": "https://0a18-160-30-189-152.ngrok-free.app/api",
+  "IMAGE_BASE_URL": "https://0a18-160-30-189-152.ngrok-free.app",
+  "AUTH_API_BASE_URL": "https://0a18-160-30-189-152.ngrok-free.app/api/v1",
   "SOCKET_URL": "http://localhost:3000"
 }

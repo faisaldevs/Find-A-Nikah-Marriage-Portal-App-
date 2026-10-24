@@ -77,6 +77,40 @@ void main() {
       expect(_redirect(RoutePaths.accountType, _member), RoutePaths.marriage);
     });
 
+    test('returning incomplete user signing in is moved off login', () {
+      const atLocation = AuthStatus.authenticated(
+        UserSession(
+          userId: 'u1',
+          onboardingComplete: false,
+          resumeStep: 11,
+          isPhoneVerified: true,
+        ),
+      );
+      expect(_redirect(RoutePaths.login, atLocation), RoutePaths.location);
+      expect(_redirect(RoutePaths.welcome, atLocation), RoutePaths.location);
+    });
+
+    test('filters are app-only: opened from Marriage after onboarding', () {
+      const atLocation = AuthStatus.authenticated(
+        UserSession(
+          userId: 'u1',
+          onboardingComplete: false,
+          resumeStep: 11,
+          isPhoneVerified: true,
+        ),
+      );
+      expect(_redirect(RoutePaths.addFilters, atLocation), RoutePaths.location);
+      expect(
+        _redirect(RoutePaths.locationFilter, atLocation),
+        RoutePaths.location,
+      );
+      expect(_redirect(RoutePaths.addFilters, _member), isNull);
+      expect(_redirect(RoutePaths.locationFilter, _member), isNull);
+      // Location done → session complete → the Location step leaves for
+      // Marriage.
+      expect(_redirect(RoutePaths.location, _member), RoutePaths.marriage);
+    });
+
     test('returning incomplete user resumes at their wizard section', () {
       const atBackgroundFaith = AuthStatus.authenticated(
         UserSession(userId: 'u1', onboardingComplete: false, resumeStep: 5),
@@ -115,7 +149,8 @@ void main() {
         RoutePaths.phoneNumber,
       );
       expect(_redirect(RoutePaths.marriage, atPhotos), RoutePaths.addPhotos);
-      // Data-derived steps (see `resumeStep`): 11 location, 12 filters.
+      // Data-derived steps (see `resumeStep`): 11 location; 12 counts as
+      // complete, so only a stale cached session gets here → Location.
       expect(
         _redirect(
           RoutePaths.marriage,
@@ -142,7 +177,7 @@ void main() {
             ),
           ),
         ),
-        RoutePaths.addFilters,
+        RoutePaths.location,
       );
 
       // Already inside the wizard: free to navigate, no step-lock.

@@ -14,10 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MarriageProfile {
 
- String get id; String get name; int get age; double get distanceKm; String get area; String get country; String get countryFlag; String get profession; String get practice; String get ethnicity; String get ethnicityFlag;/// First is the main (hero) photo; the next four sit between the detail
+ String get id; String get name; int get age;/// Null when the API has no location for them (hidden in the hero).
+ double? get distanceKm;/// Neighbourhood/city; '' when unknown. String fields below are '' when
+/// not filled in, and the UI hides empty chips/sections.
+ String get area; String get country; String get countryFlag; String get profession; String get practice; String get ethnicity; String get ethnicityFlag;/// First is the main (hero) photo; the next four sit between the detail
 /// sections (after About me, My faith, Future plans and Personality).
  List<String> get photoUrls;// About me
- int get heightCm; String get maritalStatus; String get children;// Marriage intentions timeline: when they want to involve family, how
+ int? get heightCm; String get maritalStatus; String get children;// Marriage intentions timeline: when they want to involve family, how
 // long they'd chat, and how soon they'd marry.
  String get involveFamily; String get chatFor; String get marryWithin; String get education; String get grewUpIn; String get grewUpFlag;/// Free text. Blank lines separate paragraphs; lines starting with "• "
 /// render as a bulleted list.
@@ -55,7 +58,7 @@ abstract mixin class $MarriageProfileCopyWith<$Res>  {
   factory $MarriageProfileCopyWith(MarriageProfile value, $Res Function(MarriageProfile) _then) = _$MarriageProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, int age, double distanceKm, String area, String country, String countryFlag, String profession, String practice, String ethnicity, String ethnicityFlag, List<String> photoUrls, int heightCm, String maritalStatus, String children, String involveFamily, String chatFor, String marryWithin, String education, String grewUpIn, String grewUpFlag, String bio, bool isVerified, bool isActiveToday, bool isPremium, List<String> similarities, List<String> faith, List<String> futurePlans, List<String> interests, List<String> personality, List<String> languages, bool isPhotoVerified, bool isAgeVerified, bool isIdVerified
+ String id, String name, int age, double? distanceKm, String area, String country, String countryFlag, String profession, String practice, String ethnicity, String ethnicityFlag, List<String> photoUrls, int? heightCm, String maritalStatus, String children, String involveFamily, String chatFor, String marryWithin, String education, String grewUpIn, String grewUpFlag, String bio, bool isVerified, bool isActiveToday, bool isPremium, List<String> similarities, List<String> faith, List<String> futurePlans, List<String> interests, List<String> personality, List<String> languages, bool isPhotoVerified, bool isAgeVerified, bool isIdVerified
 });
 
 
@@ -72,13 +75,13 @@ class _$MarriageProfileCopyWithImpl<$Res>
 
 /// Create a copy of MarriageProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? age = null,Object? distanceKm = null,Object? area = null,Object? country = null,Object? countryFlag = null,Object? profession = null,Object? practice = null,Object? ethnicity = null,Object? ethnicityFlag = null,Object? photoUrls = null,Object? heightCm = null,Object? maritalStatus = null,Object? children = null,Object? involveFamily = null,Object? chatFor = null,Object? marryWithin = null,Object? education = null,Object? grewUpIn = null,Object? grewUpFlag = null,Object? bio = null,Object? isVerified = null,Object? isActiveToday = null,Object? isPremium = null,Object? similarities = null,Object? faith = null,Object? futurePlans = null,Object? interests = null,Object? personality = null,Object? languages = null,Object? isPhotoVerified = null,Object? isAgeVerified = null,Object? isIdVerified = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? age = null,Object? distanceKm = freezed,Object? area = null,Object? country = null,Object? countryFlag = null,Object? profession = null,Object? practice = null,Object? ethnicity = null,Object? ethnicityFlag = null,Object? photoUrls = null,Object? heightCm = freezed,Object? maritalStatus = null,Object? children = null,Object? involveFamily = null,Object? chatFor = null,Object? marryWithin = null,Object? education = null,Object? grewUpIn = null,Object? grewUpFlag = null,Object? bio = null,Object? isVerified = null,Object? isActiveToday = null,Object? isPremium = null,Object? similarities = null,Object? faith = null,Object? futurePlans = null,Object? interests = null,Object? personality = null,Object? languages = null,Object? isPhotoVerified = null,Object? isAgeVerified = null,Object? isIdVerified = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,age: null == age ? _self.age : age // ignore: cast_nullable_to_non_nullable
-as int,distanceKm: null == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
-as double,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as int,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
+as double?,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
 as String,country: null == country ? _self.country : country // ignore: cast_nullable_to_non_nullable
 as String,countryFlag: null == countryFlag ? _self.countryFlag : countryFlag // ignore: cast_nullable_to_non_nullable
 as String,profession: null == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
@@ -86,8 +89,8 @@ as String,practice: null == practice ? _self.practice : practice // ignore: cast
 as String,ethnicity: null == ethnicity ? _self.ethnicity : ethnicity // ignore: cast_nullable_to_non_nullable
 as String,ethnicityFlag: null == ethnicityFlag ? _self.ethnicityFlag : ethnicityFlag // ignore: cast_nullable_to_non_nullable
 as String,photoUrls: null == photoUrls ? _self.photoUrls : photoUrls // ignore: cast_nullable_to_non_nullable
-as List<String>,heightCm: null == heightCm ? _self.heightCm : heightCm // ignore: cast_nullable_to_non_nullable
-as int,maritalStatus: null == maritalStatus ? _self.maritalStatus : maritalStatus // ignore: cast_nullable_to_non_nullable
+as List<String>,heightCm: freezed == heightCm ? _self.heightCm : heightCm // ignore: cast_nullable_to_non_nullable
+as int?,maritalStatus: null == maritalStatus ? _self.maritalStatus : maritalStatus // ignore: cast_nullable_to_non_nullable
 as String,children: null == children ? _self.children : children // ignore: cast_nullable_to_non_nullable
 as String,involveFamily: null == involveFamily ? _self.involveFamily : involveFamily // ignore: cast_nullable_to_non_nullable
 as String,chatFor: null == chatFor ? _self.chatFor : chatFor // ignore: cast_nullable_to_non_nullable
@@ -193,7 +196,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int age,  double distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int age,  double? distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int? heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MarriageProfile() when $default != null:
 return $default(_that.id,_that.name,_that.age,_that.distanceKm,_that.area,_that.country,_that.countryFlag,_that.profession,_that.practice,_that.ethnicity,_that.ethnicityFlag,_that.photoUrls,_that.heightCm,_that.maritalStatus,_that.children,_that.involveFamily,_that.chatFor,_that.marryWithin,_that.education,_that.grewUpIn,_that.grewUpFlag,_that.bio,_that.isVerified,_that.isActiveToday,_that.isPremium,_that.similarities,_that.faith,_that.futurePlans,_that.interests,_that.personality,_that.languages,_that.isPhotoVerified,_that.isAgeVerified,_that.isIdVerified);case _:
@@ -214,7 +217,7 @@ return $default(_that.id,_that.name,_that.age,_that.distanceKm,_that.area,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int age,  double distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int age,  double? distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int? heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)  $default,) {final _that = this;
 switch (_that) {
 case _MarriageProfile():
 return $default(_that.id,_that.name,_that.age,_that.distanceKm,_that.area,_that.country,_that.countryFlag,_that.profession,_that.practice,_that.ethnicity,_that.ethnicityFlag,_that.photoUrls,_that.heightCm,_that.maritalStatus,_that.children,_that.involveFamily,_that.chatFor,_that.marryWithin,_that.education,_that.grewUpIn,_that.grewUpFlag,_that.bio,_that.isVerified,_that.isActiveToday,_that.isPremium,_that.similarities,_that.faith,_that.futurePlans,_that.interests,_that.personality,_that.languages,_that.isPhotoVerified,_that.isAgeVerified,_that.isIdVerified);case _:
@@ -234,7 +237,7 @@ return $default(_that.id,_that.name,_that.age,_that.distanceKm,_that.area,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int age,  double distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int age,  double? distanceKm,  String area,  String country,  String countryFlag,  String profession,  String practice,  String ethnicity,  String ethnicityFlag,  List<String> photoUrls,  int? heightCm,  String maritalStatus,  String children,  String involveFamily,  String chatFor,  String marryWithin,  String education,  String grewUpIn,  String grewUpFlag,  String bio,  bool isVerified,  bool isActiveToday,  bool isPremium,  List<String> similarities,  List<String> faith,  List<String> futurePlans,  List<String> interests,  List<String> personality,  List<String> languages,  bool isPhotoVerified,  bool isAgeVerified,  bool isIdVerified)?  $default,) {final _that = this;
 switch (_that) {
 case _MarriageProfile() when $default != null:
 return $default(_that.id,_that.name,_that.age,_that.distanceKm,_that.area,_that.country,_that.countryFlag,_that.profession,_that.practice,_that.ethnicity,_that.ethnicityFlag,_that.photoUrls,_that.heightCm,_that.maritalStatus,_that.children,_that.involveFamily,_that.chatFor,_that.marryWithin,_that.education,_that.grewUpIn,_that.grewUpFlag,_that.bio,_that.isVerified,_that.isActiveToday,_that.isPremium,_that.similarities,_that.faith,_that.futurePlans,_that.interests,_that.personality,_that.languages,_that.isPhotoVerified,_that.isAgeVerified,_that.isIdVerified);case _:
@@ -255,7 +258,10 @@ class _MarriageProfile implements MarriageProfile {
 @override final  String id;
 @override final  String name;
 @override final  int age;
-@override final  double distanceKm;
+/// Null when the API has no location for them (hidden in the hero).
+@override final  double? distanceKm;
+/// Neighbourhood/city; '' when unknown. String fields below are '' when
+/// not filled in, and the UI hides empty chips/sections.
 @override final  String area;
 @override final  String country;
 @override final  String countryFlag;
@@ -275,7 +281,7 @@ class _MarriageProfile implements MarriageProfile {
 }
 
 // About me
-@override final  int heightCm;
+@override final  int? heightCm;
 @override final  String maritalStatus;
 @override final  String children;
 // Marriage intentions timeline: when they want to involve family, how
@@ -372,7 +378,7 @@ abstract mixin class _$MarriageProfileCopyWith<$Res> implements $MarriageProfile
   factory _$MarriageProfileCopyWith(_MarriageProfile value, $Res Function(_MarriageProfile) _then) = __$MarriageProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, int age, double distanceKm, String area, String country, String countryFlag, String profession, String practice, String ethnicity, String ethnicityFlag, List<String> photoUrls, int heightCm, String maritalStatus, String children, String involveFamily, String chatFor, String marryWithin, String education, String grewUpIn, String grewUpFlag, String bio, bool isVerified, bool isActiveToday, bool isPremium, List<String> similarities, List<String> faith, List<String> futurePlans, List<String> interests, List<String> personality, List<String> languages, bool isPhotoVerified, bool isAgeVerified, bool isIdVerified
+ String id, String name, int age, double? distanceKm, String area, String country, String countryFlag, String profession, String practice, String ethnicity, String ethnicityFlag, List<String> photoUrls, int? heightCm, String maritalStatus, String children, String involveFamily, String chatFor, String marryWithin, String education, String grewUpIn, String grewUpFlag, String bio, bool isVerified, bool isActiveToday, bool isPremium, List<String> similarities, List<String> faith, List<String> futurePlans, List<String> interests, List<String> personality, List<String> languages, bool isPhotoVerified, bool isAgeVerified, bool isIdVerified
 });
 
 
@@ -389,13 +395,13 @@ class __$MarriageProfileCopyWithImpl<$Res>
 
 /// Create a copy of MarriageProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? age = null,Object? distanceKm = null,Object? area = null,Object? country = null,Object? countryFlag = null,Object? profession = null,Object? practice = null,Object? ethnicity = null,Object? ethnicityFlag = null,Object? photoUrls = null,Object? heightCm = null,Object? maritalStatus = null,Object? children = null,Object? involveFamily = null,Object? chatFor = null,Object? marryWithin = null,Object? education = null,Object? grewUpIn = null,Object? grewUpFlag = null,Object? bio = null,Object? isVerified = null,Object? isActiveToday = null,Object? isPremium = null,Object? similarities = null,Object? faith = null,Object? futurePlans = null,Object? interests = null,Object? personality = null,Object? languages = null,Object? isPhotoVerified = null,Object? isAgeVerified = null,Object? isIdVerified = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? age = null,Object? distanceKm = freezed,Object? area = null,Object? country = null,Object? countryFlag = null,Object? profession = null,Object? practice = null,Object? ethnicity = null,Object? ethnicityFlag = null,Object? photoUrls = null,Object? heightCm = freezed,Object? maritalStatus = null,Object? children = null,Object? involveFamily = null,Object? chatFor = null,Object? marryWithin = null,Object? education = null,Object? grewUpIn = null,Object? grewUpFlag = null,Object? bio = null,Object? isVerified = null,Object? isActiveToday = null,Object? isPremium = null,Object? similarities = null,Object? faith = null,Object? futurePlans = null,Object? interests = null,Object? personality = null,Object? languages = null,Object? isPhotoVerified = null,Object? isAgeVerified = null,Object? isIdVerified = null,}) {
   return _then(_MarriageProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,age: null == age ? _self.age : age // ignore: cast_nullable_to_non_nullable
-as int,distanceKm: null == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
-as double,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as int,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
+as double?,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
 as String,country: null == country ? _self.country : country // ignore: cast_nullable_to_non_nullable
 as String,countryFlag: null == countryFlag ? _self.countryFlag : countryFlag // ignore: cast_nullable_to_non_nullable
 as String,profession: null == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
@@ -403,8 +409,8 @@ as String,practice: null == practice ? _self.practice : practice // ignore: cast
 as String,ethnicity: null == ethnicity ? _self.ethnicity : ethnicity // ignore: cast_nullable_to_non_nullable
 as String,ethnicityFlag: null == ethnicityFlag ? _self.ethnicityFlag : ethnicityFlag // ignore: cast_nullable_to_non_nullable
 as String,photoUrls: null == photoUrls ? _self._photoUrls : photoUrls // ignore: cast_nullable_to_non_nullable
-as List<String>,heightCm: null == heightCm ? _self.heightCm : heightCm // ignore: cast_nullable_to_non_nullable
-as int,maritalStatus: null == maritalStatus ? _self.maritalStatus : maritalStatus // ignore: cast_nullable_to_non_nullable
+as List<String>,heightCm: freezed == heightCm ? _self.heightCm : heightCm // ignore: cast_nullable_to_non_nullable
+as int?,maritalStatus: null == maritalStatus ? _self.maritalStatus : maritalStatus // ignore: cast_nullable_to_non_nullable
 as String,children: null == children ? _self.children : children // ignore: cast_nullable_to_non_nullable
 as String,involveFamily: null == involveFamily ? _self.involveFamily : involveFamily // ignore: cast_nullable_to_non_nullable
 as String,chatFor: null == chatFor ? _self.chatFor : chatFor // ignore: cast_nullable_to_non_nullable
