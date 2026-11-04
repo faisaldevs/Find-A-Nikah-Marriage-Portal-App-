@@ -1,0 +1,94 @@
+{
+  "_comment": "Dev-only stand-in for the chat API. Timestamps are written relative to `anchor`; DummyMessagingDataSource shifts them so `anchor` reads as now.",
+  "anchor": "2026-10-24T12:00:00Z",
+  "meId": "me",
+  "conversations": [
+    {
+      "id": "c-yusuf",
+      "slot": 0,
+      "unreadCount": 2,
+      "peer": {
+        "id": "u-yusuf",
+        "name": "Yusuf Ahmed",
+        "photoUrl": "https://i.pravatar.cc/200?img=11",
+        "isOnline": true
+      },
+      "messages": [
+        { "id": "m-y1", "senderId": "u-yusuf", "text": "Assalamu alaikum! JazakAllah khair for accepting the match.", "sentAt": "2026-10-23T19:02:00Z", "status": "seen" },
+        { "id": "m-y2", "senderId": "me", "text": "Wa alaikum assalam! You're welcome. How are you?", "sentAt": "2026-10-23T19:10:00Z", "status": "seen" },
+        { "id": "m-y3", "senderId": "u-yusuf", "text": "Alhamdulillah, all good. I read your profile — you mentioned family is very important to you.", "sentAt": "2026-10-23T19:14:00Z", "status": "seen" },
+        { "id": "m-y4", "senderId": "me", "text": "Yes, very much. I'd like my parents to be involved from early on, in sha Allah.", "sentAt": "2026-10-23T19:20:00Z", "status": "seen" },
+        { "id": "m-y5", "senderId": "u-yusuf", "text": "That's great to hear. My family feels the same way.", "sentAt": "2026-10-24T11:40:00Z", "status": "sent" },
+        { "id": "m-y6", "senderId": "u-yusuf", "text": "Would you be open to our families speaking this weekend?", "sentAt": "2026-10-24T11:52:00Z", "status": "sent" }
+      ]
+    },
+    {
+      "id": "c-abdullah",
+      "slot": 1,
+      "unreadCount": 0,
+      "peer": {
+        "id": "u-abdullah",
+        "name": "Abdullah Karim",
+        "photoUrl": "https://i.pravatar.cc/200?img=13",
+        "isOnline": false,
+        "lastSeenAt": "2026-10-24T10:15:00Z"
+      },
+      "messages": [
+        { "id": "m-a1", "senderId": "u-abdullah", "text": "Assalamu alaikum, hope you're well.", "sentAt": "2026-10-24T09:30:00Z", "status": "seen" },
+        { "id": "m-a2", "senderId": "u-abdullah", "text": "What does a typical weekend look like for you?", "sentAt": "2026-10-24T09:31:00Z", "status": "seen" },
+        { "id": "m-a3", "senderId": "me", "text": "Wa alaikum assalam! Usually family time, a halaqa on Saturday evening, and a long walk if the weather allows.", "sentAt": "2026-10-24T09:58:00Z", "status": "seen" },
+        {
+          "id": "m-a4",
+          "senderId": "me",
+          "text": "What about you?",
+          "sentAt": "2026-10-24T09:59:00Z",
+          "status": "seen",
+          "replyTo": { "messageId": "m-a2", "senderId": "u-abdullah", "text": "What does a typical weekend look like for you?" }
+        }
+      ]
+    },
+    {
+      "id": "c-imran",
+      "slot": 2,
+      "unreadCount": 0,
+      "peer": {
+        "id": "u-imran",
+        "name": "Imran Hossain",
+        "photoUrl": "https://i.pravatar.cc/200?img=15",
+        "isOnline": false,
+        "lastSeenAt": "2026-10-23T22:40:00Z"
+      },
+      "messages": [
+        { "id": "m-i1", "senderId": "u-imran", "text": "Hi, Assalamu alaikum.", "sentAt": "2026-10-23T20:05:00Z", "status": "seen" },
+        { "id": "m-i2", "senderId": "u-imran", "text": "What made you join Find a Nikah?", "sentAt": "2026-10-23T20:06:00Z", "status": "seen" },
+        { "id": "m-i3", "senderId": "u-imran", "text": "And where do you see yourself settling after marriage?", "sentAt": "2026-10-23T20:07:00Z", "status": "seen" },
+        {
+          "id": "m-i4",
+          "senderId": "me",
+          "text": "Wa alaikum assalam! I wanted a halal, serious way to meet someone.",
+          "sentAt": "2026-10-23T21:30:00Z",
+          "status": "seen",
+          "replyTo": { "messageId": "m-i2", "senderId": "u-imran", "text": "What made you join Find a Nikah?" }
+        },
+        {
+          "id": "m-i5",
+          "senderId": "me",
+          "text": "Ideally close to my parents in Dhaka, but I'm open to discussing it.",
+          "sentAt": "2026-10-23T21:32:00Z",
+          "status": "delivered",
+          "replyTo": { "messageId": "m-i3", "senderId": "u-imran", "text": "And where do you see yourself settling after marriage?" }
+        }
+      ]
+    }
+  ],
+  "matches": [
+    { "id": "u-hamza", "name": "Hamza Ali", "photoUrl": "https://i.pravatar.cc/200?img=33", "isOnline": true },
+    { "id": "u-zayd", "name": "Zayd Rahman", "photoUrl": "https://i.pravatar.cc/200?img=51", "isOnline": false, "lastSeenAt": "2026-10-24T08:20:00Z" }
+  ],
+  "autoReplies": [
+    "JazakAllah khair, that's good to know.",
+    "In sha Allah. Let me speak with my family and get back to you.",
+    "That makes sense. What are you looking for in a spouse?",
+    "MashaAllah, I appreciate you sharing that."
+  ]
+}

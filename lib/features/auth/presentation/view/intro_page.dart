@@ -1,7 +1,7 @@
-import 'package:find_a_nikah/app/di.dart';
+// import 'package:find_a_nikah/app/di.dart'; // only for the dev-flavor Skip check
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:find_a_nikah/flavors/app_config.dart';
+// import 'package:find_a_nikah/flavors/app_config.dart'; // same
 import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
@@ -166,8 +166,10 @@ class _IntroPageState extends State<_IntroView> {
   /// state instead of `context.push`.
   void _skip() => context.read<AuthBloc>().add(const AuthDevSkipRequested());
 
-  /// "Skip" exists only in dev builds; staging/prod users always sign in.
-  static final _showSkip = getIt<AppConfig>().flavors == Flavors.dev;
+  /// "Skip" is hidden for now (it used to show in dev builds only; staging/
+  /// prod users always sign in). Flip back to re-enable.
+  // static final _showSkip = getIt<AppConfig>().flavors == Flavors.dev;
+  static const _showSkip = false;
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +387,7 @@ class _IntroPageState extends State<_IntroView> {
                 ),
               )
             else
-              SizedBox(height: 48.h),
+              SizedBox(height: 20.h),
             SizedBox(height: 8.h),
           ],
         ),

@@ -1,13 +1,11 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/domain/entities/marriage_profile.dart';
 import 'package:find_a_nikah/features/marriage/domain/entities/swipe.dart';
 import 'package:find_a_nikah/features/marriage/domain/repositories/marriage_repository.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'marriage_feed_bloc.freezed.dart';
 
 sealed class MarriageFeedEvent {
   const MarriageFeedEvent();
@@ -51,7 +49,28 @@ final class MarriageMoreRequested extends MarriageFeedEvent {
   const MarriageMoreRequested();
 }
 
+/// Middle button / compliment box: sends [text] to the current profile
+/// (`complement`). Stays on the profile so the sent message shows on it.
+final class MarriageComplimentSubmitted extends MarriageFeedEvent {
+  const MarriageComplimentSubmitted(this.text);
+
+  final String text;
+}
+
 enum MarriageFeedStatus { initial, loading, ready, failure }
+
+enum ComplimentStatus { sending, sent }
+
+/// The compliment sent to one profile, shown above its photo.
+class SentCompliment extends Equatable {
+  const SentCompliment(this.text, this.status);
+
+  final String text;
+  final ComplimentStatus status;
+
+  @override
+  List<Object?> get props => [text, status];
+}
 
 /// One-shot messages for the page to show (then cleared).
 enum MarriageFeedNotice {
@@ -65,30 +84,44 @@ enum MarriageFeedNotice {
   actionFailed,
 }
 
-@freezed
-abstract class MarriageFeedState with _$MarriageFeedState {
-  const factory MarriageFeedState({
-    @Default(MarriageFeedStatus.initial) MarriageFeedStatus status,
-    @Default(<MarriageProfile>[]) List<MarriageProfile> profiles,
-    @Default(0) int index,
-    @Default(DiscoveryFilters()) DiscoveryFilters filters,
-    String? nextCursor,
-    @Default(false) bool loadingMore,
-    Failure? failure,
+class MarriageFeedState extends Equatable {
+  const MarriageFeedState({
+    this.status = MarriageFeedStatus.initial,
+    this.profiles = const <MarriageProfile>[],
+    this.index = 0,
+    this.filters = const DiscoveryFilters(),
+    this.nextCursor,
+    this.loadingMore = false,
+    this.failure,
+    this.swiped = const <String, SwipeAction>{},
+    this.compliments = const <String, SentCompliment>{},
+    this.notice,
+    this.actionFailure,
+    this.matchedName,
+  });
 
-    /// userId → what was sent for it, so undo knows whether the profile
-    /// it would go back to was passed (undoable) or liked (not).
-    @Default(<String, SwipeAction>{}) Map<String, SwipeAction> swiped,
-    MarriageFeedNotice? notice,
+  final MarriageFeedStatus status;
+  final List<MarriageProfile> profiles;
+  final int index;
+  final DiscoveryFilters filters;
+  final String? nextCursor;
+  final bool loadingMore;
+  final Failure? failure;
 
-    /// With [MarriageFeedNotice.actionFailed].
-    Failure? actionFailure,
+  /// userId → what was sent for it, so undo knows whether the profile
+  /// it would go back to was passed (undoable) or liked (not).
+  final Map<String, SwipeAction> swiped;
 
-    /// Name of the profile behind [MarriageFeedNotice.matched].
-    String? matchedName,
-  }) = _MarriageFeedState;
+  /// userId → the compliment sent to them (sending, then sent).
+  final Map<String, SentCompliment> compliments;
 
-  const MarriageFeedState._();
+  final MarriageFeedNotice? notice;
+
+  /// With [MarriageFeedNotice.actionFailed].
+  final Failure? actionFailure;
+
+  /// Name of the profile behind [MarriageFeedNotice.matched].
+  final String? matchedName;
 
   MarriageProfile? get current =>
       profiles.isEmpty ? null : profiles[index.clamp(0, profiles.length - 1)];
@@ -96,6 +129,62 @@ abstract class MarriageFeedState with _$MarriageFeedState {
   bool get canGoBack => index > 0;
 
   bool get reachedEnd => nextCursor == null;
+
+  MarriageFeedState copyWith({
+    MarriageFeedStatus? status,
+    List<MarriageProfile>? profiles,
+    int? index,
+    DiscoveryFilters? filters,
+    Object? nextCursor = unchanged,
+    bool? loadingMore,
+    Object? failure = unchanged,
+    Map<String, SwipeAction>? swiped,
+    Map<String, SentCompliment>? compliments,
+    Object? notice = unchanged,
+    Object? actionFailure = unchanged,
+    Object? matchedName = unchanged,
+  }) {
+    return MarriageFeedState(
+      status: status ?? this.status,
+      profiles: profiles ?? this.profiles,
+      index: index ?? this.index,
+      filters: filters ?? this.filters,
+      nextCursor: identical(nextCursor, unchanged)
+          ? this.nextCursor
+          : nextCursor as String?,
+      loadingMore: loadingMore ?? this.loadingMore,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+      swiped: swiped ?? this.swiped,
+      compliments: compliments ?? this.compliments,
+      notice: identical(notice, unchanged)
+          ? this.notice
+          : notice as MarriageFeedNotice?,
+      actionFailure: identical(actionFailure, unchanged)
+          ? this.actionFailure
+          : actionFailure as Failure?,
+      matchedName: identical(matchedName, unchanged)
+          ? this.matchedName
+          : matchedName as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    status,
+    profiles,
+    index,
+    filters,
+    nextCursor,
+    loadingMore,
+    failure,
+    swiped,
+    compliments,
+    notice,
+    actionFailure,
+    matchedName,
+  ];
 }
 
 /// Page-scoped on the Marriage tab; the tab's `StatefulShellBranch` keeps
@@ -115,6 +204,7 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
       (_, emit) => _onSwiped(SwipeAction.like, emit),
       transformer: sequential(),
     );
+    on<MarriageComplimentSubmitted>(_onCompliment, transformer: sequential());
     // on<MarriagePreviousRequested>(_onPrevious, transformer: sequential());
     on<MarriagePreviousRequested>(_onUndo, transformer: droppable());
     on<MarriageDeckReloadRequested>(
@@ -222,13 +312,55 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
     );
   }
 
+  Future<void> _onCompliment(
+    MarriageComplimentSubmitted event,
+    Emitter<MarriageFeedState> emit,
+  ) async {
+    final profile = state.current;
+    final text = event.text.trim();
+    if (profile == null || text.isEmpty) return;
+    if (state.status != MarriageFeedStatus.ready) return;
+    void setCompliment(SentCompliment? c) => emit(
+      state.copyWith(
+        compliments: {...state.compliments}
+          ..remove(profile.id)
+          ..addAll({profile.id: ?c}),
+      ),
+    );
+    setCompliment(SentCompliment(text, ComplimentStatus.sending));
+    final result = await _feed.swipe(
+      SwipeAction.complement,
+      targetUserId: profile.id,
+      text: text,
+    );
+    result.fold(
+      (f) {
+        setCompliment(null);
+        _notify(emit, MarriageFeedNotice.actionFailed, failure: f);
+      },
+      (outcome) {
+        // The server counts it as a like: undo can't bring it back.
+        emit(
+          state.copyWith(
+            swiped: {...state.swiped, profile.id: SwipeAction.complement},
+          ),
+        );
+        setCompliment(SentCompliment(text, ComplimentStatus.sent));
+        if (outcome.isMatch) {
+          _notify(emit, MarriageFeedNotice.matched, name: profile.name);
+        }
+      },
+    );
+  }
+
   Future<void> _onUndo(
     MarriagePreviousRequested event,
     Emitter<MarriageFeedState> emit,
   ) async {
     if (!state.canGoBack) return;
     final previous = state.profiles[state.index - 1];
-    if (state.swiped[previous.id] == SwipeAction.like) {
+    if (state.swiped[previous.id] == SwipeAction.like ||
+        state.swiped[previous.id] == SwipeAction.complement) {
       _notify(emit, MarriageFeedNotice.undoUnavailable);
       return;
     }

@@ -1,0 +1,151 @@
+{
+  "statusCode": 200,
+  "data": {
+    "likes": [
+      {
+        "likeId": "6addd041a9590d7ecf3feb5a",
+        "likedAt": "2026-10-25T09:47:46.840Z",
+        "status": "pending",
+        "sender": {
+          "_id": "6addcfff70deb6718aa4d6b1",
+          "fullName": "Test Seed Laila",
+          "isVerified": false,
+          "lastActiveAt": "2026-10-25T09:47:45.843Z",
+          "gender": "female"
+        },
+        "profile": {
+          "userId": "6addcfff70deb6718aa4d6b1",
+          "profileId": "6addcffea9590d7ecf3feb44",
+          "fullName": "Test Seed Laila",
+          "isVerified": false,
+          "lastActiveAt": "2026-10-25T09:47:45.843Z",
+          "gender": "female",
+          "photoUrl": "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg",
+          "images": [
+            "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg"
+          ],
+          "age": 28,
+          "maritalStatus": "never_married",
+          "professionTitle": "Designer",
+          "educationLevel": "postgraduate",
+          "religion": "islam",
+          "faith": [
+            "fasting"
+          ],
+          "sect": [
+            "fasting"
+          ],
+          "city": null,
+          "country": "Bangladesh",
+          "completeness": 35,
+          "publishedAt": "2026-10-25T09:46:39.651Z"
+        }
+      },
+      {
+        "likeId": "6addd040a9590d7ecf3feb58",
+        "likedAt": "2026-10-25T09:47:45.407Z",
+        "status": "pending",
+        "sender": {
+          "_id": "6addcff970deb6718aa4d672",
+          "fullName": "Test Seed Amira",
+          "isVerified": false,
+          "lastActiveAt": "2026-10-25T11:49:10.290Z",
+          "gender": "female"
+        },
+        "profile": {
+          "userId": "6addcff970deb6718aa4d672",
+          "profileId": "6addcff9a9590d7ecf3feb42",
+          "fullName": "Test Seed Amira",
+          "isVerified": false,
+          "lastActiveAt": "2026-10-25T11:49:10.290Z",
+          "gender": "female",
+          "photoUrl": "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg",
+          "images": [
+            "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg"
+          ],
+          "age": 29,
+          "maritalStatus": "never_married",
+          "professionTitle": "Engineer",
+          "educationLevel": "undergraduate",
+          "religion": "islam",
+          "faith": [
+            "fasting"
+          ],
+          "sect": [
+            "fasting"
+          ],
+          "city": null,
+          "country": "Bangladesh",
+          "completeness": 35,
+          "publishedAt": "2026-10-25T09:46:34.053Z"
+        }
+      }
+    ],
+    "profiles": [
+      {
+        "userId": "6addcff970deb6718aa4d672",
+        "profileId": "6addcff9a9590d7ecf3feb42",
+        "fullName": "Test Seed Amira",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-25T11:49:10.290Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg",
+        "images": [
+          "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg"
+        ],
+        "age": 29,
+        "maritalStatus": "never_married",
+        "professionTitle": "Engineer",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting"
+        ],
+        "sect": [
+          "fasting"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 35,
+        "publishedAt": "2026-10-25T09:46:34.053Z"
+      },
+      {
+        "userId": "6addcfff70deb6718aa4d6b1",
+        "profileId": "6addcffea9590d7ecf3feb44",
+        "fullName": "Test Seed Laila",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-25T09:47:45.843Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg",
+        "images": [
+          "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Designer",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting"
+        ],
+        "sect": [
+          "fasting"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 35,
+        "publishedAt": "2026-10-25T09:46:39.651Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 2,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  },
+  "message": "People who liked you",
+  "success": true
+}

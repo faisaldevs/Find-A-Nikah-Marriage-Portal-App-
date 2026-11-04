@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/features/remote_config/domain/entities/remote_config.dart';
 import 'package:find_a_nikah/features/remote_config/domain/repositories/remote_config_repository.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'remote_config_bloc.freezed.dart';
 
 sealed class RemoteConfigEvent {
   const RemoteConfigEvent();
@@ -15,19 +13,35 @@ final class RemoteConfigRefreshRequested extends RemoteConfigEvent {
   const RemoteConfigRefreshRequested();
 }
 
-@freezed
-abstract class RemoteConfigState with _$RemoteConfigState {
-  const factory RemoteConfigState({
-    required String appVersion,
-    @Default(RemoteConfig()) RemoteConfig config,
-  }) = _RemoteConfigState;
+class RemoteConfigState extends Equatable {
+  const RemoteConfigState({
+    required this.appVersion,
+    this.config = const RemoteConfig(),
+  });
 
-  const RemoteConfigState._();
+  final String appVersion;
+  final RemoteConfig config;
 
   /// The router sends every route to the force-update page while true.
   bool get updateRequired => config.requiresUpdate(appVersion);
 
   bool isEnabled(FeatureFlag flag) => config.isEnabled(flag);
+
+  RemoteConfigState copyWith({
+    String? appVersion,
+    RemoteConfig? config,
+  }) {
+    return RemoteConfigState(
+      appVersion: appVersion ?? this.appVersion,
+      config: config ?? this.config,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    appVersion,
+    config,
+  ];
 }
 
 /// App-scoped (above the router).

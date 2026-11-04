@@ -1,6 +1,5 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'remote_config.freezed.dart';
+import 'package:equatable/equatable.dart';
+import 'package:find_a_nikah/core/core.dart';
 
 /// Remote kill switches. Every risky feature sits behind one so it can be
 /// turned off without a release. [defaultValue] applies when the config
@@ -22,16 +21,17 @@ enum FeatureFlag {
 
 /// What `GET /config` returns: kill switches and the minimum supported app
 /// version (decisions register #17: own endpoint).
-@freezed
-abstract class RemoteConfig with _$RemoteConfig {
-  const factory RemoteConfig({
-    /// Builds below this are blocked by the force-update screen. Null = no
-    /// floor.
-    String? minimumSupportedVersion,
-    @Default(<String, bool>{}) Map<String, bool> flags,
-  }) = _RemoteConfig;
+class RemoteConfig extends Equatable {
+  const RemoteConfig({
+    this.minimumSupportedVersion,
+    this.flags = const <String, bool>{},
+  });
 
-  const RemoteConfig._();
+  /// Builds below this are blocked by the force-update screen. Null = no
+  /// floor.
+  final String? minimumSupportedVersion;
+
+  final Map<String, bool> flags;
 
   bool isEnabled(FeatureFlag flag) => flags[flag.name] ?? flag.defaultValue;
 
@@ -60,4 +60,22 @@ abstract class RemoteConfig with _$RemoteConfig {
     }
     return 0;
   }
+
+  RemoteConfig copyWith({
+    Object? minimumSupportedVersion = unchanged,
+    Map<String, bool>? flags,
+  }) {
+    return RemoteConfig(
+      minimumSupportedVersion: identical(minimumSupportedVersion, unchanged)
+          ? this.minimumSupportedVersion
+          : minimumSupportedVersion as String?,
+      flags: flags ?? this.flags,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    minimumSupportedVersion,
+    flags,
+  ];
 }

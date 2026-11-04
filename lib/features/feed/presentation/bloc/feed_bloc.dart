@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/feed/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'feed_bloc.freezed.dart';
 
 sealed class FeedEvent {
   const FeedEvent();
@@ -36,18 +34,22 @@ final class FeedPostAdded extends FeedEvent {
 
 enum FeedStatus { initial, loading, ready, failure }
 
-@freezed
-abstract class FeedState with _$FeedState {
-  const factory FeedState({
-    @Default(FeedStatus.initial) FeedStatus status,
-    @Default(FeedFilter.forYou()) FeedFilter filter,
-    @Default(<FeedTopic>[]) List<FeedTopic> topics,
-    @Default(<FeedPost>[]) List<FeedPost> posts,
-    @Default('') String query,
-    Failure? failure,
-  }) = _FeedState;
+class FeedState extends Equatable {
+  const FeedState({
+    this.status = FeedStatus.initial,
+    this.filter = const FeedFilter.forYou(),
+    this.topics = const <FeedTopic>[],
+    this.posts = const <FeedPost>[],
+    this.query = '',
+    this.failure,
+  });
 
-  const FeedState._();
+  final FeedStatus status;
+  final FeedFilter filter;
+  final List<FeedTopic> topics;
+  final List<FeedPost> posts;
+  final String query;
+  final Failure? failure;
 
   /// [posts] matching [query] in the body, author, handle or topic.
   List<FeedPost> get visiblePosts {
@@ -63,6 +65,36 @@ abstract class FeedState with _$FeedState {
         )
         .toList();
   }
+
+  FeedState copyWith({
+    FeedStatus? status,
+    FeedFilter? filter,
+    List<FeedTopic>? topics,
+    List<FeedPost>? posts,
+    String? query,
+    Object? failure = unchanged,
+  }) {
+    return FeedState(
+      status: status ?? this.status,
+      filter: filter ?? this.filter,
+      topics: topics ?? this.topics,
+      posts: posts ?? this.posts,
+      query: query ?? this.query,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    status,
+    filter,
+    topics,
+    posts,
+    query,
+    failure,
+  ];
 }
 
 /// Page-scoped on the Feed tab; the tab's `StatefulShellBranch` keeps it

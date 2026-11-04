@@ -12,6 +12,19 @@ class _MockRemote extends Mock implements MenuRemoteDataSource {}
 
 class _MockRepo extends Mock implements MenuRepository {}
 
+/// No cached copy and no later changes: blocs load from `fetchMyProfile`.
+void _noCache(_MockRepo repo) {
+  when(repo.cachedMyProfile).thenAnswer((_) async => null);
+  when(() => repo.myProfileChanges).thenAnswer((_) => const Stream.empty());
+}
+
+/// Lets a bloc's chain of awaits finish.
+Future<void> _settle() async {
+  for (var i = 0; i < 5; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
 void main() {
   group('MenuRepositoryImpl.fetchMyProfile', () {
     test('maps the onboarding status payload to MyProfile', () async {
@@ -22,6 +35,7 @@ void main() {
             'user': {'fullName': 'Dev Team v2'},
             'profile': {
               'gender': 'male',
+              'religion': 'islam',
               'dateOfBirth': '2005-04-02T00:00:00.000Z',
               'country': 'Bangladesh',
               'completeness': 76.4,
@@ -55,6 +69,8 @@ void main() {
       expect(profile.isVerified, isTrue);
       expect(profile.completeness, 76);
       expect(profile.dateOfBirth, DateTime.utc(2005, 4, 2));
+      expect(profile.gender, 'male');
+      expect(profile.religion, 'islam');
       expect(profile.currentLocation, 'Bangladesh');
       expect(profile.hasChildren, isTrue);
       expect(profile.halalFood, isFalse);
@@ -88,6 +104,7 @@ void main() {
 
     setUp(() {
       repo = _MockRepo();
+      _noCache(repo);
       when(
         repo.fetchMyProfile,
       ).thenAnswer((_) async => right(const MyProfile(fullName: 'A')));
@@ -103,7 +120,7 @@ void main() {
         (i) async => right(i.positionalArguments.first as AppSettings),
       );
       final bloc = SettingsBloc(repo)..add(const SettingsStarted());
-      await Future<void>.delayed(Duration.zero);
+      await _settle();
 
       bloc.add(SettingsChanged((s) => s.copyWith(chatMessagePreview: true)));
       await Future<void>.delayed(Duration.zero);
@@ -122,7 +139,7 @@ void main() {
           () => repo.saveSettings(any()),
         ).thenAnswer((_) async => left(const NetworkFailure()));
         final bloc = SettingsBloc(repo)..add(const SettingsStarted());
-        await Future<void>.delayed(Duration.zero);
+        await _settle();
 
         bloc.add(SettingsChanged((s) => s.copyWith(notifications: false)));
         await Future<void>.delayed(Duration.zero);
@@ -137,6 +154,7 @@ void main() {
   group('MenuBloc', () {
     test('loads profile + membership; tabs switch in place', () async {
       final repo = _MockRepo();
+      _noCache(repo);
       when(
         repo.fetchMyProfile,
       ).thenAnswer((_) async => right(const MyProfile(fullName: 'A')));
@@ -153,7 +171,7 @@ void main() {
         ),
       );
       final bloc = MenuBloc(repo)..add(const MenuStarted());
-      await Future<void>.delayed(Duration.zero);
+      await _settle();
       expect(bloc.state.status, MenuStatus.ready);
       expect(bloc.state.membership?.likes, 20);
 
@@ -165,6 +183,7 @@ void main() {
 
     test('a profile failure shows the error state', () async {
       final repo = _MockRepo();
+      _noCache(repo);
       when(
         repo.fetchMyProfile,
       ).thenAnswer((_) async => left(const NetworkFailure()));
@@ -181,7 +200,7 @@ void main() {
         ),
       );
       final bloc = MenuBloc(repo)..add(const MenuStarted());
-      await Future<void>.delayed(Duration.zero);
+      await _settle();
       expect(bloc.state.status, MenuStatus.failure);
       await bloc.close();
     });

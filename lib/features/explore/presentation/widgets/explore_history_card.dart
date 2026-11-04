@@ -1,5 +1,6 @@
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/explore/domain/domain.dart';
+import 'package:find_a_nikah/features/explore/presentation/widgets/explore_photo.dart';
 import 'package:find_a_nikah/features/explore/presentation/widgets/explore_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -128,7 +129,8 @@ class ExploreHistoryCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(profile.photoUrl, fit: BoxFit.cover),
+            // Image.network(profile.photoUrl, fit: BoxFit.cover),
+            ExplorePhoto(profile.photoUrl),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

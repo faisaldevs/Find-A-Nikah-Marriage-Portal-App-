@@ -81,9 +81,12 @@ class _ComplimentBoxState extends State<ComplimentBox> {
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.fromLTRB(19.w, 17.5.h, 19.w, 17.h),
                   // Line break as in the mockup.
+                  // hintText:
+                  //     'Let them know what you like about their\n'
+                  //     'profile or about her',
                   hintText:
                       'Let them know what you like about their\n'
-                      'profile or about her',
+                      'profile',
                   hintMaxLines: 2,
                   hintStyle: fieldStyle.copyWith(color: kProfileHintGrey),
                 ),

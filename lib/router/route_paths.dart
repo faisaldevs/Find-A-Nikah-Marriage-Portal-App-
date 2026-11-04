@@ -79,8 +79,22 @@ abstract final class RoutePaths {
   static const settings = '/settings';
   static const editProfile = '/profile/edit';
 
+  /// One Edit profile field (which one travels as `extra`). A fixed path,
+  /// because the redirect only allows exact app paths.
+  static const editProfileField = '/profile/edit/field';
+
   /// Over the tabs (no bottom nav).
   static const chatArchived = '/chat/archived';
+
+  /// One conversation, over the tabs (no bottom nav). The peer
+  /// (`ChatPeer`) travels as go_router `extra`.
+  static const chatRoom = '/chat/room';
+
+  /// A voice call, over everything; the peer (`ChatPeer`) as `extra`.
+  static const call = '/call';
+
+  /// Dev only: the same call screen, ringing as an incoming call.
+  static const incomingCall = '/call/incoming';
 
   /// Shown in place of everything while this build is too old.
   static const updateRequired = '/update-required';
@@ -158,8 +172,12 @@ abstract final class RoutePaths {
     feedCompose,
     chatUnmatched,
     chatArchived,
+    chatRoom,
+    call,
+    incomingCall,
     menuHelp,
     settings,
     editProfile,
+    editProfileField,
   };
 }

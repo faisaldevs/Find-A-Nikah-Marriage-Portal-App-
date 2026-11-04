@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/face_verification/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'face_verification_bloc.freezed.dart';
 
 sealed class FaceVerificationEvent {
   const FaceVerificationEvent();
@@ -148,36 +146,51 @@ enum FaceVerificationStatus {
   rejected,
 }
 
-@freezed
-abstract class FaceVerificationState with _$FaceVerificationState {
-  const factory FaceVerificationState({
-    /// The photo the user confirms is theirs.
-    String? profilePhotoPath,
+class FaceVerificationState extends Equatable {
+  const FaceVerificationState({
+    this.profilePhotoPath,
+    this.selfiePath,
+    this.status = FaceVerificationStatus.idle,
+    this.check,
+    this.failure,
+    this.session,
+    this.currentStepIndex = 0,
+    this.poseFeedback,
+    this.holdProgress = 0.0,
+    this.capturedStepPaths = const <String, String>{},
+    this.stepTimedOut = false,
+    this.rejectReason,
+    this.canRetry = true,
+    this.verified = false,
+  });
 
-    /// Private selfie; never shown on the public profile.
-    String? selfiePath,
-    @Default(FaceVerificationStatus.idle) FaceVerificationStatus status,
+  /// The photo the user confirms is theirs.
+  final String? profilePhotoPath;
 
-    /// Why the on-device gate rejected the last selfie or liveness still.
-    SelfieCheckResult? check,
-    Failure? failure,
+  /// Private selfie; never shown on the public profile.
+  final String? selfiePath;
 
-    // ── Guided liveness ──────────────────────────────────────────────
-    FaceSession? session,
-    @Default(0) int currentStepIndex,
-    PoseFeedback? poseFeedback,
-    @Default(0.0) double holdProgress,
-    @Default(<String, String>{}) Map<String, String> capturedStepPaths,
-    @Default(false) bool stepTimedOut,
-    String? rejectReason,
-    @Default(true) bool canRetry,
+  final FaceVerificationStatus status;
 
-    /// The backend approved instantly ([Verified]) rather than queueing for
-    /// review — the result page words it differently (audit #40).
-    @Default(false) bool verified,
-  }) = _FaceVerificationState;
+  /// Why the on-device gate rejected the last selfie or liveness still.
+  final SelfieCheckResult? check;
 
-  const FaceVerificationState._();
+  final Failure? failure;
+
+  // ── Guided liveness ──────────────────────────────────────────────
+  final FaceSession? session;
+
+  final int currentStepIndex;
+  final PoseFeedback? poseFeedback;
+  final double holdProgress;
+  final Map<String, String> capturedStepPaths;
+  final bool stepTimedOut;
+  final String? rejectReason;
+  final bool canRetry;
+
+  /// The backend approved instantly ([Verified]) rather than queueing for
+  /// review — the result page words it differently (audit #40).
+  final bool verified;
 
   bool get busy =>
       status == FaceVerificationStatus.checkingSelfie ||
@@ -193,6 +206,72 @@ abstract class FaceVerificationState with _$FaceVerificationState {
   LivenessStep? get currentLivenessStep => currentStepIndex < plan.steps.length
       ? plan.steps[currentStepIndex]
       : null;
+
+  FaceVerificationState copyWith({
+    Object? profilePhotoPath = unchanged,
+    Object? selfiePath = unchanged,
+    FaceVerificationStatus? status,
+    Object? check = unchanged,
+    Object? failure = unchanged,
+    Object? session = unchanged,
+    int? currentStepIndex,
+    Object? poseFeedback = unchanged,
+    double? holdProgress,
+    Map<String, String>? capturedStepPaths,
+    bool? stepTimedOut,
+    Object? rejectReason = unchanged,
+    bool? canRetry,
+    bool? verified,
+  }) {
+    return FaceVerificationState(
+      profilePhotoPath: identical(profilePhotoPath, unchanged)
+          ? this.profilePhotoPath
+          : profilePhotoPath as String?,
+      selfiePath: identical(selfiePath, unchanged)
+          ? this.selfiePath
+          : selfiePath as String?,
+      status: status ?? this.status,
+      check: identical(check, unchanged)
+          ? this.check
+          : check as SelfieCheckResult?,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+      session: identical(session, unchanged)
+          ? this.session
+          : session as FaceSession?,
+      currentStepIndex: currentStepIndex ?? this.currentStepIndex,
+      poseFeedback: identical(poseFeedback, unchanged)
+          ? this.poseFeedback
+          : poseFeedback as PoseFeedback?,
+      holdProgress: holdProgress ?? this.holdProgress,
+      capturedStepPaths: capturedStepPaths ?? this.capturedStepPaths,
+      stepTimedOut: stepTimedOut ?? this.stepTimedOut,
+      rejectReason: identical(rejectReason, unchanged)
+          ? this.rejectReason
+          : rejectReason as String?,
+      canRetry: canRetry ?? this.canRetry,
+      verified: verified ?? this.verified,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    profilePhotoPath,
+    selfiePath,
+    status,
+    check,
+    failure,
+    session,
+    currentStepIndex,
+    poseFeedback,
+    holdProgress,
+    capturedStepPaths,
+    stepTimedOut,
+    rejectReason,
+    canRetry,
+    verified,
+  ];
 }
 
 /// Drives "Scan your face" → "Start verification" → "Photo verification"
@@ -260,7 +339,7 @@ class FaceVerificationBloc
 
   /// When the current step's feedback last became [PoseFeedback.ok] —
   /// derived bookkeeping, not UI state, so it's a plain field rather than
-  /// part of the freezed state.
+  /// part of the state class.
   DateTime? _holdStartedAt;
   Timer? _stepTimer;
   Timer? _sessionTimer;

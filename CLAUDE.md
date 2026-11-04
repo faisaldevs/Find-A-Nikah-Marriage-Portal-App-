@@ -9,20 +9,11 @@ to follow when the two disagree.
 Pragmatic production-ready: start each feature simple, add structure only when the
 feature's own complexity demands it. Don't pre-build layers "because the diagram has them."
 
-## Model layer: use Freezed
-All new data models (entities, API response models, provider state) use `freezed` +
-`json_serializable`, per the docs.
-
-`freezed` / `freezed_annotation` / `json_serializable` are installed (added with
-`features/auth`; `freezed` is pinned to 3.x because 4.x needs Dart ≥3.13 and the SDK
-constraint is 3.12). Run `dart run build_runner build` after adding/changing a Freezed
-class. Freezed 3 syntax: `abstract class X with _$X` for data classes, `sealed` for
-unions. Pure UI state (e.g. `FaceVerificationState`, `DiscoveryFilters`) skips
-`fromJson`/`toJson` — only add `part 'x.g.dart'` when the model actually crosses the
-network. Existing `OnboardingData`
-(`lib/features/onboarding/state/onboarding_data.dart`) still uses a manual
-`@immutable` + `copyWith` pattern — migrate it to Freezed the next time that file is
-touched for a feature reason; don't do a drive-by rewrite otherwise.
+## Model layer: Equatable + json_serializable (freezed removed)
+Entities and bloc states extend `Equatable` with a hand-written `copyWith` and `props`;
+DTOs are plain `@JsonSerializable()` classes. freezed is no longer a dependency — don't
+re-add it. Full rules (the `unchanged` sentinel for nullable `copyWith` params, sealed
+unions) in `resources/Architecture/ARCHITECTURE.md`, "Equatable for entities and states".
 
 ## Feature layering: incremental, not upfront clean architecture
 For each new feature (`auth`, `profile`, `discovery`, `chat`, `feed`, ...):

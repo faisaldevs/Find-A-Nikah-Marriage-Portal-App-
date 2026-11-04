@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/face_verification/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'liveness_capture_bloc.freezed.dart';
 
 sealed class LivenessCaptureEvent {
   const LivenessCaptureEvent();
@@ -95,25 +93,31 @@ enum LivenessCaptureStatus {
   failed,
 }
 
-@freezed
-abstract class LivenessCaptureState with _$LivenessCaptureState {
-  const factory LivenessCaptureState({
-    @Default(LivenessCaptureStatus.requestingPermission)
-    LivenessCaptureStatus status,
-    FaceSession? session,
-    @Default(0) int stepIndex,
+class LivenessCaptureState extends Equatable {
+  const LivenessCaptureState({
+    this.status = LivenessCaptureStatus.requestingPermission,
+    this.session,
+    this.stepIndex = 0,
+    this.captured = const <String, String>{},
+    this.hint,
+    this.rejectReason,
+    this.canRetry = true,
+    this.failure,
+  });
 
-    /// Best photo per challenge, keyed by the challenge name.
-    @Default(<String, String>{}) Map<String, String> captured,
+  final LivenessCaptureStatus status;
+  final FaceSession? session;
+  final int stepIndex;
 
-    /// Live guidance for the current pose.
-    PoseHint? hint,
-    String? rejectReason,
-    @Default(true) bool canRetry,
-    Failure? failure,
-  }) = _LivenessCaptureState;
+  /// Best photo per challenge, keyed by the challenge name.
+  final Map<String, String> captured;
 
-  const LivenessCaptureState._();
+  /// Live guidance for the current pose.
+  final PoseHint? hint;
+
+  final String? rejectReason;
+  final bool canRetry;
+  final Failure? failure;
 
   LivenessStepPlan get plan => session?.plan ?? LivenessStepPlan.defaultPlan;
 
@@ -129,6 +133,46 @@ abstract class LivenessCaptureState with _$LivenessCaptureState {
     LivenessCaptureStatus.choosingPhoto => true,
     _ => false,
   };
+
+  LivenessCaptureState copyWith({
+    LivenessCaptureStatus? status,
+    Object? session = unchanged,
+    int? stepIndex,
+    Map<String, String>? captured,
+    Object? hint = unchanged,
+    Object? rejectReason = unchanged,
+    bool? canRetry,
+    Object? failure = unchanged,
+  }) {
+    return LivenessCaptureState(
+      status: status ?? this.status,
+      session: identical(session, unchanged)
+          ? this.session
+          : session as FaceSession?,
+      stepIndex: stepIndex ?? this.stepIndex,
+      captured: captured ?? this.captured,
+      hint: identical(hint, unchanged) ? this.hint : hint as PoseHint?,
+      rejectReason: identical(rejectReason, unchanged)
+          ? this.rejectReason
+          : rejectReason as String?,
+      canRetry: canRetry ?? this.canRetry,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    status,
+    session,
+    stepIndex,
+    captured,
+    hint,
+    rejectReason,
+    canRetry,
+    failure,
+  ];
 }
 
 /// Guided photo capture for face verification: for each `/start`

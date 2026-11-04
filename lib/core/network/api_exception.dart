@@ -13,18 +13,26 @@ sealed class ApiException extends AppException {
 final class NetworkException extends ApiException {
   const NetworkException([super.message]);
 
+  // No response, so [message] is Dio's developer text, not a server
+  // message — never show it.
+  // @override
+  // Failure toFailure() =>
+  //     failureWithResponseMessage(const NetworkFailure(), message);
   @override
-  Failure toFailure() =>
-      failureWithResponseMessage(const NetworkFailure(), message);
+  Failure toFailure() => const NetworkFailure();
 }
 
 /// Connect, send or receive timed out.
 final class ApiTimeoutException extends ApiException {
   const ApiTimeoutException([super.message]);
 
+  // No response, so [message] is Dio's developer text, not a server
+  // message — never show it.
+  // @override
+  // Failure toFailure() =>
+  //     failureWithResponseMessage(const TimeoutFailure(), message);
   @override
-  Failure toFailure() =>
-      failureWithResponseMessage(const TimeoutFailure(), message);
+  Failure toFailure() => const TimeoutFailure();
 }
 
 /// 401 after the token refresh already failed — the session is over.

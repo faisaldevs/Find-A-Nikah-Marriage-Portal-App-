@@ -27,12 +27,12 @@ void main() {
   test('flags fall back to their defaults', () {
     const empty = RemoteConfig();
     expect(empty.isEnabled(FeatureFlag.faceVerification), isTrue);
-    expect(empty.isEnabled(FeatureFlag.realtime), isFalse);
+    expect(empty.isEnabled(FeatureFlag.livenessEnabled), isFalse);
 
     const remote = RemoteConfig(
-      flags: {'faceVerification': false, 'realtime': true},
+      flags: {'faceVerification': false, 'livenessEnabled': true},
     );
     expect(remote.isEnabled(FeatureFlag.faceVerification), isFalse);
-    expect(remote.isEnabled(FeatureFlag.realtime), isTrue);
+    expect(remote.isEnabled(FeatureFlag.livenessEnabled), isTrue);
   });
 }

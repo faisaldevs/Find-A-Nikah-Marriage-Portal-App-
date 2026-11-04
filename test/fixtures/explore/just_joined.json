@@ -1,0 +1,252 @@
+{
+  "statusCode": 200,
+  "data": {
+    "profiles": [
+      {
+        "userId": "6ad48931061cf43752ad84cd",
+        "profileId": "6ad48931a16f2d56cc226337",
+        "fullName": "Ruqayyah Islam",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:54:09.428Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792313652844-7631bf14-d9e4-42ac-9179-2cb320181165.jpg",
+        "images": [
+          "/public/upload/1792313652844-7631bf14-d9e4-42ac-9179-2cb320181165.jpg"
+        ],
+        "age": 29,
+        "maritalStatus": "never_married",
+        "professionTitle": "Teacher",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "dhikr",
+          "charity_work"
+        ],
+        "sect": [
+          "dhikr",
+          "charity_work"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad488b7061cf43752ad8433",
+        "profileId": "6ad488b6a16f2d56cc22632a",
+        "fullName": "Hafsa Rahim",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:52:07.208Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792313530598-934535b9-9e2c-44b5-9af8-44be36a07891.jpg",
+        "images": [
+          "/public/upload/1792313530598-934535b9-9e2c-44b5-9af8-44be36a07891.jpg"
+        ],
+        "age": 27,
+        "maritalStatus": "never_married",
+        "professionTitle": "Nurse",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "dawah"
+        ],
+        "sect": [
+          "fasting",
+          "dawah"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad48834061cf43752ad8399",
+        "profileId": "6ad48833a16f2d56cc2262f9",
+        "fullName": "Amina Yusuf",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:49:56.263Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792313400126-89e2a766-f01d-4937-9fbb-e986d5ffbbd1.jpg",
+        "images": [
+          "/public/upload/1792313400126-89e2a766-f01d-4937-9fbb-e986d5ffbbd1.jpg"
+        ],
+        "age": 31,
+        "maritalStatus": "never_married",
+        "professionTitle": "Architect",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "sect": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad48787061cf43752ad82df",
+        "profileId": "6ad48787a16f2d56cc2262cd",
+        "fullName": "Nusrat Jahan",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:47:03.957Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792313227328-8ec83b6a-0250-40db-b2b4-fb6bd5411483.jpg",
+        "images": [
+          "/public/upload/1792313227328-8ec83b6a-0250-40db-b2b4-fb6bd5411483.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Marketing Professional",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "dhikr",
+          "charity_work"
+        ],
+        "sect": [
+          "dhikr",
+          "charity_work"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad48682061cf43752ad8205",
+        "profileId": "6ad48681a16f2d56cc22628f",
+        "fullName": "Sumaiya Akter",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:42:42.056Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792312965423-b389981a-376c-4e61-9325-129aeac5f042.jpg",
+        "images": [
+          "/public/upload/1792312965423-b389981a-376c-4e61-9325-129aeac5f042.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Lecturer",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "dawah"
+        ],
+        "sect": [
+          "fasting",
+          "dawah"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad4839c061cf43752ad806b",
+        "profileId": "6ad4839ba16f2d56cc22620d",
+        "fullName": "Khadija Siddiqui",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:30:20.130Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792312223468-ea79f738-b912-48b8-8812-fa7a9b9c1ea2.jpg",
+        "images": [
+          "/public/upload/1792312223468-ea79f738-b912-48b8-8812-fa7a9b9c1ea2.jpg"
+        ],
+        "age": 30,
+        "maritalStatus": "widowed",
+        "professionTitle": "Nurse",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "dhikr",
+          "charity_work"
+        ],
+        "sect": [
+          "dhikr",
+          "charity_work"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad48310061cf43752ad7fd1",
+        "profileId": "6ad4830fa16f2d56cc2261f5",
+        "fullName": "Fatima Begum",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:28:00.251Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792312083576-07ab1990-fc5e-4bea-a123-c3813f50df31.jpg",
+        "images": [
+          "/public/upload/1792312083576-07ab1990-fc5e-4bea-a123-c3813f50df31.jpg"
+        ],
+        "age": 27,
+        "maritalStatus": "never_married",
+        "professionTitle": "Teacher",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "dawah"
+        ],
+        "sect": [
+          "fasting",
+          "dawah"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z"
+      },
+      {
+        "userId": "6ad48233061cf43752ad7ea5",
+        "profileId": "6ad48233a16f2d56cc2261ba",
+        "fullName": "Ayesha Khan",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T11:38:07.661Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792311862654-c87f3f07-d034-4b6c-8e6e-1af75837946c.jpg",
+        "images": [
+          "/public/upload/1792311862654-c87f3f07-d034-4b6c-8e6e-1af75837946c.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Doctor",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "dhikr",
+          "charity_work"
+        ],
+        "sect": [
+          "dhikr",
+          "charity_work"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 80,
+        "publishedAt": "2026-10-18T10:57:21.299Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 8,
+      "hasNext": false,
+      "hasPrev": false
+    },
+    "matchedPreference": false,
+    "daysFilter": 14,
+    "tag": "Just Joined"
+  },
+  "message": "Recently joined members matching your preferences",
+  "success": true
+}

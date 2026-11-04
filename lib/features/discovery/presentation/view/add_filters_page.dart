@@ -121,9 +121,8 @@ class _AddFiltersView extends StatelessWidget {
       // Opened from Marriage only now: every edit is already saved (the
       // feed restarts on change), so Apply just goes back.
       continueLabel: 'Apply',
-      onContinue: () => context.canPop()
-          ? context.pop()
-          : context.go(RoutePaths.marriage),
+      onContinue: () =>
+          context.canPop() ? context.pop() : context.go(RoutePaths.marriage),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(

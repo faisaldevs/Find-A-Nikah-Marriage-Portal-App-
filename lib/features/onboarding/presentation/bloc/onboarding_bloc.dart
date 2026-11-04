@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/onboarding/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'onboarding_bloc.freezed.dart';
 
 sealed class OnboardingEvent {
   const OnboardingEvent();
@@ -62,35 +60,88 @@ final class PhotosSubmitted extends OnboardingEvent {
   const PhotosSubmitted();
 }
 
-@freezed
-abstract class OnboardingState with _$OnboardingState {
-  const factory OnboardingState({
-    required OnboardingData draft,
+class OnboardingState extends Equatable {
+  const OnboardingState({
+    required this.draft,
+    this.pickingPhotos = false,
+    this.photosOverLimit = 0,
+    this.processingPhotos = false,
+    this.deletingPhoto,
+    this.generatingBio = false,
+    this.generatedBio,
+    this.submittingStep = false,
+    this.failure,
+  });
 
-    /// The gallery is open.
-    @Default(false) bool pickingPhotos,
+  final OnboardingData draft;
 
-    /// How many picked photos were dropped by the last pick for going over
-    /// [OnboardingData.maxPhotos] — the page shows a notice when it's > 0.
-    @Default(0) int photosOverLimit,
+  /// The gallery is open.
+  final bool pickingPhotos;
 
-    /// Photos were chosen and are being compressed before they're added —
-    /// the page shows a blocking progress dialog.
-    @Default(false) bool processingPhotos,
+  /// How many picked photos were dropped by the last pick for going over
+  /// [OnboardingData.maxPhotos] — the page shows a notice when it's > 0.
+  final int photosOverLimit;
 
-    /// The uploaded photo currently being deleted on the server (its URL)
-    /// — that slot shows a spinner and removals are locked meanwhile.
-    String? deletingPhoto,
-    @Default(false) bool generatingBio,
-    String? generatedBio,
+  /// Photos were chosen and are being compressed before they're added —
+  /// the page shows a blocking progress dialog.
+  final bool processingPhotos;
 
-    /// True while a `*Submitted` section PATCH (or the step-8 photo
-    /// upload) is in flight.
-    @Default(false) bool submittingStep,
+  /// The uploaded photo currently being deleted on the server (its URL)
+  /// — that slot shows a spinner and removals are locked meanwhile.
+  final String? deletingPhoto;
 
-    /// Shown once by the page's listener.
-    Failure? failure,
-  }) = _OnboardingState;
+  final bool generatingBio;
+  final String? generatedBio;
+
+  /// True while a `*Submitted` section PATCH (or the step-8 photo
+  /// upload) is in flight.
+  final bool submittingStep;
+
+  /// Shown once by the page's listener.
+  final Failure? failure;
+
+  OnboardingState copyWith({
+    OnboardingData? draft,
+    bool? pickingPhotos,
+    int? photosOverLimit,
+    bool? processingPhotos,
+    Object? deletingPhoto = unchanged,
+    bool? generatingBio,
+    Object? generatedBio = unchanged,
+    bool? submittingStep,
+    Object? failure = unchanged,
+  }) {
+    return OnboardingState(
+      draft: draft ?? this.draft,
+      pickingPhotos: pickingPhotos ?? this.pickingPhotos,
+      photosOverLimit: photosOverLimit ?? this.photosOverLimit,
+      processingPhotos: processingPhotos ?? this.processingPhotos,
+      deletingPhoto: identical(deletingPhoto, unchanged)
+          ? this.deletingPhoto
+          : deletingPhoto as String?,
+      generatingBio: generatingBio ?? this.generatingBio,
+      generatedBio: identical(generatedBio, unchanged)
+          ? this.generatedBio
+          : generatedBio as String?,
+      submittingStep: submittingStep ?? this.submittingStep,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    draft,
+    pickingPhotos,
+    photosOverLimit,
+    processingPhotos,
+    deletingPhoto,
+    generatingBio,
+    generatedBio,
+    submittingStep,
+    failure,
+  ];
 }
 
 /// Provided by the wizard shells (Profile part and Verification part). All

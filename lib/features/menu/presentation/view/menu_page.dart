@@ -4,6 +4,7 @@ import 'package:find_a_nikah/features/menu/domain/domain.dart';
 import 'package:find_a_nikah/features/menu/presentation/bloc/menu_bloc.dart';
 import 'package:find_a_nikah/features/menu/presentation/widgets/menu_style.dart';
 import 'package:find_a_nikah/features/menu/presentation/widgets/menu_widgets.dart';
+import 'package:find_a_nikah/features/menu/presentation/widgets/profile_photo.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,16 @@ class MenuPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<MenuBloc>()..add(const MenuStarted()),
-      child: const _MenuView(),
+      // Warm the photo cache so Edit profile / Preview open with photos.
+      child: BlocListener<MenuBloc, MenuState>(
+        listenWhen: (a, b) => a.profile?.photos != b.profile?.photos,
+        listener: (context, state) {
+          for (final url in state.profile?.photos ?? const <String>[]) {
+            precacheProfilePhoto(context, url);
+          }
+        },
+        child: const _MenuView(),
+      ),
     );
   }
 }
@@ -51,9 +61,12 @@ class _MenuView extends StatelessWidget {
             color: AppColors.primaryColor,
             onRefresh: () async {
               final bloc = context.read<MenuBloc>()..add(const MenuStarted());
-              await bloc.stream.firstWhere(
-                (s) => s.status != MenuStatus.loading,
-              );
+              // await bloc.stream.firstWhere(
+              //   (s) => s.status != MenuStatus.loading,
+              // );
+              // The cached profile stays on screen, so wait for the fresh
+              // copy instead of the loading state.
+              await bloc.stream.firstWhere((s) => !s.refreshing);
             },
             child: ListView(
               padding: EdgeInsets.only(bottom: 24.w),
@@ -172,6 +185,16 @@ class _ProfileHeader extends StatelessWidget {
                     _HeaderChip(
                       label: 'Edit',
                       icon: Assets.icons.menuEdit,
+                      // onTap: () => context
+                      //     .push<void>(RoutePaths.editProfile)
+                      //     .ignore(),
+                      // Was: reload on the way back. Edits now reach the
+                      // Menu through the repository's change stream.
+                      // onTap: () async {
+                      //   final bloc = context.read<MenuBloc>();
+                      //   await context.push<void>(RoutePaths.editProfile);
+                      //   bloc.add(const MenuStarted());
+                      // },
                       onTap: () =>
                           context.push<void>(RoutePaths.editProfile).ignore(),
                     ),

@@ -1,18 +1,47 @@
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/features/feed/domain/entities/feed_author.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'feed_profile.freezed.dart';
 
 /// A member's community profile.
-@freezed
-abstract class FeedProfile with _$FeedProfile {
-  const factory FeedProfile({
-    required FeedAuthor author,
-    required String countryName,
+class FeedProfile extends Equatable {
+  const FeedProfile({
+    required this.author,
+    required this.countryName,
+    required this.joined,
+    this.followers = 0,
+    this.following = 0,
+  });
 
-    /// Display-ready ("Oct 2026").
-    required String joined,
-    @Default(0) int followers,
-    @Default(0) int following,
-  }) = _FeedProfile;
+  final FeedAuthor author;
+  final String countryName;
+
+  /// Display-ready ("Oct 2026").
+  final String joined;
+
+  final int followers;
+  final int following;
+
+  FeedProfile copyWith({
+    FeedAuthor? author,
+    String? countryName,
+    String? joined,
+    int? followers,
+    int? following,
+  }) {
+    return FeedProfile(
+      author: author ?? this.author,
+      countryName: countryName ?? this.countryName,
+      joined: joined ?? this.joined,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    author,
+    countryName,
+    joined,
+    followers,
+    following,
+  ];
 }

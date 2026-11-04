@@ -1,0 +1,136 @@
+{
+  "statusCode": 200,
+  "data": {
+    "profiles": [
+      {
+        "userId": "6addd00470deb6718aa4d6f0",
+        "profileId": "6addd004a9590d7ecf3feb48",
+        "fullName": "Test Seed Sara",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-25T09:47:47.279Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792921606785-4ea4578b-9f9b-4cb4-8574-f3f1accc0e15.jpg",
+        "images": [
+          "/public/upload/1792921606785-4ea4578b-9f9b-4cb4-8574-f3f1accc0e15.jpg"
+        ],
+        "age": 29,
+        "maritalStatus": "never_married",
+        "professionTitle": "Accountant",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting"
+        ],
+        "sect": [
+          "fasting"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 35,
+        "publishedAt": "2026-10-25T09:46:45.077Z",
+        "viewedAt": "2026-10-25T09:47:47.803Z",
+        "viewCount": 1
+      },
+      {
+        "userId": "6addcfff70deb6718aa4d6b1",
+        "profileId": "6addcffea9590d7ecf3feb44",
+        "fullName": "Test Seed Laila",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-25T09:47:45.843Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg",
+        "images": [
+          "/public/upload/1792921601353-d2ade8a1-8be4-40f1-a822-50b6f9d469cf.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Designer",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting"
+        ],
+        "sect": [
+          "fasting"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 35,
+        "publishedAt": "2026-10-25T09:46:39.651Z",
+        "viewedAt": "2026-10-25T09:47:46.368Z",
+        "viewCount": 1
+      },
+      {
+        "userId": "6addcff970deb6718aa4d672",
+        "profileId": "6addcff9a9590d7ecf3feb42",
+        "fullName": "Test Seed Amira",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-25T11:49:10.290Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg",
+        "images": [
+          "/public/upload/1792921595924-6af74b78-603b-4ca7-ba04-698d1ccbccb9.jpg"
+        ],
+        "age": 29,
+        "maritalStatus": "never_married",
+        "professionTitle": "Engineer",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting"
+        ],
+        "sect": [
+          "fasting"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 35,
+        "publishedAt": "2026-10-25T09:46:34.053Z",
+        "viewedAt": "2026-10-25T09:47:44.931Z",
+        "viewCount": 1
+      },
+      {
+        "userId": "6ad48233061cf43752ad7ea5",
+        "profileId": "6ad48233a16f2d56cc2261ba",
+        "fullName": "Ayesha Khan",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T11:38:07.661Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792311862654-c87f3f07-d034-4b6c-8e6e-1af75837946c.jpg",
+        "images": [
+          "/public/upload/1792311862654-c87f3f07-d034-4b6c-8e6e-1af75837946c.jpg"
+        ],
+        "age": 28,
+        "maritalStatus": "never_married",
+        "professionTitle": "Doctor",
+        "educationLevel": "postgraduate",
+        "religion": "islam",
+        "faith": [
+          "dhikr",
+          "charity_work"
+        ],
+        "sect": [
+          "dhikr",
+          "charity_work"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 80,
+        "publishedAt": "2026-10-18T10:57:21.299Z",
+        "viewedAt": "2026-10-18T11:42:17.644Z",
+        "viewCount": 9
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 4,
+      "hasNext": false,
+      "hasPrev": false
+    },
+    "tag": "Visited You"
+  },
+  "message": "Members who visited your profile",
+  "success": true
+}

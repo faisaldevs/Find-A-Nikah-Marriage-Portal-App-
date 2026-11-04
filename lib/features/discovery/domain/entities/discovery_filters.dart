@@ -1,6 +1,5 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'discovery_filters.freezed.dart';
+import 'package:equatable/equatable.dart';
+import 'package:find_a_nikah/core/core.dart';
 
 /// Members can only apply ONE location filter at a time (per the "Remove
 /// location filter?" sheet in the mockups) — hence a mode enum instead of
@@ -22,28 +21,34 @@ const kHomeCountryCode = 'BD';
 /// Partner-preference filters collected on "Add filters" and the "Location"
 /// screen and consumed by the Marriage feed (`features/marriage`, through
 /// this feature's domain).
-@freezed
-abstract class DiscoveryFilters with _$DiscoveryFilters {
-  const factory DiscoveryFilters({
-    @Default(kMinAge) int minAge,
-    @Default(kMaxAge) int maxAge,
+class DiscoveryFilters extends Equatable {
+  const DiscoveryFilters({
+    this.minAge = kMinAge,
+    this.maxAge = kMaxAge,
+    this.locationMode,
+    this.distanceMiles = kMaxDistanceMiles,
+    this.limitToHomeCountry = false,
+    this.countryCode,
+    this.ethnicities = const <String>[],
+  });
 
-    /// Null = no location filter applied.
-    LocationFilterMode? locationMode,
+  final int minAge;
+  final int maxAge;
 
-    /// Distance-mode fields. Kept even when [locationMode] is `country` so
-    /// switching back restores the last slider position.
-    @Default(kMaxDistanceMiles) double distanceMiles,
-    @Default(false) bool limitToHomeCountry,
+  /// Null = no location filter applied.
+  final LocationFilterMode? locationMode;
 
-    /// Country-mode field: ISO code from `package:core` `allCountries`.
-    String? countryCode,
+  /// Distance-mode fields. Kept even when [locationMode] is `country` so
+  /// switching back restores the last slider position.
+  final double distanceMiles;
 
-    /// Ethnicity codes; empty = "No preference".
-    @Default(<String>[]) List<String> ethnicities,
-  }) = _DiscoveryFilters;
+  final bool limitToHomeCountry;
 
-  const DiscoveryFilters._();
+  /// Country-mode field: ISO code from `package:core` `allCountries`.
+  final String? countryCode;
+
+  /// Ethnicity codes; empty = "No preference".
+  final List<String> ethnicities;
 
   bool get isAnyAge => minAge == kMinAge && maxAge == kMaxAge;
   bool get isEverywhere => distanceMiles >= kMaxDistanceMiles;
@@ -85,16 +90,56 @@ abstract class DiscoveryFilters with _$DiscoveryFilters {
 
   DiscoveryFilters withEthnicities(List<String> codes) =>
       copyWith(ethnicities: List.unmodifiable(codes));
+
+  DiscoveryFilters copyWith({
+    int? minAge,
+    int? maxAge,
+    Object? locationMode = unchanged,
+    double? distanceMiles,
+    bool? limitToHomeCountry,
+    Object? countryCode = unchanged,
+    List<String>? ethnicities,
+  }) {
+    return DiscoveryFilters(
+      minAge: minAge ?? this.minAge,
+      maxAge: maxAge ?? this.maxAge,
+      locationMode: identical(locationMode, unchanged)
+          ? this.locationMode
+          : locationMode as LocationFilterMode?,
+      distanceMiles: distanceMiles ?? this.distanceMiles,
+      limitToHomeCountry: limitToHomeCountry ?? this.limitToHomeCountry,
+      countryCode: identical(countryCode, unchanged)
+          ? this.countryCode
+          : countryCode as String?,
+      ethnicities: ethnicities ?? this.ethnicities,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    minAge,
+    maxAge,
+    locationMode,
+    distanceMiles,
+    limitToHomeCountry,
+    countryCode,
+    ethnicities,
+  ];
 }
 
 /// A position on the map, without any map package's type.
-@freezed
-abstract class GeoPoint with _$GeoPoint {
-  const factory GeoPoint(double latitude, double longitude) = _GeoPoint;
+class GeoPoint extends Equatable {
+  const GeoPoint(this.latitude, this.longitude);
+
+  final double latitude;
+  final double longitude;
 
   /// Dhaka — where the map lands when location is unavailable, since the
   /// launch market is Bangladesh.
   static const fallback = GeoPoint(23.8103, 90.4125);
+
+  @override
+  List<Object?> get props => [latitude, longitude];
 }
 
 /// Whether the app may read the device location.

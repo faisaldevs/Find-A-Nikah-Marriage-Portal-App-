@@ -9,6 +9,16 @@
 // ignore_for_file: type=lint
 // ignore_for_file: deprecated_member_use,directives_ordering,implicit_dynamic_list_literal,unnecessary_import
 
+class $AssetsDummyGen {
+  const $AssetsDummyGen();
+
+  /// File path: assets/dummy/messaging.json
+  String get messaging => 'assets/dummy/messaging.json';
+
+  /// List of all assets
+  List<String> get values => [messaging];
+}
+
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
@@ -430,6 +440,7 @@ class $AssetsImagesGen {
 }
 
 abstract final class Assets {
+  static const $AssetsDummyGen dummy = $AssetsDummyGen();
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
 }

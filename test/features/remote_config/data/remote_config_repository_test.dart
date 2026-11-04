@@ -1,5 +1,5 @@
-import 'package:find_a_nikah/core/core.dart';
 import 'package:dio/dio.dart';
+import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/remote_config/data/data.dart';
 import 'package:find_a_nikah/features/remote_config/data/dtos/remote_config_dto.dart';
 import 'package:find_a_nikah/features/remote_config/domain/domain.dart';
@@ -41,10 +41,13 @@ void main() {
   test('success is cached and served when the next fetch fails', () async {
     remote.next = const RemoteConfigDto(
       minimumSupportedVersion: '1.2.0',
-      flags: {'realtime': true},
+      flags: {'livenessEnabled': true},
     );
     final ok = await repo.fetch();
-    expect(ok.getRight().toNullable()!.isEnabled(FeatureFlag.realtime), isTrue);
+    expect(
+      ok.getRight().toNullable()!.isEnabled(FeatureFlag.livenessEnabled),
+      isTrue,
+    );
 
     remote.next = null;
     final fallback = await repo.fetch();

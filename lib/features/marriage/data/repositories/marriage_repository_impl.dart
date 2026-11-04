@@ -31,6 +31,7 @@ class MarriageRepositoryImpl implements MarriageRepository {
   Future<Either<Failure, SwipeOutcome>> swipe(
     SwipeAction action, {
     String? targetUserId,
+    String? text,
   }) async => right((isMatch: false));
 
   /// The query the discovery API expects. Only set filters are sent.

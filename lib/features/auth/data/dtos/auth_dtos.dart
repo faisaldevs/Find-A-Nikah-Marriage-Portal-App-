@@ -1,7 +1,6 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'auth_dtos.g.dart';
-part 'auth_dtos.freezed.dart';
 
 /// Tokens and session metadata after mapping an auth API response.
 @JsonSerializable()
@@ -101,78 +100,114 @@ class RefreshRequestDto {
   Map<String, dynamic> toJson() => _$RefreshRequestDtoToJson(this);
 }
 
-@freezed
-abstract class AuthApiSessionResponseDto with _$AuthApiSessionResponseDto {
-  const factory AuthApiSessionResponseDto({
-    required AuthApiSessionDataDto data,
-  }) = _AuthApiSessionResponseDto;
+@JsonSerializable()
+class AuthApiSessionResponseDto {
+  const AuthApiSessionResponseDto({
+    required this.data,
+  });
 
   factory AuthApiSessionResponseDto.fromJson(Map<String, dynamic> json) =>
       _$AuthApiSessionResponseDtoFromJson(json);
+
+  final AuthApiSessionDataDto data;
+
+  Map<String, dynamic> toJson() => _$AuthApiSessionResponseDtoToJson(this);
 }
 
-@freezed
-abstract class AuthApiSessionDataDto with _$AuthApiSessionDataDto {
-  const factory AuthApiSessionDataDto({
-    required String accessToken,
-    required String refreshToken,
-    required AuthApiSessionUserDto user,
-  }) = _AuthApiSessionDataDto;
+@JsonSerializable()
+class AuthApiSessionDataDto {
+  const AuthApiSessionDataDto({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.user,
+  });
 
   factory AuthApiSessionDataDto.fromJson(Map<String, dynamic> json) =>
       _$AuthApiSessionDataDtoFromJson(json);
+
+  final String accessToken;
+  final String refreshToken;
+  final AuthApiSessionUserDto user;
+
+  Map<String, dynamic> toJson() => _$AuthApiSessionDataDtoToJson(this);
 }
 
-@freezed
-abstract class AuthApiSessionUserDto with _$AuthApiSessionUserDto {
-  const factory AuthApiSessionUserDto({
-    @JsonKey(name: '_id') required String userId,
-    @JsonKey(name: 'isOnboardingComplete') required bool onboardingComplete,
-  }) = _AuthApiSessionUserDto;
+@JsonSerializable()
+class AuthApiSessionUserDto {
+  const AuthApiSessionUserDto({
+    required this.userId,
+    required this.onboardingComplete,
+  });
 
   factory AuthApiSessionUserDto.fromJson(Map<String, dynamic> json) =>
       _$AuthApiSessionUserDtoFromJson(json);
+
+  @JsonKey(name: '_id')
+  final String userId;
+  @JsonKey(name: 'isOnboardingComplete')
+  final bool onboardingComplete;
+
+  Map<String, dynamic> toJson() => _$AuthApiSessionUserDtoToJson(this);
 }
 
-@freezed
-abstract class OnboardingStatusResponseDto with _$OnboardingStatusResponseDto {
-  const factory OnboardingStatusResponseDto({
-    required OnboardingStatusDataDto data,
-  }) = _OnboardingStatusResponseDto;
+@JsonSerializable()
+class OnboardingStatusResponseDto {
+  const OnboardingStatusResponseDto({
+    required this.data,
+  });
 
   factory OnboardingStatusResponseDto.fromJson(Map<String, dynamic> json) =>
       _$OnboardingStatusResponseDtoFromJson(json);
+
+  final OnboardingStatusDataDto data;
+
+  Map<String, dynamic> toJson() => _$OnboardingStatusResponseDtoToJson(this);
 }
 
-@freezed
-abstract class OnboardingStatusDataDto with _$OnboardingStatusDataDto {
-  const factory OnboardingStatusDataDto({
-    @JsonKey(name: 'isCompleted') required bool isCompleted,
-
-    /// Which wizard section the user has yet to finish (4 Basics, 5
-    /// Background & faith, 6 Lifestyle & personality, 7 Bio — matching
-    /// `OnboardingSubmissionRepository`'s step literals). Defaults to 4
-    /// (the first section) if the backend omits it.
-    @JsonKey(name: 'currentStep') @Default(4) int currentStep,
-    OnboardingStatusUserDto? user,
-
-    /// Only what resume needs (photo count, face check).
-    OnboardingStatusProfileDto? profile,
-  }) = _OnboardingStatusDataDto;
+@JsonSerializable()
+class OnboardingStatusDataDto {
+  const OnboardingStatusDataDto({
+    required this.isCompleted,
+    this.currentStep = 4,
+    this.user,
+    this.profile,
+  });
 
   factory OnboardingStatusDataDto.fromJson(Map<String, dynamic> json) =>
       _$OnboardingStatusDataDtoFromJson(json);
+
+  @JsonKey(name: 'isCompleted')
+  final bool isCompleted;
+
+  /// Which wizard section the user has yet to finish (4 Basics, 5
+  /// Background & faith, 6 Lifestyle & personality, 7 Bio — matching
+  /// `OnboardingSubmissionRepository`'s step literals). Defaults to 4
+  /// (the first section) if the backend omits it.
+  @JsonKey(name: 'currentStep')
+  final int currentStep;
+
+  final OnboardingStatusUserDto? user;
+
+  /// Only what resume needs (photo count, face check).
+  final OnboardingStatusProfileDto? profile;
+
+  Map<String, dynamic> toJson() => _$OnboardingStatusDataDtoToJson(this);
 }
 
-@freezed
-abstract class OnboardingStatusProfileDto with _$OnboardingStatusProfileDto {
-  const factory OnboardingStatusProfileDto({
-    @Default(<Object?>[]) List<Object?> images,
-    Map<String, dynamic>? faceVerification,
-  }) = _OnboardingStatusProfileDto;
+@JsonSerializable()
+class OnboardingStatusProfileDto {
+  const OnboardingStatusProfileDto({
+    this.images = const <Object?>[],
+    this.faceVerification,
+  });
 
   factory OnboardingStatusProfileDto.fromJson(Map<String, dynamic> json) =>
       _$OnboardingStatusProfileDtoFromJson(json);
+
+  final List<Object?> images;
+  final Map<String, dynamic>? faceVerification;
+
+  Map<String, dynamic> toJson() => _$OnboardingStatusProfileDtoToJson(this);
 }
 
 /// Photos needed before the face check (mirrors onboarding's minimum).
@@ -204,15 +239,20 @@ extension OnboardingStatusResume on OnboardingStatusDataDto {
   bool get isEffectivelyCompleted => isCompleted || resumeStep >= 12;
 }
 
-@freezed
-abstract class OnboardingStatusUserDto with _$OnboardingStatusUserDto {
-  const factory OnboardingStatusUserDto({
-    @Default(false) bool isPhoneVerified,
-    @Default(4) int onboardingStep,
-  }) = _OnboardingStatusUserDto;
+@JsonSerializable()
+class OnboardingStatusUserDto {
+  const OnboardingStatusUserDto({
+    this.isPhoneVerified = false,
+    this.onboardingStep = 4,
+  });
 
   factory OnboardingStatusUserDto.fromJson(Map<String, dynamic> json) =>
       _$OnboardingStatusUserDtoFromJson(json);
+
+  final bool isPhoneVerified;
+  final int onboardingStep;
+
+  Map<String, dynamic> toJson() => _$OnboardingStatusUserDtoToJson(this);
 }
 
 extension AuthApiSessionResponseDtoSession on AuthApiSessionResponseDto {
@@ -226,42 +266,64 @@ extension AuthApiSessionResponseDtoSession on AuthApiSessionResponseDto {
 
 /// `POST /onboarding/phone/send-code` → `{data: {phone, code, devCode}}`.
 /// `devCode`/`code` are only present in the backend's demo mode.
-@freezed
-abstract class PhoneCodeSentResponseDto with _$PhoneCodeSentResponseDto {
-  const factory PhoneCodeSentResponseDto({PhoneCodeSentDataDto? data}) =
-      _PhoneCodeSentResponseDto;
+@JsonSerializable()
+class PhoneCodeSentResponseDto {
+  const PhoneCodeSentResponseDto({
+    this.data,
+  });
 
   factory PhoneCodeSentResponseDto.fromJson(Map<String, dynamic> json) =>
       _$PhoneCodeSentResponseDtoFromJson(json);
+
+  final PhoneCodeSentDataDto? data;
+
+  Map<String, dynamic> toJson() => _$PhoneCodeSentResponseDtoToJson(this);
 }
 
-@freezed
-abstract class PhoneCodeSentDataDto with _$PhoneCodeSentDataDto {
-  const factory PhoneCodeSentDataDto({String? devCode, String? code}) =
-      _PhoneCodeSentDataDto;
+@JsonSerializable()
+class PhoneCodeSentDataDto {
+  const PhoneCodeSentDataDto({
+    this.devCode,
+    this.code,
+  });
 
   factory PhoneCodeSentDataDto.fromJson(Map<String, dynamic> json) =>
       _$PhoneCodeSentDataDtoFromJson(json);
+
+  final String? devCode;
+  final String? code;
+
+  Map<String, dynamic> toJson() => _$PhoneCodeSentDataDtoToJson(this);
 }
 
 /// `POST /onboarding/phone/verify-code` → `{data: {phone, isPhoneVerified,
 /// verified}}`.
-@freezed
-abstract class PhoneVerifiedResponseDto with _$PhoneVerifiedResponseDto {
-  const factory PhoneVerifiedResponseDto({PhoneVerifiedDataDto? data}) =
-      _PhoneVerifiedResponseDto;
+@JsonSerializable()
+class PhoneVerifiedResponseDto {
+  const PhoneVerifiedResponseDto({
+    this.data,
+  });
 
   factory PhoneVerifiedResponseDto.fromJson(Map<String, dynamic> json) =>
       _$PhoneVerifiedResponseDtoFromJson(json);
+
+  final PhoneVerifiedDataDto? data;
+
+  Map<String, dynamic> toJson() => _$PhoneVerifiedResponseDtoToJson(this);
 }
 
-@freezed
-abstract class PhoneVerifiedDataDto with _$PhoneVerifiedDataDto {
-  const factory PhoneVerifiedDataDto({
-    @Default(false) bool isPhoneVerified,
-    @Default(false) bool verified,
-  }) = _PhoneVerifiedDataDto;
+@JsonSerializable()
+class PhoneVerifiedDataDto {
+  const PhoneVerifiedDataDto({
+    this.isPhoneVerified = false,
+    this.verified = false,
+  });
 
   factory PhoneVerifiedDataDto.fromJson(Map<String, dynamic> json) =>
       _$PhoneVerifiedDataDtoFromJson(json);
+
+  final bool isPhoneVerified;
+  final bool verified;
+
+  Map<String, dynamic> toJson() => _$PhoneVerifiedDataDtoToJson(this);
 }

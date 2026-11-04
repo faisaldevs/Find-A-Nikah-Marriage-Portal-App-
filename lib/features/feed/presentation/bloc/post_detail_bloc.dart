@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/feed/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'post_detail_bloc.freezed.dart';
 
 sealed class PostDetailEvent {
   const PostDetailEvent();
@@ -22,16 +20,52 @@ final class PostDetailSortChanged extends PostDetailEvent {
 
 enum PostDetailStatus { loading, ready, failure }
 
-@freezed
-abstract class PostDetailState with _$PostDetailState {
-  const factory PostDetailState({
-    required FeedPost post,
-    @Default(PostDetailStatus.loading) PostDetailStatus status,
-    @Default(CommentSort.mostPopular) CommentSort sort,
-    @Default(<FeedComment>[]) List<FeedComment> comments,
-    FeedAuthor? me,
-    Failure? failure,
-  }) = _PostDetailState;
+class PostDetailState extends Equatable {
+  const PostDetailState({
+    required this.post,
+    this.status = PostDetailStatus.loading,
+    this.sort = CommentSort.mostPopular,
+    this.comments = const <FeedComment>[],
+    this.me,
+    this.failure,
+  });
+
+  final FeedPost post;
+  final PostDetailStatus status;
+  final CommentSort sort;
+  final List<FeedComment> comments;
+  final FeedAuthor? me;
+  final Failure? failure;
+
+  PostDetailState copyWith({
+    FeedPost? post,
+    PostDetailStatus? status,
+    CommentSort? sort,
+    List<FeedComment>? comments,
+    Object? me = unchanged,
+    Object? failure = unchanged,
+  }) {
+    return PostDetailState(
+      post: post ?? this.post,
+      status: status ?? this.status,
+      sort: sort ?? this.sort,
+      comments: comments ?? this.comments,
+      me: identical(me, unchanged) ? this.me : me as FeedAuthor?,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    post,
+    status,
+    sort,
+    comments,
+    me,
+    failure,
+  ];
 }
 
 /// One post and its comments, scoped to the post page.

@@ -19,7 +19,6 @@ Iterable<File> _dartFiles(String dir) => Directory(dir)
       (f) =>
           f.path.endsWith('.dart') &&
           !f.path.endsWith('.g.dart') &&
-          !f.path.endsWith('.freezed.dart') &&
           !f.path.endsWith('.config.dart'),
     );
 
@@ -70,12 +69,12 @@ void main() {
               pureDart ||
                   uri.startsWith('package:core/') ||
                   uri.startsWith('package:fpdart/') ||
-                  uri.startsWith('package:freezed_annotation/') ||
+                  uri.startsWith('package:equatable/') ||
                   uri.startsWith('package:meta/') ||
                   (target != null && target.$2 == 'domain'),
               file,
               uri,
-              'domain is pure Dart: core, fpdart, freezed_annotation and '
+              'domain is pure Dart: core, fpdart, equatable and '
               'domains only',
             );
           case 'data':

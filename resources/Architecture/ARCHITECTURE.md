@@ -7,7 +7,7 @@ Last updated: 2026-10-06
 This is a project-independent architecture for production Flutter apps: feature-first Clean Architecture with BLoC and a REST backend. Every new project starts from it and records its project-specific choices in the **Project decisions register** near the end.
 
 - **Audience:** a solo developer today; written so new developers can join without a walkthrough.
-- **Baseline stack (same in every project):** Flutter stable, flutter_bloc + bloc_concurrency, fpdart, Dio + Retrofit, freezed + json_serializable, get_it + injectable, go_router, flutter_secure_storage, very_good_analysis, mocktail + bloc_test.
+- **Baseline stack (same in every project):** Flutter stable, flutter_bloc + bloc_concurrency, fpdart, Dio + Retrofit, equatable + json_serializable, get_it + injectable, go_router, flutter_secure_storage, very_good_analysis, mocktail + bloc_test.
 - **Conditional stack (chosen per project):** local database, real-time transport, crash/analytics vendor, CI/CD provider, auth method — each marked below.
 - **Not covered:** backend design, visual design, store listing.
 
@@ -25,7 +25,7 @@ Dependencies point inward, repositories are the single source of truth, and the 
 1. **Dependencies point inward (MUST).** `presentation → domain ← data`. Domain is pure Dart: no Flutter, Dio, database or JSON imports. Data and presentation never import each other.
 2. **Repositories are the single source of truth (MUST).** The UI gets data only from repositories, never from a data source, cache or socket directly.
 3. **Errors are values above the repository (MUST).** Data sources throw typed exceptions; repositories return `Either<Failure, T>`; nothing above a repository uses try/catch.
-4. **Immutable models, unidirectional data flow (MUST).** Events go down, state comes up; models are `freezed`.
+4. **Immutable models, unidirectional data flow (MUST).** Events go down, state comes up; models are immutable `Equatable` classes.
 5. **The server is the authority (MUST).** Permissions, payments, limits, validation and anything security-related are enforced server-side. The client renders and requests.
 6. **Boring and consistent beats clever.** One way to do each thing. A new pattern needs an entry in this guide first.
 7. **Every rule has a home.** Business rule → entity/use case. Wire format → model. Storage choice → data source. Wording → presentation (localised).
@@ -97,26 +97,32 @@ Each layer has one job, one model type, and one way to talk to the layer below.
 
 | Layer | Owns | Model type | Talks to | May import |
 | --- | --- | --- | --- | --- |
-| Domain | Entities, business rules, repository contracts, use cases | Entity (freezed, no JSON) | nothing | `core`, fpdart, freezed_annotation |
+| Domain | Entities, business rules, repository contracts, use cases | Entity (Equatable, no JSON) | nothing | `core`, fpdart, equatable |
 | Data | DTOs, local rows, mappers, data sources, repository impls | DTO / local row | API, local store, sockets, platform | domain, `api_client`, `local_db`, `realtime`, `sync_engine` |
-| Presentation | Blocs/cubits, pages, views, widgets, user-facing text | State (freezed or sealed) | use cases / repositories | domain, `ui_kit`, `l10n`, flutter_bloc |
+| Presentation | Blocs/cubits, pages, views, widgets, user-facing text | State (Equatable class or sealed) | use cases / repositories | domain, `ui_kit`, `l10n`, flutter_bloc |
 
 ### Domain
 
 Entities are immutable and carry their own rules. Repository contracts return `Future<Either<Failure, T>>` for one-shot work and `Stream<T>` for data the UI keeps watching.
 
 ```dart
-@freezed
-abstract class Item with _$Item {
-  const Item._();
-  const factory Item({
-    required String id,
-    required String title,
-    required DateTime updatedAt,
-    required ItemStatus status,
-  }) = _Item;
+class Item extends Equatable {
+  const Item({
+    required this.id,
+    required this.title,
+    required this.updatedAt,
+    required this.status,
+  });
+
+  final String id;
+  final String title;
+  final DateTime updatedAt;
+  final ItemStatus status;
 
   bool get isEditable => status != ItemStatus.archived; // rule lives here
+
+  @override
+  List<Object?> get props => [id, title, updatedAt, status];
 }
 
 abstract interface class ItemRepository {
@@ -139,9 +145,9 @@ Keep the wire format, the stored format and the domain model apart; one class do
 
 Mappers are extension methods in `data/mappers/` (`ItemDto.toEntity()`, `ItemRow.toEntity()`), unit-tested for every field that needs conversion. Repository implementations are the only place exceptions become failures.
 
-> **[Needs project info to decide]** *Question:* separate DTO and entity classes, or one? *Options:* **Separate DTO + entity with mappers** — backend you don't fully control, API shape differs from UI needs, or a local database adds a third shape. **One freezed model used everywhere** — small app, backend built for this client, payloads already match the UI. *Default if unsure:* separate; the cost is a mapper file, the saving is every future backend rename.
+> **[Needs project info to decide]** *Question:* separate DTO and entity classes, or one? *Options:* **Separate DTO + entity with mappers** — backend you don't fully control, API shape differs from UI needs, or a local database adds a third shape. **One model used everywhere** — small app, backend built for this client, payloads already match the UI. *Default if unsure:* separate; the cost is a mapper file, the saving is every future backend rename.
 
-**Why freezed and json_serializable both appear:** json_serializable only generates `fromJson`/`toJson`. freezed generates `==`/`hashCode`, `copyWith`, `toString`, immutability and sealed unions. Entities and bloc states use freezed without JSON (domain must not know the wire format); DTOs use json_serializable (or freezed with `fromJson`, which runs json_serializable underneath). Equatable is not used: freezed already provides value equality without a hand-maintained `props` list.
+**Equatable for entities and states, json_serializable for DTOs:** entities and bloc states extend `Equatable` (no JSON — domain must not know the wire format), with a hand-written `copyWith` and a `props` list. Every field MUST be in `props`, or `==` silently ignores it and blocs skip emits. Nullable fields take `Object? x = unchanged` in `copyWith` (`core/model/unchanged.dart`) so `copyWith(x: null)` can clear them; cast `double?` through `num?` so int literals still work. Unions are a `sealed` base with `const factory` redirects to `final` subclasses. DTOs are plain `@JsonSerializable()` classes (`fromJson`/`toJson`, no equality or `copyWith`). freezed is not used.
 
 ### Presentation
 
@@ -343,26 +349,49 @@ Use a single state class with a status enum when data must survive loading and e
 
 | Use | When | Examples |
 | --- | --- | --- |
-| One freezed class + `status` enum + `copyWith` | Data must stay visible while refreshing, paginating or after an error; multi-step forms | Any list with refresh/pagination, detail screen with edit, wizard |
+| One Equatable class + `status` enum + `copyWith` | Data must stay visible while refreshing, paginating or after an error; multi-step forms | Any list with refresh/pagination, detail screen with edit, wizard |
 | Sealed classes | Each state carries different data and nothing carries over | Auth status, a state machine, a one-shot result screen |
 
 ```dart
 enum ListStatus { initial, ready, loadingMore, failure }
 
-@freezed
-abstract class ItemListState with _$ItemListState {
-  const factory ItemListState({
-    @Default(ListStatus.initial) ListStatus status,
-    @Default(<Item>[]) List<Item> items,
-    @Default(false) bool reachedEnd,
-    Failure? lastFailure,           // shown once by the listener
-  }) = _ItemListState;
+class ItemListState extends Equatable {
+  const ItemListState({
+    this.status = ListStatus.initial,
+    this.items = const <Item>[],
+    this.reachedEnd = false,
+    this.lastFailure,
+  });
+
+  final ListStatus status;
+  final List<Item> items;
+  final bool reachedEnd;
+  final Failure? lastFailure;      // shown once by the listener
+
+  ItemListState copyWith({
+    ListStatus? status,
+    List<Item>? items,
+    bool? reachedEnd,
+    Object? lastFailure = unchanged,
+  }) {
+    return ItemListState(
+      status: status ?? this.status,
+      items: items ?? this.items,
+      reachedEnd: reachedEnd ?? this.reachedEnd,
+      lastFailure: identical(lastFailure, unchanged)
+          ? this.lastFailure
+          : lastFailure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [status, items, reachedEnd, lastFailure];
 }
 ```
 
 **Rules (MUST)**
 
-- Events, states and failures are `sealed` (or freezed unions) so every `switch` is exhaustive — no `_ =>` fallback branches.
+- Events, states and failures are `sealed` so every `switch` is exhaustive — no `_ =>` fallback branches.
 - Event names are past-tense facts: `ItemSaved`, `MoreItemsRequested`, never `SaveItem`.
 - Every `on<E>` declares a transformer, chosen deliberately:
 
@@ -484,7 +513,7 @@ Each layer is tested against fakes of the layer below, and CI blocks any change 
 
 > **[Needs project info to decide]** *Question:* coverage target? *Options:* **100%** (VGV's rule) — teams that start strict from day one. **90% on domain, data and blocs, views excluded** — a practical production bar. **Gate only on "no decrease"** — inheriting an untested codebase. *Default if unsure:* 90% on domain, data and blocs.
 
-> **[Needs project info to decide]** *Question:* commit generated code (`*.g.dart`, `*.freezed.dart`) or generate in CI? *Options:* **Commit** — faster CI, reviewers see generated diffs, simpler for newcomers. **Generate in CI** — cleaner diffs, but every machine must run build_runner. *Default if unsure:* commit it.
+> **[Needs project info to decide]** *Question:* commit generated code (`*.g.dart`) or generate in CI? *Options:* **Commit** — faster CI, reviewers see generated diffs, simpler for newcomers. **Generate in CI** — cleaner diffs, but every machine must run build_runner. *Default if unsure:* commit it.
 
 **CI/CD pipeline**
 

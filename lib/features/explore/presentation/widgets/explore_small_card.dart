@@ -1,5 +1,7 @@
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/explore/domain/domain.dart';
+import 'package:find_a_nikah/features/explore/presentation/widgets/explore_lock_overlay.dart';
+import 'package:find_a_nikah/features/explore/presentation/widgets/explore_photo.dart';
 import 'package:find_a_nikah/features/explore/presentation/widgets/explore_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -7,15 +9,18 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 /// "Take a second look" / "Visited you" card: a smaller unlocked photo with
 /// name/age/verified and one meta line — flag + area on the left, the
 /// posted-at time right-aligned (mockup: 120×168, text inset 6pt).
+/// [locked] (premium-gated "Visited you") adds the lock over the photo.
 class ExploreSmallCard extends StatelessWidget {
   const ExploreSmallCard({
     required this.profile,
     required this.onTap,
+    this.locked = false,
     super.key,
   });
 
   final ExploreProfile profile;
   final VoidCallback onTap;
+  final bool locked;
 
   static const width = 120.0;
   static const double height = width * kExploreCardAspect;
@@ -40,7 +45,8 @@ class ExploreSmallCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(profile.photoUrl, fit: BoxFit.cover),
+              // Image.network(profile.photoUrl, fit: BoxFit.cover),
+              ExplorePhoto(profile.photoUrl),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -55,6 +61,14 @@ class ExploreSmallCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (locked)
+                Center(
+                  // Sized between the grid (27) and big (77) card locks.
+                  child: Transform.translate(
+                    offset: Offset(0, 2.w),
+                    child: ExploreLockOverlay(size: 36.r),
+                  ),
+                ),
               Positioned(
                 left: 6.w,
                 right: 6.75.w,

@@ -1,41 +1,59 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'ai_bio_response.freezed.dart';
 part 'ai_bio_response.g.dart';
 
-@freezed
-abstract class AiBioResponse with _$AiBioResponse {
-  const factory AiBioResponse({
-    required AiBioData data,
-    int? statusCode,
-    String? message,
-    bool? success,
-  }) = _AiBioResponse;
+@JsonSerializable()
+class AiBioResponse {
+  const AiBioResponse({
+    required this.data,
+    this.statusCode,
+    this.message,
+    this.success,
+  });
 
   factory AiBioResponse.fromJson(Map<String, dynamic> json) =>
       _$AiBioResponseFromJson(json);
+
+  final AiBioData data;
+  final int? statusCode;
+  final String? message;
+  final bool? success;
+
+  Map<String, dynamic> toJson() => _$AiBioResponseToJson(this);
 }
 
-@freezed
-abstract class AiBioData with _$AiBioData {
-  const factory AiBioData({
-    required String bio,
-    @Default(<AiBioOption>[]) List<AiBioOption> options,
-    String? source,
-  }) = _AiBioData;
+@JsonSerializable()
+class AiBioData {
+  const AiBioData({
+    required this.bio,
+    this.options = const <AiBioOption>[],
+    this.source,
+  });
 
   factory AiBioData.fromJson(Map<String, dynamic> json) =>
       _$AiBioDataFromJson(json);
+
+  final String bio;
+  final List<AiBioOption> options;
+  final String? source;
+
+  Map<String, dynamic> toJson() => _$AiBioDataToJson(this);
 }
 
-@freezed
-abstract class AiBioOption with _$AiBioOption {
-  const factory AiBioOption({
-    required String tone,
-    required String title,
-    required String bio,
-  }) = _AiBioOption;
+@JsonSerializable()
+class AiBioOption {
+  const AiBioOption({
+    required this.tone,
+    required this.title,
+    required this.bio,
+  });
 
   factory AiBioOption.fromJson(Map<String, dynamic> json) =>
       _$AiBioOptionFromJson(json);
+
+  final String tone;
+  final String title;
+  final String bio;
+
+  Map<String, dynamic> toJson() => _$AiBioOptionToJson(this);
 }

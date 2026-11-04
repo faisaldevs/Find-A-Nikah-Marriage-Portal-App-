@@ -1,0 +1,78 @@
+{
+  "statusCode": 200,
+  "data": {
+    "profiles": [
+      {
+        "userId": "6ad4843a061cf43752ad810d",
+        "profileId": "6ad4843aa16f2d56cc226231",
+        "fullName": "Zainab Noor",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:32:58.699Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792312382055-0578e311-7ad5-4667-98e0-22ca3c0ab094.jpg",
+        "images": [
+          "/public/upload/1792312382055-0578e311-7ad5-4667-98e0-22ca3c0ab094.jpg"
+        ],
+        "age": 26,
+        "maritalStatus": "never_married",
+        "professionTitle": "Student",
+        "educationLevel": "high_school",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "sect": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z",
+        "passedAt": "2026-10-25T09:32:48.642Z"
+      },
+      {
+        "userId": "6ad482a9061cf43752ad7f3f",
+        "profileId": "6ad482a8a16f2d56cc2261d8",
+        "fullName": "Maryam Hossain",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T08:26:17.148Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/1792311980634-0cf5d969-2519-4f04-87e3-2cc2b4b079ba.jpg",
+        "images": [
+          "/public/upload/1792311980634-0cf5d969-2519-4f04-87e3-2cc2b4b079ba.jpg"
+        ],
+        "age": 29,
+        "maritalStatus": "never_married",
+        "professionTitle": "Pharmacist",
+        "educationLevel": "undergraduate",
+        "religion": "islam",
+        "faith": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "sect": [
+          "fasting",
+          "friday_prayer"
+        ],
+        "city": null,
+        "country": "Bangladesh",
+        "completeness": 85,
+        "publishedAt": "2026-10-18T10:53:22.910Z",
+        "passedAt": "2026-10-25T09:30:11.472Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 3,
+      "hasNext": false,
+      "hasPrev": false
+    },
+    "tag": "Passed Profiles"
+  },
+  "message": "Profiles you passed on",
+  "success": true
+}

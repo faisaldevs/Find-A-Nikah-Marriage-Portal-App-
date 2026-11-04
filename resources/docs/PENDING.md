@@ -5,6 +5,153 @@ Work that's been scoped but not started. Newest first. Move an item out
 
 ---
 
+## Support tickets — backend contract received, nothing built
+
+**Added:** 2026-10-29 · **Status:** UI is two "coming soon" stubs in
+`help_page.dart`; REST + socket exist on the backend
+
+REST + socket contract and backend issues live in
+`resources/docs/SUPPORT_TICKETS.md`.
+
+- [ ] Backend: attachment shape/upload, status/category/priority
+      constants, closed-ticket guard (see doc)
+- [ ] Build `features/support/` (tickets list, ticket thread, new ticket)
+      with a Retrofit data source + socket push; needs `socket_io_client`
+
+---
+
+## Explore — 6 sections + Passed live; waiting on backend fixes
+
+**Added:** 2026-10-25 · **Updated:** 2026-10-27 · **Status:** wired to
+`feed/near-you`, `just-joined`, `second-look`, `visited-you`, `passed`,
+`likes/who-liked-me` ("People who liked you" on For you) and
+`likes/like-list` (My history → Liked) (Drift cache-then-network, paged
+12/page, nothing locked while everything is free). "Currently available"
+and My history's Favourited / Complimented are still
+`DummyExploreDataSource` (no API).
+
+Checked on a phone against the real response payloads (fixtures in
+`test/fixtures/explore/`, served by a local mock; the dev ngrok URL was
+down on 2026-10-27). Backend items:
+
+- [ ] `passed`: `totalCount` says 3 but only 2 profiles come back. The
+      missing one is the pending test account Amira (completeness 35, not
+      verified). Same filter seems to hide those accounts from
+      `second-look` and `just-joined`, so a "pass, then they like me back"
+      scenario can't be produced with them. Need to know what makes a
+      profile eligible (verified? completeness?).
+- [ ] **`like-list` returns who liked ME, not who I liked** (same data,
+      `tag: "Who Liked You"`, as `who-liked-me`). Checked 2026-10-27 on the
+      new dev URL: seed account f1 liked the QA account via
+      `POST /v1/profiles/swipe`; QA's `like-list` and `who-liked-me` both
+      list f1, while f1's own `like-list` is empty. My history → Liked
+      therefore shows the wrong people until the backend returns sent
+      likes (or gives another endpoint).
+- [ ] Open question (decide later): should someone who liked me still
+      show in "People who liked you" once it becomes a match
+      (`likeStatus` other than `pending`)? Today every returned row shows.
+- [ ] Open question (decide later): do `who-liked-me` / `like-list` hide
+      low-completeness (35) unverified accounts like the other feeds?
+      The seed accounts showed up in `who-liked-me`, so apparently not.
+- [ ] `like-list` returns the same people twice (`likes` wrapper with
+      `likedAt`, and flat `profiles`); the flat list's order differs from
+      `likes`. The app shows the flat order and takes the time from `likes`.
+- [ ] near-you now returns `city` and `distanceKm` (earlier all null), but
+      the sample profiles use `faith: ["sunni"]` (a sect) and photos
+      `/public/upload/sample_*.jpg`. Re-check on real data.
+- [ ] "active" window looks like about 7 days: near-you was empty once
+      everyone's `lastActiveAt` was older.
+- [ ] `faith` and `sect` carry identical values on the seeded profiles.
+- [ ] Unlocked `like-list` item shape confirmed (wrapper + flat), but a
+      locked response (`locked: true`) hasn't been seen since the change.
+
+---
+
+## Voice calls — UI on a fake call, SDK + signalling pending
+
+**Added:** 2026-10-24 · **Status:** screens done on `DummyCallDataSource`
+(no audio); waiting on calling SDK choice (decisions register #13) and
+backend signalling
+
+Chat room 📞 → `/call` (dialing → ringing → connected, the dummy peer
+always answers after ~5s). Dev flavor: ⋮ → "Simulate incoming call" →
+`/call/incoming` (Accept / Decline / quick message; missed after 30s).
+Ended → "Call ended" for 2s → back to chat, which gets a call line.
+
+- [ ] Real calls: managed SDK (LiveKit / Agora / …) behind
+      `CallRepository`; mic permission; audio session / speaker routing
+- [ ] Real incoming calls: push (CallKit on iOS, ConnectionService /
+      full-screen intent on Android) + an app-scoped listener that opens
+      the call screen from anywhere — today only the dev menu rings
+- [ ] Call records should come from the server, not `logCall` on the
+      client
+- [ ] Back currently ends the call; needs a minimised in-call bar to keep
+      it running behind other screens
+- [ ] In-call profile button is a "coming soon" toast
+- [ ] Proximity sensor / screen-off while at the ear
+
+---
+
+## Chat (messaging) — UI on dummy data, API + realtime pending
+
+**Added:** 2026-10-24 · **Status:** UI done on `DummyMessagingDataSource`
+(`assets/dummy/messaging.json`); waiting on backend
+
+Contract: `resources/docs/MESSAGING_API.md`.
+
+Chat tab → Marriage lists active conversations over the free slots; empty
+slot → Matches panel → pick a match → it takes a slot on the list
+(empty row, "Say salaam…") → tap the row → chat room (`/chat/room`, peer
+as `extra`). Text only. Statuses sending → sent → delivered → seen, typing
+indicator and auto-replies are all faked by the dummy source.
+
+**Matches panel is live (2026-11-02):** `GET /v1/matches/my-matches`
+(`MatchesRemoteDataSource`) feeds the panel; conversations + messages are
+still dummy, so picking a real match opens a *fake* conversation with
+that person's name and photo (auto-replies included).
+
+**Conversations + messages wired over REST (2026-11-04, untested against
+the live server):** `MessagingRepositoryImpl` uses `ChatRemoteDataSource`
+(list, open, history with `before` cursor, send, mark-read), text only.
+No socket yet, so it polls (list 10s, open thread 3s). Replies, typing and
+call records have no backend: replies are dropped on send, call lines are
+local-only. The dummy version is `DummyMessagingRepositoryImpl` (swap in
+`di.dart`).
+
+**Slots (decided 2026-11-02):** keep the 5 slots on the frontend. When the
+conversations API is wired, fill them from the list as it comes (in order,
+no saved position). Switch to a server `slot` field once the backend has
+one.
+
+- [ ] Real data source: conversation list, message history (cursor
+      paging, older messages on scroll-up), send, mark-read
+- [ ] Backend: add a `slot` (0–4) to conversations + enforce the 5-chat
+      limit on `POST /conversations/:userId`; then read it instead of
+      filling slots in list order
+- [ ] Matches are fetched once per Chat tab visit (the tab keeps its
+      state), so a match made mid-session needs a restart — add refresh
+      (on panel open or pull-to-refresh)
+- [ ] Matches: `canMessage` and `status` are read but not used yet (a
+      `canMessage: false` match still shows); confirm `status` values
+- [ ] Every match already has a server conversation (`conversationId` in
+      `my-matches`). When conversations go live, decide which rows show
+      in the panel vs the slots (e.g. panel = `lastMessagePreview` null)
+- [ ] No presence in the API: peers never show "Online", only "Last seen"
+      from `lastActiveAt`
+- [ ] Realtime (decisions register #12): new message / status / typing
+      / presence events feed the repository streams, never bloc state;
+      close the socket in `SessionScopeManager.closeConnections`
+- [ ] `myId` from the auth session instead of the fixture's `meId`
+- [ ] Offline cache for messages (register #9) — currently in-memory
+- [ ] 5-slot limit is display-only; server must enforce it
+- [ ] "Coming soon" stubs: attachments (+), voice messages (mic), voice
+      call (header; video call removed 2026-10-24), and the header's "⋮"
+      menu — View profile, Mute, Clear chat, Unmatch, Block, Report
+- [ ] Not built yet: long-press actions (copy / delete / report / block),
+      Friends tab chats, conversation search, the list's "•••" menu
+
+---
+
 ## Marriage tab — small copy/icon fixes (undecided)
 
 **Added:** 2026-10-18 · **Status:** owner undecided — don't change yet
@@ -17,8 +164,22 @@ and everything else stay as the Figma.
 - [ ] Stray space in "Don't wait , chat with {name} now." (compliment box)
 - [ ] Favourite in the footer uses the share/upload icon — reference uses
       a star (☆)
-- [ ] Compliment placeholder "…about their profile or about her" —
-      reference is gender-neutral "…about their profile"
+- [x] Compliment placeholder is now the gender-neutral "…about their
+      profile" (2026-10-27)
+
+**Compliment / message button (2026-10-27):** the middle action button
+opens a full-screen Compliment page (per the reference video) and sends it
+through `POST /v1/profiles/swipe` `{action: "complement", text,
+targetUserId}` — spelled "complement"; "compliment" is a 400, empty text a
+500. The sent text shows above the profile photo with a spinner, then a
+double tick. The server treats it as a like (profile leaves the deck, can
+match, shows in their "People who liked you"), so undo can't bring it back.
+It also returns `conversationId` / `messageId`, unused until Chat is real.
+
+- [ ] If the send fails the strip is removed and the error toast shows; the
+      typed text is lost (could keep it on the Compliment page and retry).
+- [ ] Backend: does a complement to someone who already liked me match?
+      Not tried yet.
 
 ---
 
@@ -213,13 +374,14 @@ Built pixel-matched from Figma (`menu`, `menu_invite`, `menu_help`,
 `settings`, `menu_edit`). Real data where `/v1/onboarding/status` has it
 (name, photos, verified, completeness, profile fields); dummy otherwise.
 
-- [ ] **Profile API** — swap `MenuRemoteDataSource.getMyProfile` +
-      `MyProfileResponseDto` (marked `TODO(api)`) when it exists.
-- [ ] **Edit mode** — agreed approach: open the onboarding pages from
-      Edit profile without the stepper, "Save" PATCHes that section and
-      pops back. Needs backend confirmation that step PATCHes (or a profile
-      update API) work after onboarding is complete. Until then every Edit
-      row shows "Coming soon".
+- [x] **Profile API** — Menu / Edit profile read `GET /v1/profiles/me`.
+- [x] **Edit mode (2026-10-31)** — Muzz-style: each row opens its own
+      field page, Update enabled once something changes, saved with
+      `PATCH /v1/profiles/me`. Plan, decisions and what's left:
+      `resources/docs/EDIT_PROFILE_PLAN.md`.
+- [ ] **Still "coming soon" in Edit:** Current location (how to set it
+      after onboarding is unconfirmed), adding / replacing photos (no
+      upload endpoint confirmed). Use-as-main and delete work.
 - [ ] **Rows onboarding never collects** (family involvement, living
       arrangements, tagline, employer, sect, family plans, polygamy) —
       need designs + API fields.

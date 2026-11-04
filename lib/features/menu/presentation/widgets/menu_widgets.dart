@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/menu/presentation/widgets/menu_style.dart';
+import 'package:find_a_nikah/features/menu/presentation/widgets/profile_photo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:share_plus/share_plus.dart';
@@ -407,7 +408,8 @@ class MenuProfileAvatar extends StatelessWidget {
                       color: Color(0xFFEEEEEE),
                       child: Icon(Icons.person, color: kMenuGrey400),
                     )
-                  : AppPhoto(photoUrl!),
+                  // : AppPhoto(photoUrl!),
+                  : ProfilePhoto(photoUrl!),
             ),
           ),
         ),

@@ -6,19 +6,19 @@ part of 'onboarding_profile_response.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_OnboardingProfileResponseDto _$OnboardingProfileResponseDtoFromJson(
+OnboardingProfileResponseDto _$OnboardingProfileResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileResponseDto(
+) => OnboardingProfileResponseDto(
   data: OnboardingProfileDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$OnboardingProfileResponseDtoToJson(
-  _OnboardingProfileResponseDto instance,
+  OnboardingProfileResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_OnboardingProfileDataDto _$OnboardingProfileDataDtoFromJson(
+OnboardingProfileDataDto _$OnboardingProfileDataDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileDataDto(
+) => OnboardingProfileDataDto(
   currentStep: (json['currentStep'] as num?)?.toInt() ?? 4,
   user: json['user'] == null
       ? null
@@ -29,24 +29,24 @@ _OnboardingProfileDataDto _$OnboardingProfileDataDtoFromJson(
 );
 
 Map<String, dynamic> _$OnboardingProfileDataDtoToJson(
-  _OnboardingProfileDataDto instance,
+  OnboardingProfileDataDto instance,
 ) => <String, dynamic>{
   'currentStep': instance.currentStep,
   'user': instance.user,
   'profile': instance.profile,
 };
 
-_OnboardingProfileUserDto _$OnboardingProfileUserDtoFromJson(
+OnboardingProfileUserDto _$OnboardingProfileUserDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileUserDto(fullName: json['fullName'] as String?);
+) => OnboardingProfileUserDto(fullName: json['fullName'] as String?);
 
 Map<String, dynamic> _$OnboardingProfileUserDtoToJson(
-  _OnboardingProfileUserDto instance,
+  OnboardingProfileUserDto instance,
 ) => <String, dynamic>{'fullName': instance.fullName};
 
-_OnboardingProfileDto _$OnboardingProfileDtoFromJson(
+OnboardingProfileDto _$OnboardingProfileDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileDto(
+) => OnboardingProfileDto(
   accountType: json['accountType'] as String?,
   gender: json['gender'] as String?,
   religion: json['religion'] as String?,
@@ -106,7 +106,7 @@ _OnboardingProfileDto _$OnboardingProfileDtoFromJson(
 );
 
 Map<String, dynamic> _$OnboardingProfileDtoToJson(
-  _OnboardingProfileDto instance,
+  OnboardingProfileDto instance,
 ) => <String, dynamic>{
   'accountType': instance.accountType,
   'gender': instance.gender,
@@ -132,41 +132,41 @@ Map<String, dynamic> _$OnboardingProfileDtoToJson(
   'interests': instance.interests,
 };
 
-_OnboardingProfileAboutYouDto _$OnboardingProfileAboutYouDtoFromJson(
+OnboardingProfileAboutYouDto _$OnboardingProfileAboutYouDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileAboutYouDto(
+) => OnboardingProfileAboutYouDto(
   bornMuslim: json['bornMuslim'] as bool?,
   haveChildren: json['haveChildren'] as bool?,
   relocateAbroad: json['relocateAbroad'] as bool?,
 );
 
 Map<String, dynamic> _$OnboardingProfileAboutYouDtoToJson(
-  _OnboardingProfileAboutYouDto instance,
+  OnboardingProfileAboutYouDto instance,
 ) => <String, dynamic>{
   'bornMuslim': instance.bornMuslim,
   'haveChildren': instance.haveChildren,
   'relocateAbroad': instance.relocateAbroad,
 };
 
-_OnboardingProfileLifestyleDto _$OnboardingProfileLifestyleDtoFromJson(
+OnboardingProfileLifestyleDto _$OnboardingProfileLifestyleDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileLifestyleDto(
+) => OnboardingProfileLifestyleDto(
   alcohol: json['alcohol'] as bool?,
   halalFood: json['halalFood'] as bool?,
   smoking: json['smoking'] as bool?,
 );
 
 Map<String, dynamic> _$OnboardingProfileLifestyleDtoToJson(
-  _OnboardingProfileLifestyleDto instance,
+  OnboardingProfileLifestyleDto instance,
 ) => <String, dynamic>{
   'alcohol': instance.alcohol,
   'halalFood': instance.halalFood,
   'smoking': instance.smoking,
 };
 
-_OnboardingProfileInterestsDto _$OnboardingProfileInterestsDtoFromJson(
+OnboardingProfileInterestsDto _$OnboardingProfileInterestsDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingProfileInterestsDto(
+) => OnboardingProfileInterestsDto(
   cultural:
       (json['cultural'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
@@ -189,7 +189,7 @@ _OnboardingProfileInterestsDto _$OnboardingProfileInterestsDtoFromJson(
 );
 
 Map<String, dynamic> _$OnboardingProfileInterestsDtoToJson(
-  _OnboardingProfileInterestsDto instance,
+  OnboardingProfileInterestsDto instance,
 ) => <String, dynamic>{
   'cultural': instance.cultural,
   'foodDrinks': instance.foodDrinks,

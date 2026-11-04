@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'sign_up_bloc.freezed.dart';
 
 sealed class SignUpEvent {
   const SignUpEvent();
@@ -52,14 +50,42 @@ enum SignUpOperation {
   createAccount,
 }
 
-@freezed
-abstract class SignUpState with _$SignUpState {
-  const factory SignUpState({
-    @Default('') String email,
-    @Default(SignUpStatus.idle) SignUpStatus status,
-    @Default(SignUpOperation.none) SignUpOperation operation,
-    Failure? failure,
-  }) = _SignUpState;
+class SignUpState extends Equatable {
+  const SignUpState({
+    this.email = '',
+    this.status = SignUpStatus.idle,
+    this.operation = SignUpOperation.none,
+    this.failure,
+  });
+
+  final String email;
+  final SignUpStatus status;
+  final SignUpOperation operation;
+  final Failure? failure;
+
+  SignUpState copyWith({
+    String? email,
+    SignUpStatus? status,
+    SignUpOperation? operation,
+    Object? failure = unchanged,
+  }) {
+    return SignUpState(
+      email: email ?? this.email,
+      status: status ?? this.status,
+      operation: operation ?? this.operation,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    email,
+    status,
+    operation,
+    failure,
+  ];
 }
 
 /// Shared by the three sign-up pages (email → code → password); provided by

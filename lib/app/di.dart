@@ -1,13 +1,19 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:find_a_nikah/app/session_scope_manager.dart';
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/database/database.dart';
 import 'package:find_a_nikah/core/logging/app_logger.dart';
 import 'package:find_a_nikah/core/logging/log_error_reporter.dart';
 import 'package:find_a_nikah/core/network/network.dart';
 import 'package:find_a_nikah/features/auth/data/data.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
 import 'package:find_a_nikah/features/auth/presentation/bloc/bloc.dart';
+import 'package:find_a_nikah/features/calling/data/data.dart';
+import 'package:find_a_nikah/features/calling/domain/domain.dart';
+import 'package:find_a_nikah/features/calling/presentation/presentation.dart';
+import 'package:find_a_nikah/features/chat/presentation/presentation.dart';
 import 'package:find_a_nikah/features/discovery/data/data.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/discovery/presentation/presentation.dart';
@@ -26,6 +32,9 @@ import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
 import 'package:find_a_nikah/features/menu/data/data.dart';
 import 'package:find_a_nikah/features/menu/domain/domain.dart';
 import 'package:find_a_nikah/features/menu/presentation/presentation.dart';
+import 'package:find_a_nikah/features/messaging/data/data.dart';
+import 'package:find_a_nikah/features/messaging/domain/domain.dart';
+import 'package:find_a_nikah/features/messaging/presentation/presentation.dart';
 import 'package:find_a_nikah/features/onboarding/data/data.dart';
 import 'package:find_a_nikah/features/onboarding/domain/domain.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
@@ -75,6 +84,12 @@ Future<void> configureDependencies(AppConfig config) async {
     onSessionExpired: sessionExpiry.notify,
     logger: logger,
   );
+  // One local database for the app; user content in it is cache only and
+  // is wiped on sign-out (SessionScopeManager.end).
+  final cache = JsonCache(AppDatabase());
+  // Open it in the background now: the first cached screen (Explore) then
+  // paints from the cache at once instead of after the database opens.
+  unawaited(cache.warmUp().catchError((Object _) {}));
   final picker = ImagePicker();
   // Android: use the system Photo Picker (backported to older versions via
   // Play services). The legacy gallery intent ignores the multi-select
@@ -90,6 +105,7 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerSingleton<ErrorReporter>(reporter)
     ..registerSingleton<Guard>(guard)
     ..registerSingleton<ApiClient>(api)
+    ..registerSingleton<JsonCache>(cache)
     // ── Repositories (stateless → root scope) ──────────────────────────
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(
@@ -178,26 +194,36 @@ Future<void> configureDependencies(AppConfig config) async {
       ),
     )
     // Dummy-only for now — no Explore API exists yet.
+    // ..registerLazySingleton<ExploreRepository>(
+    //   () => ExploreRepositoryImpl(const DummyExploreDataSource(), guard),
+    // )
+    // "Active near you" on the real API (cached); other sections dummy.
     ..registerLazySingleton<ExploreRepository>(
-      () => ExploreRepositoryImpl(const DummyExploreDataSource(), guard),
-    )
-    // Profile from /v1/onboarding/status (TODO(api): profile API);
-    // membership + settings dummy until their APIs exist.
-    ..registerLazySingleton<MenuRepository>(
-      () => MenuRepositoryImpl(
-        MenuRemoteDataSource(api.dio),
-        DummyMenuDataSource(),
+      () => ExploreRepositoryImpl(
+        const DummyExploreDataSource(),
+        ExploreRemoteDataSource(api.dio),
+        cache,
         guard,
-        imageBaseUrl: config.imageBaseUrl,
+        config.imageBaseUrl,
       ),
     )
+    // Moved to the session scope (pushSessionScope): it now holds the
+    // member's profile in memory.
+    // ..registerLazySingleton<MenuRepository>(
+    //   () => MenuRepositoryImpl(
+    //     MenuRemoteDataSource(api.dio),
+    //     DummyMenuDataSource(),
+    //     guard,
+    //     imageBaseUrl: config.imageBaseUrl,
+    //   ),
+    // )
     // Dummy-only for now — no Feed API exists yet.
     ..registerLazySingleton<FeedRepository>(
       () => FeedRepositoryImpl(DummyFeedDataSource(), guard),
     )
     // ── Session ────────────────────────────────────────────────────────
     ..registerLazySingleton<SessionScopeManager>(
-      () => SessionScopeManager(getIt<AuthRepository>(), reporter),
+      () => SessionScopeManager(getIt<AuthRepository>(), reporter, cache),
     )
     // SessionScopeManager is the SessionLifecycle sign-out drives.
     ..registerFactory<SignOut>(
@@ -266,6 +292,22 @@ Future<void> configureDependencies(AppConfig config) async {
     )
     ..registerFactory<CreatePostBloc>(
       () => CreatePostBloc(getIt<FeedRepository>()),
+    )
+    // Messaging reads the session-scoped repository, resolved on open.
+    ..registerFactory<ConversationsBloc>(
+      () => ConversationsBloc(getIt<MessagingRepository>()),
+    )
+    ..registerFactoryParam<ChatRoomBloc, ChatPeer, void>(
+      (peer, _) => ChatRoomBloc(getIt<MessagingRepository>(), peer),
+    )
+    // param2: opened as an incoming call.
+    ..registerFactoryParam<CallBloc, ChatPeer, bool>(
+      (peer, incoming) => CallBloc(
+        getIt<CallRepository>(),
+        getIt<MessagingRepository>(),
+        peer,
+        incoming: incoming,
+      ),
     );
 }
 
@@ -280,6 +322,52 @@ void pushSessionScope() => getIt.pushNewScope(
     ..registerLazySingleton<OnboardingDraftRepository>(
       InMemoryOnboardingDraftRepository.new,
       dispose: (r) => (r as InMemoryOnboardingDraftRepository).dispose(),
+    )
+    // The user's chats. Dummy-only for now — no chat API or socket yet.
+    // ..registerLazySingleton<MessagingRepository>(
+    //   () => MessagingRepositoryImpl(
+    //     DummyMessagingDataSource(),
+    //     getIt<Guard>(),
+    //   ),
+    // Matches panel is live (`my-matches`); conversations + messages are
+    // still dummy until the chat API / socket are wired.
+    // Live now: conversations, messages (REST, polled — no socket yet) and
+    // matches. The dummy-backed version is `DummyMessagingRepositoryImpl`.
+    // ..registerLazySingleton<MessagingRepository>(
+    //   () => DummyMessagingRepositoryImpl(
+    //     DummyMessagingDataSource(),
+    //     MatchesRemoteDataSource(getIt<ApiClient>().dio),
+    //     getIt<Guard>(),
+    //     getIt<AppConfig>().imageBaseUrl,
+    //   ),
+    //   dispose: (r) => (r as DummyMessagingRepositoryImpl).dispose(),
+    // )
+    ..registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(
+        ChatRemoteDataSource(getIt<ApiClient>().dio),
+        MatchesRemoteDataSource(getIt<ApiClient>().dio),
+        getIt<Guard>(),
+        getIt<AppConfig>().imageBaseUrl,
+      ),
+      dispose: (r) => (r as MessagingRepositoryImpl).dispose(),
+    )
+    // Live calls end with the session. Dummy-only — no calling SDK yet.
+    ..registerLazySingleton<CallRepository>(
+      () => CallRepositoryImpl(DummyCallDataSource(), getIt<Guard>()),
+      dispose: (r) => (r as CallRepositoryImpl).dispose(),
+    )
+    // The member's own profile (`/v1/profiles/me`), kept for the session
+    // and on the device so Menu / Edit profile / Settings open instantly.
+    // Membership + settings dummy until their APIs exist.
+    ..registerLazySingleton<MenuRepository>(
+      () => MenuRepositoryImpl(
+        MenuRemoteDataSource(getIt<ApiClient>().dio),
+        DummyMenuDataSource(),
+        getIt<Guard>(),
+        imageBaseUrl: getIt<AppConfig>().imageBaseUrl,
+        cache: getIt<JsonCache>(),
+      ),
+      dispose: (r) => (r as MenuRepositoryImpl).dispose(),
     ),
 );
 

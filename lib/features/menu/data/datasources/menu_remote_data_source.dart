@@ -9,8 +9,17 @@ part 'menu_remote_data_source.g.dart';
 abstract class MenuRemoteDataSource {
   factory MenuRemoteDataSource(Dio dio) = _MenuRemoteDataSource;
 
-  /// `TODO(api)`: the onboarding status endpoint stands in for a profile
-  /// API until one exists.
-  @GET('/v1/onboarding/status')
+  @GET('/v1/profiles/me')
   Future<MyProfileResponseDto> getMyProfile();
+
+  /// Body built by `profilePatchBody`. Answers with the same shape as GET.
+  @PATCH('/v1/profiles/me')
+  Future<MyProfileResponseDto> updateMyProfile(
+    @Body() Map<String, dynamic> body,
+  );
+
+  /// Same endpoint onboarding's Photos page uses; by file name (the last
+  /// segment of `/public/upload/<filename>`).
+  @DELETE('/v1/onboarding/images')
+  Future<void> deletePhoto(@Query('filename') String filename);
 }

@@ -90,8 +90,8 @@ void main() {
       );
       final result = await repo.startLivenessSession();
       final failure = result.getLeft().toNullable();
-      expect(failure, isA<ApiResponseFailure>());
-      expect((failure! as ApiResponseFailure).fallback, isA<NetworkFailure>());
+      // Dio's own text ("offline") is developer detail, never shown.
+      expect(failure, isA<NetworkFailure>());
     });
   });
 

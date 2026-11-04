@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'phone_verification_bloc.freezed.dart';
 
 sealed class PhoneVerificationEvent {
   const PhoneVerificationEvent();
@@ -27,17 +25,48 @@ final class PhoneCodeSubmitted extends PhoneVerificationEvent {
 
 enum PhoneVerificationStatus { idle, submitting, failure, codeSent, verified }
 
-@freezed
-abstract class PhoneVerificationState with _$PhoneVerificationState {
-  const factory PhoneVerificationState({
-    @Default('') String phoneNumber,
-    @Default(PhoneVerificationStatus.idle) PhoneVerificationStatus status,
+class PhoneVerificationState extends Equatable {
+  const PhoneVerificationState({
+    this.phoneNumber = '',
+    this.status = PhoneVerificationStatus.idle,
+    this.demoCode,
+    this.failure,
+  });
 
-    /// The code the backend echoed back in demo mode (`devCode`), if any —
-    /// the code page autofills it in debug builds only.
-    String? demoCode,
-    Failure? failure,
-  }) = _PhoneVerificationState;
+  final String phoneNumber;
+  final PhoneVerificationStatus status;
+
+  /// The code the backend echoed back in demo mode (`devCode`), if any —
+  /// the code page autofills it in debug builds only.
+  final String? demoCode;
+
+  final Failure? failure;
+
+  PhoneVerificationState copyWith({
+    String? phoneNumber,
+    PhoneVerificationStatus? status,
+    Object? demoCode = unchanged,
+    Object? failure = unchanged,
+  }) {
+    return PhoneVerificationState(
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      status: status ?? this.status,
+      demoCode: identical(demoCode, unchanged)
+          ? this.demoCode
+          : demoCode as String?,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    phoneNumber,
+    status,
+    demoCode,
+    failure,
+  ];
 }
 
 /// Phone number → OTP. Provided by the Verification wizard shell so both

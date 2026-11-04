@@ -2,6 +2,7 @@ import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/app/view/main_nav_shell.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/presentation.dart';
+import 'package:find_a_nikah/features/calling/presentation/presentation.dart';
 import 'package:find_a_nikah/features/chat/presentation/presentation.dart';
 import 'package:find_a_nikah/features/discovery/presentation/presentation.dart';
 import 'package:find_a_nikah/features/explore/presentation/presentation.dart';
@@ -11,10 +12,13 @@ import 'package:find_a_nikah/features/feed/presentation/presentation.dart';
 import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
 // import 'package:find_a_nikah/app/view/menu_page.dart'; // replaced by features/menu
 import 'package:find_a_nikah/features/menu/presentation/presentation.dart';
+import 'package:find_a_nikah/features/messaging/domain/domain.dart';
+import 'package:find_a_nikah/features/messaging/presentation/presentation.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
 // Only needed for the livenessEnabled flag lookup (now disabled).
 // import 'package:find_a_nikah/features/remote_config/domain/domain.dart';
 import 'package:find_a_nikah/features/remote_config/presentation/presentation.dart';
+import 'package:find_a_nikah/flavors/app_config.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:find_a_nikah/router/wizard_sections.dart';
 import 'package:flutter/widgets.dart';
@@ -204,7 +208,32 @@ final List<RouteBase> appRoutes = [
     ),
   ),
   _page(RoutePaths.editProfile, const EditProfilePage()),
+  GoRoute(
+    path: RoutePaths.editProfileField,
+    builder: (_, state) => switch (state.extra) {
+      final ProfileFieldEditorArgs args => ProfileFieldEditorPage(args: args),
+      // No args (e.g. after a hot restart): back to the whole profile.
+      _ => const EditProfilePage(),
+    },
+  ),
   _page(RoutePaths.chatArchived, const ChatArchivedPage()),
+  GoRoute(
+    path: RoutePaths.chatRoom,
+    // builder: (_, state) => ChatRoomPage(peer: state.extra! as ChatPeer),
+    builder: (_, state) => ChatRoomPage(
+      peer: state.extra! as ChatPeer,
+      devTools: getIt<AppConfig>().flavors == Flavors.dev,
+    ),
+  ),
+  GoRoute(
+    path: RoutePaths.call,
+    builder: (_, state) => CallPage(peer: state.extra! as ChatPeer),
+  ),
+  GoRoute(
+    path: RoutePaths.incomingCall,
+    builder: (_, state) =>
+        CallPage(peer: state.extra! as ChatPeer, incoming: true),
+  ),
 
   // Bottom nav: Marriage · Explore · Feed · Chat · Menu. Each tab keeps its
   // own stack and state.

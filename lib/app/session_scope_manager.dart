@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/database/database.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
 
 /// Opens the session DI scope when a user signs in and drops it when they
@@ -10,10 +11,13 @@ import 'package:find_a_nikah/features/auth/domain/domain.dart';
 /// Attached at bootstrap, before any bloc subscribes to auth status, so the
 /// scope exists before the router lets the user into session routes.
 class SessionScopeManager implements SessionLifecycle {
-  SessionScopeManager(this._auth, this._reporter);
+  SessionScopeManager(this._auth, this._reporter, this._cache);
 
   final AuthRepository _auth;
   final ErrorReporter _reporter;
+
+  /// Previous user's cached feeds must never show for the next one.
+  final JsonCache _cache;
 
   StreamSubscription<AuthStatus>? _subscription;
   String? _userId;
@@ -34,7 +38,15 @@ class SessionScopeManager implements SessionLifecycle {
         // Backend user ids are opaque — never an email or name.
         unawaited(_reporter.setUserId(session.userId));
       case Unauthenticated():
-        await end();
+        // Signed out on an earlier launch (or token expired while the app
+        // was closed): no scope to end, but the cache may still hold the
+        // previous user's data.
+        if (isActive) {
+          await end();
+        } else {
+          await _clearCache();
+        }
+      // await end();
       case AuthUnknown():
         break;
     }
@@ -50,7 +62,16 @@ class SessionScopeManager implements SessionLifecycle {
     if (!isActive) return;
     _userId = null;
     await dropSessionScope();
+    await _clearCache();
     await _reporter.setUserId(null);
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      await _cache.clear();
+    } on Object catch (e, st) {
+      await _reporter.record(e, st, reason: 'cache clear on sign-out');
+    }
   }
 
   Future<void> dispose() async => _subscription?.cancel();

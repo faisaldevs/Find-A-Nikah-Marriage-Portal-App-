@@ -2,10 +2,13 @@ import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/marriage/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/presentation/bloc/marriage_feed_bloc.dart';
+import 'package:find_a_nikah/features/marriage/presentation/view/compliment_page.dart';
+// import 'package:find_a_nikah/features/marriage/presentation/widgets/compliment_sent_strip.dart'; // now used by profile_scroll.dart
 import 'package:find_a_nikah/features/marriage/presentation/widgets/marriage_top_bar.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_action_buttons.dart';
-import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_details.dart';
-import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_hero.dart';
+// import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_details.dart'; // now used by profile_scroll.dart
+// import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_hero.dart'; // now used by profile_scroll.dart
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_scroll.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +43,14 @@ class _MarriageView extends StatelessWidget {
 
   void _comingSoon(BuildContext context, String what) {
     CustomToast.showInfo(context, '$what — coming soon');
+  }
+
+  /// Middle button: write the compliment on its own screen, then send it
+  /// (the profile shows it above the photo while it goes out).
+  Future<void> _compose(BuildContext context, MarriageProfile profile) async {
+    final feed = context.read<MarriageFeedBloc>();
+    final text = await showComplimentPage(context, name: profile.name);
+    if (text != null) feed.add(MarriageComplimentSubmitted(text));
   }
 
   @override
@@ -119,7 +130,7 @@ class _MarriageView extends StatelessWidget {
                         // // New key per profile → fresh scroll
                         // // position (back at the top) on
                         // // Cancel/Save/Previous.
-                        // child: _ProfileScroll(
+                        // child: ProfileScroll(
                         // key: ValueKey(profile!.id),
                         // profile: profile,
                         // heroHeight: heroHeight,
@@ -165,7 +176,7 @@ class _MarriageView extends StatelessWidget {
                         // return AnimatedSwitcher(
                         //   duration: const Duration(milliseconds: 250),
                         //   // New key per profile → fresh scroll position.
-                        //   child: _ProfileScroll(
+                        //   child: ProfileScroll(
                         //     key: ValueKey(profile!.id),
                         //     profile: profile,
                         //     heroHeight: heroHeight,
@@ -202,9 +213,13 @@ class _MarriageView extends StatelessWidget {
                                 duration: const Duration(milliseconds: 250),
                                 // New key per profile → fresh scroll position
                                 // (back at the top) on Cancel/Save/Previous.
-                                child: _ProfileScroll(
+                                child: ProfileScroll(
                                   key: ValueKey(profile!.id),
                                   profile: profile,
+                                  compliment: state.compliments[profile.id],
+                                  onCompliment: (text) => feed.add(
+                                    MarriageComplimentSubmitted(text),
+                                  ),
                                   heroHeight: heroHeight,
                                   // Details end just above the buttons.
                                   heroBottomInset: 23.6.h,
@@ -230,8 +245,9 @@ class _MarriageView extends StatelessWidget {
                                 // on the first profile.
                                 onPrevious: () =>
                                     feed.add(const MarriagePreviousRequested()),
-                                onMessage: () =>
-                                    _comingSoon(context, 'Messaging'),
+                                // onMessage: () =>
+                                //     _comingSoon(context, 'Messaging'),
+                                onMessage: () => _compose(context, profile),
                                 // onSave: () =>
                                 //     feed.add(const MarriageProfileAdvanced()),
                                 onSave: () =>
@@ -253,134 +269,5 @@ class _MarriageView extends StatelessWidget {
   }
 }
 
-class _ProfileScroll extends StatelessWidget {
-  const _ProfileScroll({
-    required this.profile,
-    required this.heroHeight,
-    required this.heroBottomInset,
-    required this.bottomPadding,
-    required this.onComingSoon,
-    // required this.actions,
-    super.key,
-  });
-
-  final MarriageProfile profile;
-  final double heroHeight;
-
-  /// Gap between the details and the photo's bottom edge.
-  final double heroBottomInset;
-  final double bottomPadding;
-
-  /// Snackbar for actions that aren't wired up yet.
-  final ValueChanged<String> onComingSoon;
-
-  // Scrolled with the hero; now pinned by the page instead.
-  // /// Pass / undo / message / like row, laid over the hero's bottom edge.
-  // final Widget actions;
-
-  @override
-  Widget build(BuildContext context) {
-    // return SingleChildScrollView(
-    // child: Column(
-    // children: [
-    // ProfileHero(
-    // profile: profile,
-    // height: heroHeight,
-    // bottomInset: heroBottomInset,
-    // ),
-    // ProfileDetails(
-    // profile: profile,
-    // bottomPadding: bottomPadding,
-    // onCheckFilters: () => onComingSoon('Filter match'),
-    // onCompliment: (_) => CustomToast.showSuccess(
-    // context,
-    // 'Compliment sent',
-    // description: 'Your compliment was sent to ${profile.name}.',
-    // ),
-    // onShare: () => onComingSoon('Share profile'),
-    // onFavourite: () => onComingSoon('Favourite'),
-    // onBlock: () => onComingSoon('Block'),
-    // onReport: () => onComingSoon('Report'),
-    // ),
-    // ],
-    // ),
-    // );
-    // // Before the full-profile design: only the extra photos, as rounded
-    // // cards, under the hero.
-    // // return SingleChildScrollView(
-    // //   padding: EdgeInsets.only(bottom: bottomPadding),
-    // //   child: Column(
-    // //     children: [
-    // //       ProfileHero(
-    // //         profile: profile,
-    // //         height: heroHeight,
-    // //         bottomInset: heroBottomInset,
-    // //       ),
-    // //       for (final url in profile.photoUrls.skip(1))
-    // //         Padding(
-    // //           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-    // //           child: ClipRRect(
-    // //             borderRadius: BorderRadius.circular(16.r),
-    // //             child: SizedBox(
-    // //               height: heroHeight * 0.75,
-    // //               child: ProfilePhoto(url: url),
-    // //             ),
-    // //           ),
-    // //         ),
-    // //     ],
-    // //   ),
-    // // );
-
-    // Buttons straddling the photo's edge and scrolling away with it
-    // (replaced: they're pinned by the page now):
-    // final button = kProfileActionButtonSize.r;
-    // final overlap = 19.h;
-    // return SingleChildScrollView(
-    //   child: Stack(
-    //     clipBehavior: Clip.none,
-    //     children: [
-    //       Column(
-    //         children: [
-    //           ProfileHero(...),
-    //           // Room for the part of the buttons below the photo.
-    //           SizedBox(height: button - overlap + 12.h),
-    //           ProfileDetails(...),
-    //         ],
-    //       ),
-    //       Positioned(
-    //         left: 0,
-    //         right: 0,
-    //         top: heroHeight - overlap,
-    //         height: button,
-    //         child: actions,
-    //       ),
-    //     ],
-    //   ),
-    // );
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          ProfileHero(
-            profile: profile,
-            height: heroHeight,
-            bottomInset: heroBottomInset,
-          ),
-          ProfileDetails(
-            profile: profile,
-            bottomPadding: bottomPadding,
-            onCheckFilters: () => onComingSoon('Filter match'),
-            onCompliment: (_) => CustomToast.showSuccess(
-              context,
-              'Compliment sent',
-              description: 'Your compliment was sent to ${profile.name}.',
-            ),
-            onShare: () => onComingSoon('Share profile'),
-            onFavourite: () => onComingSoon('Favourite'),
-            onBlock: () => onComingSoon('Block'),
-            onReport: () => onComingSoon('Report'),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// `_ProfileScroll` moved to widgets/profile_scroll.dart as `ProfileScroll`
+// so other screens can show the same profile layout.

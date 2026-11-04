@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/feed/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'create_post_bloc.freezed.dart';
 
 sealed class CreatePostEvent {
   const CreatePostEvent();
@@ -38,26 +36,70 @@ final class CreatePostSubmitted extends CreatePostEvent {
 
 enum CreatePostStatus { editing, submitting, published, failure }
 
-@freezed
-abstract class CreatePostState with _$CreatePostState {
-  const factory CreatePostState({
-    @Default(CreatePostStatus.editing) CreatePostStatus status,
-    FeedAuthor? me,
-    @Default(<FeedTopic>[]) List<FeedTopic> topics,
-    FeedTopic? topic,
-    @Default('') String text,
-    @Default(false) bool anonymous,
-    FeedPost? published,
-    Failure? failure,
-  }) = _CreatePostState;
+class CreatePostState extends Equatable {
+  const CreatePostState({
+    this.status = CreatePostStatus.editing,
+    this.me,
+    this.topics = const <FeedTopic>[],
+    this.topic,
+    this.text = '',
+    this.anonymous = false,
+    this.published,
+    this.failure,
+  });
 
-  const CreatePostState._();
+  final CreatePostStatus status;
+  final FeedAuthor? me;
+  final List<FeedTopic> topics;
+  final FeedTopic? topic;
+  final String text;
+  final bool anonymous;
+  final FeedPost? published;
+  final Failure? failure;
 
   /// "Post" lights up once there's something to say and a group for it.
   bool get canPost =>
       text.trim().isNotEmpty &&
       topic != null &&
       status != CreatePostStatus.submitting;
+
+  CreatePostState copyWith({
+    CreatePostStatus? status,
+    Object? me = unchanged,
+    List<FeedTopic>? topics,
+    Object? topic = unchanged,
+    String? text,
+    bool? anonymous,
+    Object? published = unchanged,
+    Object? failure = unchanged,
+  }) {
+    return CreatePostState(
+      status: status ?? this.status,
+      me: identical(me, unchanged) ? this.me : me as FeedAuthor?,
+      topics: topics ?? this.topics,
+      topic: identical(topic, unchanged) ? this.topic : topic as FeedTopic?,
+      text: text ?? this.text,
+      anonymous: anonymous ?? this.anonymous,
+      published: identical(published, unchanged)
+          ? this.published
+          : published as FeedPost?,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    status,
+    me,
+    topics,
+    topic,
+    text,
+    anonymous,
+    published,
+    failure,
+  ];
 }
 
 class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {

@@ -1,9 +1,7 @@
 import 'package:bloc/bloc.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/feed/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'profile_bloc.freezed.dart';
 
 sealed class ProfileEvent {
   const ProfileEvent();
@@ -15,15 +13,49 @@ final class ProfileStarted extends ProfileEvent {
 
 enum ProfileStatus { loading, ready, failure }
 
-@freezed
-abstract class ProfileState with _$ProfileState {
-  const factory ProfileState({
-    required FeedAuthor author,
-    @Default(ProfileStatus.loading) ProfileStatus status,
-    FeedProfile? profile,
-    @Default(<FeedPost>[]) List<FeedPost> posts,
-    Failure? failure,
-  }) = _ProfileState;
+class ProfileState extends Equatable {
+  const ProfileState({
+    required this.author,
+    this.status = ProfileStatus.loading,
+    this.profile,
+    this.posts = const <FeedPost>[],
+    this.failure,
+  });
+
+  final FeedAuthor author;
+  final ProfileStatus status;
+  final FeedProfile? profile;
+  final List<FeedPost> posts;
+  final Failure? failure;
+
+  ProfileState copyWith({
+    FeedAuthor? author,
+    ProfileStatus? status,
+    Object? profile = unchanged,
+    List<FeedPost>? posts,
+    Object? failure = unchanged,
+  }) {
+    return ProfileState(
+      author: author ?? this.author,
+      status: status ?? this.status,
+      profile: identical(profile, unchanged)
+          ? this.profile
+          : profile as FeedProfile?,
+      posts: posts ?? this.posts,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    author,
+    status,
+    profile,
+    posts,
+    failure,
+  ];
 }
 
 /// A member's community profile and posts, scoped to the profile page.

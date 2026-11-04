@@ -54,59 +54,59 @@ Map<String, dynamic> _$SocialSignInRequestDtoToJson(
 Map<String, dynamic> _$RefreshRequestDtoToJson(RefreshRequestDto instance) =>
     <String, dynamic>{'refreshToken': instance.refreshToken};
 
-_AuthApiSessionResponseDto _$AuthApiSessionResponseDtoFromJson(
+AuthApiSessionResponseDto _$AuthApiSessionResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _AuthApiSessionResponseDto(
+) => AuthApiSessionResponseDto(
   data: AuthApiSessionDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$AuthApiSessionResponseDtoToJson(
-  _AuthApiSessionResponseDto instance,
+  AuthApiSessionResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_AuthApiSessionDataDto _$AuthApiSessionDataDtoFromJson(
+AuthApiSessionDataDto _$AuthApiSessionDataDtoFromJson(
   Map<String, dynamic> json,
-) => _AuthApiSessionDataDto(
+) => AuthApiSessionDataDto(
   accessToken: json['accessToken'] as String,
   refreshToken: json['refreshToken'] as String,
   user: AuthApiSessionUserDto.fromJson(json['user'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$AuthApiSessionDataDtoToJson(
-  _AuthApiSessionDataDto instance,
+  AuthApiSessionDataDto instance,
 ) => <String, dynamic>{
   'accessToken': instance.accessToken,
   'refreshToken': instance.refreshToken,
   'user': instance.user,
 };
 
-_AuthApiSessionUserDto _$AuthApiSessionUserDtoFromJson(
+AuthApiSessionUserDto _$AuthApiSessionUserDtoFromJson(
   Map<String, dynamic> json,
-) => _AuthApiSessionUserDto(
+) => AuthApiSessionUserDto(
   userId: json['_id'] as String,
   onboardingComplete: json['isOnboardingComplete'] as bool,
 );
 
 Map<String, dynamic> _$AuthApiSessionUserDtoToJson(
-  _AuthApiSessionUserDto instance,
+  AuthApiSessionUserDto instance,
 ) => <String, dynamic>{
   '_id': instance.userId,
   'isOnboardingComplete': instance.onboardingComplete,
 };
 
-_OnboardingStatusResponseDto _$OnboardingStatusResponseDtoFromJson(
+OnboardingStatusResponseDto _$OnboardingStatusResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingStatusResponseDto(
+) => OnboardingStatusResponseDto(
   data: OnboardingStatusDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$OnboardingStatusResponseDtoToJson(
-  _OnboardingStatusResponseDto instance,
+  OnboardingStatusResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_OnboardingStatusDataDto _$OnboardingStatusDataDtoFromJson(
+OnboardingStatusDataDto _$OnboardingStatusDataDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingStatusDataDto(
+) => OnboardingStatusDataDto(
   isCompleted: json['isCompleted'] as bool,
   currentStep: (json['currentStep'] as num?)?.toInt() ?? 4,
   user: json['user'] == null
@@ -120,7 +120,7 @@ _OnboardingStatusDataDto _$OnboardingStatusDataDtoFromJson(
 );
 
 Map<String, dynamic> _$OnboardingStatusDataDtoToJson(
-  _OnboardingStatusDataDto instance,
+  OnboardingStatusDataDto instance,
 ) => <String, dynamic>{
   'isCompleted': instance.isCompleted,
   'currentStep': instance.currentStep,
@@ -128,78 +128,78 @@ Map<String, dynamic> _$OnboardingStatusDataDtoToJson(
   'profile': instance.profile,
 };
 
-_OnboardingStatusProfileDto _$OnboardingStatusProfileDtoFromJson(
+OnboardingStatusProfileDto _$OnboardingStatusProfileDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingStatusProfileDto(
+) => OnboardingStatusProfileDto(
   images: json['images'] as List<dynamic>? ?? const <Object?>[],
   faceVerification: json['faceVerification'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$OnboardingStatusProfileDtoToJson(
-  _OnboardingStatusProfileDto instance,
+  OnboardingStatusProfileDto instance,
 ) => <String, dynamic>{
   'images': instance.images,
   'faceVerification': instance.faceVerification,
 };
 
-_OnboardingStatusUserDto _$OnboardingStatusUserDtoFromJson(
+OnboardingStatusUserDto _$OnboardingStatusUserDtoFromJson(
   Map<String, dynamic> json,
-) => _OnboardingStatusUserDto(
+) => OnboardingStatusUserDto(
   isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
   onboardingStep: (json['onboardingStep'] as num?)?.toInt() ?? 4,
 );
 
 Map<String, dynamic> _$OnboardingStatusUserDtoToJson(
-  _OnboardingStatusUserDto instance,
+  OnboardingStatusUserDto instance,
 ) => <String, dynamic>{
   'isPhoneVerified': instance.isPhoneVerified,
   'onboardingStep': instance.onboardingStep,
 };
 
-_PhoneCodeSentResponseDto _$PhoneCodeSentResponseDtoFromJson(
+PhoneCodeSentResponseDto _$PhoneCodeSentResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _PhoneCodeSentResponseDto(
+) => PhoneCodeSentResponseDto(
   data: json['data'] == null
       ? null
       : PhoneCodeSentDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$PhoneCodeSentResponseDtoToJson(
-  _PhoneCodeSentResponseDto instance,
+  PhoneCodeSentResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_PhoneCodeSentDataDto _$PhoneCodeSentDataDtoFromJson(
+PhoneCodeSentDataDto _$PhoneCodeSentDataDtoFromJson(
   Map<String, dynamic> json,
-) => _PhoneCodeSentDataDto(
+) => PhoneCodeSentDataDto(
   devCode: json['devCode'] as String?,
   code: json['code'] as String?,
 );
 
 Map<String, dynamic> _$PhoneCodeSentDataDtoToJson(
-  _PhoneCodeSentDataDto instance,
+  PhoneCodeSentDataDto instance,
 ) => <String, dynamic>{'devCode': instance.devCode, 'code': instance.code};
 
-_PhoneVerifiedResponseDto _$PhoneVerifiedResponseDtoFromJson(
+PhoneVerifiedResponseDto _$PhoneVerifiedResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _PhoneVerifiedResponseDto(
+) => PhoneVerifiedResponseDto(
   data: json['data'] == null
       ? null
       : PhoneVerifiedDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$PhoneVerifiedResponseDtoToJson(
-  _PhoneVerifiedResponseDto instance,
+  PhoneVerifiedResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_PhoneVerifiedDataDto _$PhoneVerifiedDataDtoFromJson(
+PhoneVerifiedDataDto _$PhoneVerifiedDataDtoFromJson(
   Map<String, dynamic> json,
-) => _PhoneVerifiedDataDto(
+) => PhoneVerifiedDataDto(
   isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
   verified: json['verified'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$PhoneVerifiedDataDtoToJson(
-  _PhoneVerifiedDataDto instance,
+  PhoneVerifiedDataDto instance,
 ) => <String, dynamic>{
   'isPhoneVerified': instance.isPhoneVerified,
   'verified': instance.verified,

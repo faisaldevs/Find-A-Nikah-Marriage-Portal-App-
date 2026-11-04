@@ -1,6 +1,4 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'liveness_config.freezed.dart';
+import 'package:equatable/equatable.dart';
 
 /// Tunable thresholds for the liveness pose evaluator. Starting values
 /// from the spec — tune on real devices once hardware is available;
@@ -8,25 +6,73 @@ part 'liveness_config.freezed.dart';
 /// real iPhone front camera, since ML Kit's `headEulerAngleY` sign
 /// relative to the user's own left/right can differ with front-camera
 /// mirroring per platform.
-@freezed
-abstract class LivenessConfig with _$LivenessConfig {
-  const factory LivenessConfig({
-    @Default(0.35) double minFaceRatio,
-    @Default(0.70) double maxFaceRatio,
-    @Default(0.15) double maxCenterOffset,
-    @Default(10.0) double frontYawMax,
-    @Default(12.0) double frontPitchMax,
-    @Default(25.0) double turnYawMin,
-    @Default(0.5) double eyeOpenMin,
-    @Default(Duration(milliseconds: 600)) Duration holdDuration,
-    @Default(Duration(seconds: 15)) Duration stepTimeout,
+class LivenessConfig extends Equatable {
+  const LivenessConfig({
+    this.minFaceRatio = 0.35,
+    this.maxFaceRatio = 0.70,
+    this.maxCenterOffset = 0.15,
+    this.frontYawMax = 10.0,
+    this.frontPitchMax = 12.0,
+    this.turnYawMin = 25.0,
+    this.eyeOpenMin = 0.5,
+    this.holdDuration = const Duration(milliseconds: 600),
+    this.stepTimeout = const Duration(seconds: 15),
+    this.yawSign = 1,
+  });
 
-    /// +1 or -1. Flips which physical turn direction `headEulerAngleY`'s
-    /// sign maps to `LivenessPose.left`/`LivenessPose.right`.
-    @Default(1) int yawSign,
-  }) = _LivenessConfig;
+  final double minFaceRatio;
+  final double maxFaceRatio;
+  final double maxCenterOffset;
+  final double frontYawMax;
+  final double frontPitchMax;
+  final double turnYawMin;
+  final double eyeOpenMin;
+  final Duration holdDuration;
+  final Duration stepTimeout;
 
-  const LivenessConfig._();
+  /// +1 or -1. Flips which physical turn direction `headEulerAngleY`'s
+  /// sign maps to `LivenessPose.left`/`LivenessPose.right`.
+  final int yawSign;
 
   static const standard = LivenessConfig();
+
+  LivenessConfig copyWith({
+    double? minFaceRatio,
+    double? maxFaceRatio,
+    double? maxCenterOffset,
+    double? frontYawMax,
+    double? frontPitchMax,
+    double? turnYawMin,
+    double? eyeOpenMin,
+    Duration? holdDuration,
+    Duration? stepTimeout,
+    int? yawSign,
+  }) {
+    return LivenessConfig(
+      minFaceRatio: minFaceRatio ?? this.minFaceRatio,
+      maxFaceRatio: maxFaceRatio ?? this.maxFaceRatio,
+      maxCenterOffset: maxCenterOffset ?? this.maxCenterOffset,
+      frontYawMax: frontYawMax ?? this.frontYawMax,
+      frontPitchMax: frontPitchMax ?? this.frontPitchMax,
+      turnYawMin: turnYawMin ?? this.turnYawMin,
+      eyeOpenMin: eyeOpenMin ?? this.eyeOpenMin,
+      holdDuration: holdDuration ?? this.holdDuration,
+      stepTimeout: stepTimeout ?? this.stepTimeout,
+      yawSign: yawSign ?? this.yawSign,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    minFaceRatio,
+    maxFaceRatio,
+    maxCenterOffset,
+    frontYawMax,
+    frontPitchMax,
+    turnYawMin,
+    eyeOpenMin,
+    holdDuration,
+    stepTimeout,
+    yawSign,
+  ];
 }

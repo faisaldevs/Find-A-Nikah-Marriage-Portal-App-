@@ -50,9 +50,14 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
   Future<Either<Failure, SwipeOutcome>> swipe(
     SwipeAction action, {
     String? targetUserId,
+    String? text,
   }) => _guard(() async {
     final res = await _remote.swipe(
-      SwipeRequestDto(action: action.name, targetUserId: targetUserId).toJson(),
+      SwipeRequestDto(
+        action: action.name,
+        targetUserId: targetUserId,
+        text: text,
+      ).toJson(),
     );
     return (isMatch: res.data?.isMatch ?? false);
   });

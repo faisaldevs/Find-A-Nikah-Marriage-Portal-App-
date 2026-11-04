@@ -151,9 +151,7 @@ void main() {
     });
 
     test('sends age range and the country by name', () {
-      final f = const DiscoveryFilters()
-          .withAgeRange(25, 35)
-          .withCountry('PK');
+      final f = const DiscoveryFilters().withAgeRange(25, 35).withCountry('PK');
       expect(MarriageCardsRepositoryImpl.filtersToQuery(f), {
         'limit': MarriageCardsRepositoryImpl.deckSize,
         'minAge': 25,

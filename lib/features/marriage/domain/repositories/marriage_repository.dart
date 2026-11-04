@@ -17,10 +17,12 @@ abstract interface class MarriageRepository {
   });
 
   /// Records a pass / like on [targetUserId], or undoes the last pass
-  /// ([SwipeAction.undo] takes no target). Swiped profiles leave the
-  /// server's deck, so the next [fetchPage] no longer includes them.
+  /// ([SwipeAction.undo] takes no target). [SwipeAction.complement] also
+  /// sends [text]. Swiped profiles leave the server's deck, so the next
+  /// [fetchPage] no longer includes them.
   Future<Either<Failure, SwipeOutcome>> swipe(
     SwipeAction action, {
     String? targetUserId,
+    String? text,
   });
 }

@@ -1,9 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
+import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'user_location_bloc.freezed.dart';
 
 sealed class UserLocationEvent {
   const UserLocationEvent();
@@ -20,22 +19,50 @@ final class LocationSettingsRequested extends UserLocationEvent {
   const LocationSettingsRequested();
 }
 
-@freezed
-abstract class UserLocationState with _$UserLocationState {
-  const factory UserLocationState({
-    @Default(LocationAccess.checking) LocationAccess access,
+class UserLocationState extends Equatable {
+  const UserLocationState({
+    this.access = LocationAccess.checking,
+    this.position = GeoPoint.fallback,
+    this.hasFix = false,
+    this.countryCode,
+  });
 
-    /// Where the map centres. [GeoPoint.fallback] until a fix arrives.
-    @Default(GeoPoint.fallback) GeoPoint position,
+  final LocationAccess access;
 
-    /// True once [position] is a real fix.
-    @Default(false) bool hasFix,
+  /// Where the map centres. [GeoPoint.fallback] until a fix arrives.
+  final GeoPoint position;
 
-    /// ISO code of the country at [position] (reverse geocoded) — drives
-    /// the Distance tab's "Limit to only {country}". Null until known, or
-    /// when the lookup fails (the toggle is hidden then).
-    String? countryCode,
-  }) = _UserLocationState;
+  /// True once [position] is a real fix.
+  final bool hasFix;
+
+  /// ISO code of the country at [position] (reverse geocoded) — drives
+  /// the Distance tab's "Limit to only {country}". Null until known, or
+  /// when the lookup fails (the toggle is hidden then).
+  final String? countryCode;
+
+  UserLocationState copyWith({
+    LocationAccess? access,
+    GeoPoint? position,
+    bool? hasFix,
+    Object? countryCode = unchanged,
+  }) {
+    return UserLocationState(
+      access: access ?? this.access,
+      position: position ?? this.position,
+      hasFix: hasFix ?? this.hasFix,
+      countryCode: identical(countryCode, unchanged)
+          ? this.countryCode
+          : countryCode as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    access,
+    position,
+    hasFix,
+    countryCode,
+  ];
 }
 
 /// Location is mandatory on the Location page: this drives the permission

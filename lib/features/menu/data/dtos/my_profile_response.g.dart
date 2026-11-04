@@ -6,47 +6,84 @@ part of 'my_profile_response.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_MyProfileResponseDto _$MyProfileResponseDtoFromJson(
+MyProfileResponseDto _$MyProfileResponseDtoFromJson(
   Map<String, dynamic> json,
-) => _MyProfileResponseDto(
+) => MyProfileResponseDto(
   data: MyProfileDataDto.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$MyProfileResponseDtoToJson(
-  _MyProfileResponseDto instance,
+  MyProfileResponseDto instance,
 ) => <String, dynamic>{'data': instance.data};
 
-_MyProfileDataDto _$MyProfileDataDtoFromJson(Map<String, dynamic> json) =>
-    _MyProfileDataDto(
-      user: json['user'] == null
-          ? null
-          : MyProfileUserDto.fromJson(json['user'] as Map<String, dynamic>),
-      profile: json['profile'] == null
-          ? null
-          : MyProfileDto.fromJson(json['profile'] as Map<String, dynamic>),
-    );
+MyProfileDataDto _$MyProfileDataDtoFromJson(
+  Map<String, dynamic> json,
+) => MyProfileDataDto(
+  user: json['user'] == null
+      ? null
+      : MyProfileUserDto.fromJson(json['user'] as Map<String, dynamic>),
+  profile: json['profile'] == null
+      ? null
+      : MyProfileDto.fromJson(json['profile'] as Map<String, dynamic>),
+  dateOfBirth: json['dateOfBirth'] as String?,
+  heightCm: json['heightCm'] as num?,
+  ethnicity:
+      (json['ethnicity'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  nationality:
+      (json['nationality'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  grewUpIn:
+      (json['grewUpIn'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  ethnicityAlt:
+      (json['Ethnicity'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  nationalityAlt:
+      (json['Nationality'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  grewUpInAlt:
+      (json['Grew up in'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+);
 
-Map<String, dynamic> _$MyProfileDataDtoToJson(_MyProfileDataDto instance) =>
-    <String, dynamic>{'user': instance.user, 'profile': instance.profile};
+Map<String, dynamic> _$MyProfileDataDtoToJson(MyProfileDataDto instance) =>
+    <String, dynamic>{
+      'user': instance.user,
+      'profile': instance.profile,
+      'dateOfBirth': instance.dateOfBirth,
+      'heightCm': instance.heightCm,
+      'ethnicity': instance.ethnicity,
+      'nationality': instance.nationality,
+      'grewUpIn': instance.grewUpIn,
+      'Ethnicity': instance.ethnicityAlt,
+      'Nationality': instance.nationalityAlt,
+      'Grew up in': instance.grewUpInAlt,
+    };
 
-_MyProfileUserDto _$MyProfileUserDtoFromJson(Map<String, dynamic> json) =>
-    _MyProfileUserDto(
+MyProfileUserDto _$MyProfileUserDtoFromJson(Map<String, dynamic> json) =>
+    MyProfileUserDto(
       fullName: json['fullName'] as String?,
       email: json['email'] as String?,
       phone: json['phone'] as String?,
     );
 
-Map<String, dynamic> _$MyProfileUserDtoToJson(_MyProfileUserDto instance) =>
+Map<String, dynamic> _$MyProfileUserDtoToJson(MyProfileUserDto instance) =>
     <String, dynamic>{
       'fullName': instance.fullName,
       'email': instance.email,
       'phone': instance.phone,
     };
 
-_MyProfileDto _$MyProfileDtoFromJson(
-  Map<String, dynamic> json,
-) => _MyProfileDto(
+MyProfileDto _$MyProfileDtoFromJson(Map<String, dynamic> json) => MyProfileDto(
   gender: json['gender'] as String?,
+  religion: json['religion'] as String?,
   dateOfBirth: json['dateOfBirth'] as String?,
   country: json['country'] as String?,
   grewUpIn:
@@ -56,8 +93,11 @@ _MyProfileDto _$MyProfileDtoFromJson(
   completeness: json['completeness'] as num?,
   maritalStatus: json['maritalStatus'] as String?,
   aboutMe: json['aboutMe'] as String?,
-  getToknowDuration: json['getToknowDuration'] as String?,
-  marriageTimeline: json['marriageTimeline'] as String?,
+  marriageIntentions: json['marriageIntentions'] == null
+      ? null
+      : MyProfileMarriageIntentionsDto.fromJson(
+          json['marriageIntentions'] as Map<String, dynamic>,
+        ),
   educationLevel: json['educationLevel'] as String?,
   professionTitle: json['professionTitle'] as String?,
   faith:
@@ -105,11 +145,25 @@ _MyProfileDto _$MyProfileDtoFromJson(
       : MyProfileInterestsDto.fromJson(
           json['interests'] as Map<String, dynamic>,
         ),
+  ethnicityAlt:
+      (json['Ethnicity'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  nationalityAlt:
+      (json['Nationality'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  grewUpInAlt:
+      (json['Grew up in'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
 );
 
-Map<String, dynamic> _$MyProfileDtoToJson(_MyProfileDto instance) =>
+Map<String, dynamic> _$MyProfileDtoToJson(MyProfileDto instance) =>
     <String, dynamic>{
       'gender': instance.gender,
+      'religion': instance.religion,
       'dateOfBirth': instance.dateOfBirth,
       'country': instance.country,
       'grewUpIn': instance.grewUpIn,
@@ -117,8 +171,7 @@ Map<String, dynamic> _$MyProfileDtoToJson(_MyProfileDto instance) =>
       'completeness': instance.completeness,
       'maritalStatus': instance.maritalStatus,
       'aboutMe': instance.aboutMe,
-      'getToknowDuration': instance.getToknowDuration,
-      'marriageTimeline': instance.marriageTimeline,
+      'marriageIntentions': instance.marriageIntentions,
       'educationLevel': instance.educationLevel,
       'professionTitle': instance.professionTitle,
       'faith': instance.faith,
@@ -132,53 +185,70 @@ Map<String, dynamic> _$MyProfileDtoToJson(_MyProfileDto instance) =>
       'aboutYou': instance.aboutYou,
       'lifestyle': instance.lifestyle,
       'interests': instance.interests,
+      'Ethnicity': instance.ethnicityAlt,
+      'Nationality': instance.nationalityAlt,
+      'Grew up in': instance.grewUpInAlt,
     };
 
-_MyProfileFaceVerificationDto _$MyProfileFaceVerificationDtoFromJson(
+MyProfileMarriageIntentionsDto _$MyProfileMarriageIntentionsDtoFromJson(
   Map<String, dynamic> json,
-) => _MyProfileFaceVerificationDto(
+) => MyProfileMarriageIntentionsDto(
+  getToknowDuration: json['getToknowDuration'] as String?,
+  marriageTimeline: json['marriageTimeline'] as String?,
+);
+
+Map<String, dynamic> _$MyProfileMarriageIntentionsDtoToJson(
+  MyProfileMarriageIntentionsDto instance,
+) => <String, dynamic>{
+  'getToknowDuration': instance.getToknowDuration,
+  'marriageTimeline': instance.marriageTimeline,
+};
+
+MyProfileFaceVerificationDto _$MyProfileFaceVerificationDtoFromJson(
+  Map<String, dynamic> json,
+) => MyProfileFaceVerificationDto(
   isFaceVerified: json['isFaceVerified'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$MyProfileFaceVerificationDtoToJson(
-  _MyProfileFaceVerificationDto instance,
+  MyProfileFaceVerificationDto instance,
 ) => <String, dynamic>{'isFaceVerified': instance.isFaceVerified};
 
-_MyProfileAboutYouDto _$MyProfileAboutYouDtoFromJson(
+MyProfileAboutYouDto _$MyProfileAboutYouDtoFromJson(
   Map<String, dynamic> json,
-) => _MyProfileAboutYouDto(
+) => MyProfileAboutYouDto(
   bornMuslim: json['bornMuslim'] as bool?,
   haveChildren: json['haveChildren'] as bool?,
   relocateAbroad: json['relocateAbroad'] as bool?,
 );
 
 Map<String, dynamic> _$MyProfileAboutYouDtoToJson(
-  _MyProfileAboutYouDto instance,
+  MyProfileAboutYouDto instance,
 ) => <String, dynamic>{
   'bornMuslim': instance.bornMuslim,
   'haveChildren': instance.haveChildren,
   'relocateAbroad': instance.relocateAbroad,
 };
 
-_MyProfileLifestyleDto _$MyProfileLifestyleDtoFromJson(
+MyProfileLifestyleDto _$MyProfileLifestyleDtoFromJson(
   Map<String, dynamic> json,
-) => _MyProfileLifestyleDto(
+) => MyProfileLifestyleDto(
   halalFood: json['halalFood'] as bool?,
   smoking: json['smoking'] as bool?,
   alcohol: json['alcohol'] as bool?,
 );
 
 Map<String, dynamic> _$MyProfileLifestyleDtoToJson(
-  _MyProfileLifestyleDto instance,
+  MyProfileLifestyleDto instance,
 ) => <String, dynamic>{
   'halalFood': instance.halalFood,
   'smoking': instance.smoking,
   'alcohol': instance.alcohol,
 };
 
-_MyProfileInterestsDto _$MyProfileInterestsDtoFromJson(
+MyProfileInterestsDto _$MyProfileInterestsDtoFromJson(
   Map<String, dynamic> json,
-) => _MyProfileInterestsDto(
+) => MyProfileInterestsDto(
   cultural:
       (json['cultural'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
@@ -201,7 +271,7 @@ _MyProfileInterestsDto _$MyProfileInterestsDtoFromJson(
 );
 
 Map<String, dynamic> _$MyProfileInterestsDtoToJson(
-  _MyProfileInterestsDto instance,
+  MyProfileInterestsDto instance,
 ) => <String, dynamic>{
   'cultural': instance.cultural,
   'foodDrinks': instance.foodDrinks,

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/data/data.dart';
 import 'package:find_a_nikah/features/marriage/data/dtos/marriage_profile_dto.dart';
+import 'package:find_a_nikah/features/marriage/data/dtos/profile_card_dto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fakes.dart';
@@ -100,5 +101,20 @@ void main() {
     expect(entity.isIdVerified, dto.isIdVerified);
     expect(entity.bio, dto.bio);
     expect(() => entity.photoUrls.add('x'), throwsUnsupportedError);
+  });
+
+  test('complement swipe body carries the text; others omit it', () {
+    expect(
+      const SwipeRequestDto(
+        action: 'complement',
+        targetUserId: 'u1',
+        text: 'Mashallah',
+      ).toJson(),
+      {'action': 'complement', 'targetUserId': 'u1', 'text': 'Mashallah'},
+    );
+    expect(
+      const SwipeRequestDto(action: 'like', targetUserId: 'u1').toJson(),
+      {'action': 'like', 'targetUserId': 'u1'},
+    );
   });
 }

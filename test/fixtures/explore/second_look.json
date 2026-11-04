@@ -1,0 +1,17 @@
+{
+  "statusCode": 200,
+  "data": {
+    "profiles": [],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 0,
+      "hasNext": false,
+      "hasPrev": false
+    },
+    "tag": "Second Look"
+  },
+  "message": "Second Look profiles - members you passed on who liked you",
+  "success": true
+}

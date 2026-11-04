@@ -1,11 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'discovery_filters_bloc.freezed.dart';
 
 sealed class DiscoveryFiltersEvent {
   const DiscoveryFiltersEvent();
@@ -78,13 +76,37 @@ enum DiscoveryFiltersStatus {
   locationSaved,
 }
 
-@freezed
-abstract class DiscoveryFiltersState with _$DiscoveryFiltersState {
-  const factory DiscoveryFiltersState({
-    @Default(DiscoveryFilters()) DiscoveryFilters filters,
-    @Default(DiscoveryFiltersStatus.idle) DiscoveryFiltersStatus status,
-    Failure? failure,
-  }) = _DiscoveryFiltersState;
+class DiscoveryFiltersState extends Equatable {
+  const DiscoveryFiltersState({
+    this.filters = const DiscoveryFilters(),
+    this.status = DiscoveryFiltersStatus.idle,
+    this.failure,
+  });
+
+  final DiscoveryFilters filters;
+  final DiscoveryFiltersStatus status;
+  final Failure? failure;
+
+  DiscoveryFiltersState copyWith({
+    DiscoveryFilters? filters,
+    DiscoveryFiltersStatus? status,
+    Object? failure = unchanged,
+  }) {
+    return DiscoveryFiltersState(
+      filters: filters ?? this.filters,
+      status: status ?? this.status,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    filters,
+    status,
+    failure,
+  ];
 }
 
 /// Page-scoped (Location, Add filters). Several instances stay in sync

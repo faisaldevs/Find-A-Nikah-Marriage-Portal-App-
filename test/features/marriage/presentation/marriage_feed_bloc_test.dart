@@ -28,8 +28,11 @@ class _FakeFeed implements MarriageRepository {
   Future<Either<Failure, SwipeOutcome>> swipe(
     SwipeAction action, {
     String? targetUserId,
+    String? text,
   }) async {
-    calls.add('${action.name}:${targetUserId ?? '-'}');
+    calls.add(
+      '${action.name}:${targetUserId ?? '-'}${text == null ? '' : ':$text'}',
+    );
     final f = failNext;
     failNext = null;
     if (f != null) return left(f);
@@ -38,7 +41,7 @@ class _FakeFeed implements MarriageRepository {
         final p = deck.firstWhere((p) => p.id == targetUserId);
         deck.remove(p);
         _passed.add(p);
-      case SwipeAction.like:
+      case SwipeAction.like || SwipeAction.complement:
         deck.removeWhere((p) => p.id == targetUserId);
       case SwipeAction.undo:
         deck.insert(0, _passed.removeLast());
@@ -62,6 +65,53 @@ void main() {
     await _settle();
     return bloc;
   }
+
+  test('compliment: sending then sent on the same profile', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+    final bloc = await started(feed);
+    final seen = <ComplimentStatus?>[];
+    final sub = bloc.stream.listen(
+      (s) => seen.add(s.compliments['a']?.status),
+    );
+    bloc.add(const MarriageComplimentSubmitted('  Mashallah  '));
+    await _settle();
+    await _settle();
+    expect(feed.calls, ['complement:a:Mashallah']);
+    expect(seen.whereType<ComplimentStatus>().toSet(), {
+      ComplimentStatus.sending,
+      ComplimentStatus.sent,
+    });
+    expect(bloc.state.compliments['a']!.text, 'Mashallah');
+    expect(bloc.state.compliments['a']!.status, ComplimentStatus.sent);
+    // Stays on the profile so the strip is visible.
+    expect(bloc.state.current!.id, 'a');
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test('compliment: a failure removes the strip and reports it', () async {
+    final feed = _FakeFeed([testProfile('a')])
+      ..failNext = const NetworkFailure();
+    final bloc = await started(feed);
+    final notices = <MarriageFeedNotice?>[];
+    final sub = bloc.stream.listen((s) => notices.add(s.notice));
+    bloc.add(const MarriageComplimentSubmitted('hello'));
+    await _settle();
+    await _settle();
+    expect(bloc.state.compliments, isEmpty);
+    expect(notices, contains(MarriageFeedNotice.actionFailed));
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test('compliment: blank text is not sent', () async {
+    final feed = _FakeFeed([testProfile('a')]);
+    final bloc = await started(feed);
+    bloc.add(const MarriageComplimentSubmitted('   '));
+    await _settle();
+    expect(feed.calls, isEmpty);
+    await bloc.close();
+  });
 
   test('✕ passes the current profile and shows the next', () async {
     final feed = _FakeFeed([testProfile('a'), testProfile('b')]);

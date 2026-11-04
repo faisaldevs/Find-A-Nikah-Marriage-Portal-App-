@@ -1,10 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'sign_in_bloc.freezed.dart';
 
 sealed class SignInEvent {
   const SignInEvent();
@@ -32,21 +30,45 @@ enum SignInStatus {
   success,
 }
 
-@freezed
-abstract class SignInState with _$SignInState {
-  const factory SignInState({
-    @Default(SignInStatus.idle) SignInStatus status,
+class SignInState extends Equatable {
+  const SignInState({
+    this.status = SignInStatus.idle,
+    this.isNewAccount = false,
+    this.failure,
+  });
 
-    /// On [SignInStatus.success]: the account hasn't started the wizard
-    /// yet (`resumeStep <= 4` — same threshold `resumeRouteFor` uses for
-    /// "Get started"). Not the same as "onboarding incomplete": a
-    /// returning user mid-wizard is also incomplete but isn't new, and
-    /// is moved on by the router instead.
-    @Default(false) bool isNewAccount,
+  final SignInStatus status;
 
-    /// Shown once by the page's listener.
-    Failure? failure,
-  }) = _SignInState;
+  /// On [SignInStatus.success]: the account hasn't started the wizard
+  /// yet (`resumeStep <= 4` — same threshold `resumeRouteFor` uses for
+  /// "Get started"). Not the same as "onboarding incomplete": a
+  /// returning user mid-wizard is also incomplete but isn't new, and
+  /// is moved on by the router instead.
+  final bool isNewAccount;
+
+  /// Shown once by the page's listener.
+  final Failure? failure;
+
+  SignInState copyWith({
+    SignInStatus? status,
+    bool? isNewAccount,
+    Object? failure = unchanged,
+  }) {
+    return SignInState(
+      status: status ?? this.status,
+      isNewAccount: isNewAccount ?? this.isNewAccount,
+      failure: identical(failure, unchanged)
+          ? this.failure
+          : failure as Failure?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    status,
+    isNewAccount,
+    failure,
+  ];
 }
 
 /// Page-scoped (welcome, login, intro).
