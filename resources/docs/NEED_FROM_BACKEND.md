@@ -184,3 +184,10 @@ The app has **not** exercised these (they break the test match); please confirm 
 ## 8. Test accounts on the dev server
 
 `user@example.com` (male, id `6af4469dac7e106dffb18fc4`) and `user1@example.com` (female, id `6af44cb2ac7e106dffb19077`), password `user1234`, actively matched with one conversation. Both are throw-away test accounts. Please do not delete them without telling the mobile side.
+
+
+## Addendum 2026-11-12 — verified quirks
+- `GET /matches/unmatched` returns ACTIVE matches (bug); `GET /matches?status=unmatched` is correct. App uses the latter.
+- `presence` goes offline when any one socket drops, even if the user has another connected.
+- `POST /reports` accepts `reportedUserId` (spec says `targetUserId`).
+- Still needed: confirm `GET /profiles/:partnerUserId` works for matches (app builds View profile from my-matches).

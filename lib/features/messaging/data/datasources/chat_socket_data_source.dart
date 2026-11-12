@@ -3,28 +3,39 @@ import 'dart:async';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-/// A delivered / seen receipt. [messageId] is null for a whole-conversation
-/// receipt (everything the sender had in it up to [at]).
+/// A delivered / seen receipt, sent only to the message's sender:
+/// `{ conversationId, messageIds, messageId, by, at }` where [by] is the
+/// user who triggered it (the recipient who received / read).
 class SocketReceipt {
   const SocketReceipt({
     required this.conversationId,
     required this.at,
-    this.messageId,
-    this.seenBy,
-    this.deliveredTo,
+    this.messageIds = const [],
+    this.by,
   });
 
   final String conversationId;
-  final String? messageId;
+
+  /// The messages affected. Empty for an old-style receipt that only has a
+  /// timestamp (everything up to [at]).
+  final List<String> messageIds;
   final DateTime at;
 
-  /// Who read it (`seenBy` / `readBy`) — the *reader*. The server also
-  /// sends the event to the reader, so a client must ignore its own.
-  final String? seenBy;
+  /// Who triggered it; null when the server didn't say.
+  final String? by;
+}
 
-  /// Who the delivery receipt is addressed to — the *sender* (not the
-  /// recipient who triggered it, despite the name).
-  final String? deliveredTo;
+/// `presence { userId, online, lastActiveAt }`.
+class SocketPresence {
+  const SocketPresence({
+    required this.userId,
+    required this.online,
+    this.lastActiveAt,
+  });
+
+  final String userId;
+  final bool online;
+  final DateTime? lastActiveAt;
 }
 
 class SocketTyping {
@@ -52,6 +63,7 @@ abstract interface class ChatSocket {
   Stream<SocketReceipt> get delivered;
   Stream<SocketReceipt> get seen;
   Stream<SocketTyping> get typing;
+  Stream<SocketPresence> get presence;
 
   /// True on every (re)connect, false on drop — a reconnect means events
   /// may have been missed, so the repository resyncs over REST.
@@ -100,6 +112,7 @@ class SocketIoChatSocket implements ChatSocket {
   final _delivered = StreamController<SocketReceipt>.broadcast();
   final _seen = StreamController<SocketReceipt>.broadcast();
   final _typing = StreamController<SocketTyping>.broadcast();
+  final _presence = StreamController<SocketPresence>.broadcast();
   final _connection = StreamController<bool>.broadcast();
 
   @override
@@ -110,6 +123,8 @@ class SocketIoChatSocket implements ChatSocket {
   Stream<SocketReceipt> get seen => _seen.stream;
   @override
   Stream<SocketTyping> get typing => _typing.stream;
+  @override
+  Stream<SocketPresence> get presence => _presence.stream;
   @override
   Stream<bool> get connection => _connection.stream;
 
@@ -156,7 +171,8 @@ class SocketIoChatSocket implements ChatSocket {
       // Older server event for the same thing.
       ..on('message:read', (d) => _onReceipt(d, _seen))
       ..on('typing', (d) => _onTyping(d, typing: true))
-      ..on('stop_typing', (d) => _onTyping(d, typing: false));
+      ..on('stop_typing', (d) => _onTyping(d, typing: false))
+      ..on('presence', _onPresence);
   }
 
   /// The handshake was refused (usually an expired JWT): refresh it, wait a
@@ -193,20 +209,38 @@ class SocketIoChatSocket implements ChatSocket {
     if (conversationId is! String) return;
     final at =
         DateTime.tryParse(
-          '${map['seenAt'] ?? map['deliveredAt'] ?? map['readAt'] ?? ''}',
+          '${map['at'] ?? map['seenAt'] ?? map['deliveredAt'] ?? map['readAt'] ?? ''}',
         ) ??
         DateTime.now();
-    final messageId = map['messageId'];
-    final seenBy = map['seenBy'] ?? map['readBy'];
-    final deliveredTo = map['deliveredTo'];
+    final ids = <String>[
+      if (map['messageIds'] is List)
+        for (final id in map['messageIds'] as List)
+          if (id is String) id,
+      if (map['messageIds'] is! List && map['messageId'] is String)
+        map['messageId'] as String,
+    ];
+    final by = map['by'] ?? map['seenBy'] ?? map['readBy'];
     _add(
       into,
       SocketReceipt(
         conversationId: conversationId,
-        messageId: messageId is String ? messageId : null,
+        messageIds: ids,
         at: at,
-        seenBy: seenBy is String ? seenBy : null,
-        deliveredTo: deliveredTo is String ? deliveredTo : null,
+        by: by is String ? by : null,
+      ),
+    );
+  }
+
+  void _onPresence(dynamic data) {
+    final map = _asMap(data);
+    final userId = map?['userId'];
+    if (map == null || userId is! String) return;
+    _add(
+      _presence,
+      SocketPresence(
+        userId: userId,
+        online: map['online'] == true,
+        lastActiveAt: DateTime.tryParse('${map['lastActiveAt'] ?? ''}'),
       ),
     );
   }
@@ -294,6 +328,7 @@ class SocketIoChatSocket implements ChatSocket {
       _delivered.close(),
       _seen.close(),
       _typing.close(),
+      _presence.close(),
       _connection.close(),
     ]);
   }

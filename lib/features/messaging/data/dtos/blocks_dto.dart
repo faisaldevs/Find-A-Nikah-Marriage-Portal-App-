@@ -33,7 +33,13 @@ class BlockRowDto {
 
   factory BlockRowDto.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic>? user;
-    for (final key in const ['blocked', 'blockedUser', 'user', 'target']) {
+    for (final key in const [
+      'blockedUser',
+      'blockedUserId',
+      'blocked',
+      'user',
+      'target',
+    ]) {
       final v = json[key];
       if (v is Map) {
         user = Map<String, dynamic>.from(v);

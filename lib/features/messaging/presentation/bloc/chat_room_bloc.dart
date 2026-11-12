@@ -80,13 +80,30 @@ final class ChatRoomReportRequested extends ChatRoomEvent {
   final String? description;
 }
 
+final class ChatRoomMuteToggled extends ChatRoomEvent {
+  const ChatRoomMuteToggled();
+}
+
+/// Clear chat: every message deleted for this user.
+final class ChatRoomClearRequested extends ChatRoomEvent {
+  const ChatRoomClearRequested();
+}
+
 final class ChatRoomArchiveRequested extends ChatRoomEvent {
   const ChatRoomArchiveRequested();
 }
 
 /// What a safety action ended with; the page shows it once (and leaves the
 /// room for the ones that end the chat).
-enum ChatRoomOutcome { blocked, unmatched, reported, archived }
+enum ChatRoomOutcome {
+  blocked,
+  unmatched,
+  reported,
+  archived,
+  muted,
+  unmuted,
+  cleared,
+}
 
 enum ChatRoomStatus { loading, ready, failure }
 
@@ -97,6 +114,7 @@ class ChatRoomState extends Equatable {
     this.conversationId,
     this.messages = const <ChatMessage>[],
     this.peerTyping = false,
+    this.isMuted = false,
     this.replyingTo,
     this.failure,
     this.outcome,
@@ -110,6 +128,9 @@ class ChatRoomState extends Equatable {
   final List<ChatMessage> messages;
 
   final bool peerTyping;
+
+  /// This user muted the chat.
+  final bool isMuted;
 
   /// Quoted by the next send.
   final ChatMessage? replyingTo;
@@ -126,6 +147,7 @@ class ChatRoomState extends Equatable {
     Object? conversationId = unchanged,
     List<ChatMessage>? messages,
     bool? peerTyping,
+    bool? isMuted,
     Object? replyingTo = unchanged,
     Object? failure = unchanged,
     Object? outcome = unchanged,
@@ -138,6 +160,7 @@ class ChatRoomState extends Equatable {
           : conversationId as String?,
       messages: messages ?? this.messages,
       peerTyping: peerTyping ?? this.peerTyping,
+      isMuted: isMuted ?? this.isMuted,
       replyingTo: identical(replyingTo, unchanged)
           ? this.replyingTo
           : replyingTo as ChatMessage?,
@@ -157,6 +180,7 @@ class ChatRoomState extends Equatable {
     conversationId,
     messages,
     peerTyping,
+    isMuted,
     replyingTo,
     failure,
     outcome,
@@ -191,6 +215,8 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
     on<ChatRoomUnmatchRequested>(_onUnmatch, transformer: droppable());
     on<ChatRoomReportRequested>(_onReport, transformer: droppable());
     on<ChatRoomArchiveRequested>(_onArchive, transformer: droppable());
+    on<ChatRoomMuteToggled>(_onMute, transformer: droppable());
+    on<ChatRoomClearRequested>(_onClear, transformer: droppable());
   }
 
   final MessagingRepository _repo;
@@ -215,7 +241,13 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
       return;
     }
     final id = conversation.id;
-    emit(state.copyWith(conversationId: id, peer: conversation.peer));
+    emit(
+      state.copyWith(
+        conversationId: id,
+        peer: conversation.peer,
+        isMuted: conversation.isMuted,
+      ),
+    );
     // Join the socket room: from here on incoming messages count as seen.
     _repo.enterConversation(id);
     await Future.wait([
@@ -236,6 +268,17 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
       emit.forEach<bool>(
         _repo.watchPeerTyping(id),
         onData: (typing) => state.copyWith(peerTyping: typing),
+      ),
+      // Presence / last seen, and the match's profile, as they change.
+      emit.forEach<ChatPeer>(
+        _repo.watchPeer(id),
+        onData: (peer) => state.copyWith(
+          peer: peer.copyWith(
+            matchId: peer.matchId ?? state.peer.matchId,
+            profile: peer.profile ?? state.peer.profile,
+          ),
+        ),
+        onError: (_, _) => state,
       ),
     ]);
   }
@@ -349,6 +392,40 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
     done.match(
       (f) => emit(state.copyWith(failure: f)),
       (_) => emit(state.copyWith(outcome: ChatRoomOutcome.archived)),
+    );
+  }
+
+  Future<void> _onMute(
+    ChatRoomMuteToggled event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null) return;
+    final to = !state.isMuted;
+    emit(state.copyWith(outcome: null));
+    final done = await _repo.setMuted(id, muted: to);
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(
+        state.copyWith(
+          isMuted: to,
+          outcome: to ? ChatRoomOutcome.muted : ChatRoomOutcome.unmuted,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onClear(
+    ChatRoomClearRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null) return;
+    emit(state.copyWith(outcome: null));
+    final done = await _repo.clearChat(id);
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(state.copyWith(outcome: ChatRoomOutcome.cleared)),
     );
   }
 

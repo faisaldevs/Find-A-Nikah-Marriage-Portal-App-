@@ -17,6 +17,16 @@ class _FakeMatches implements MatchesRemoteDataSource {
   _FakeMatches([this.matches = const []]);
 
   final List<Map<String, dynamic>> matches;
+  final List<Map<String, dynamic>> unmatched = [];
+
+  @override
+  Future<MyMatchesResponseDto> fetchUnmatched({
+    String status = 'unmatched',
+    required int page,
+    required int limit,
+  }) async => MyMatchesResponseDto.fromJson({
+    'data': {'matches': unmatched, 'pagination': <String, Object>{}},
+  });
 
   @override
   Future<MyMatchesResponseDto> fetchMyMatches({
@@ -28,6 +38,13 @@ class _FakeMatches implements MatchesRemoteDataSource {
 }
 
 class _ThrowingMatches implements MatchesRemoteDataSource {
+  @override
+  Future<MyMatchesResponseDto> fetchUnmatched({
+    String status = 'unmatched',
+    required int page,
+    required int limit,
+  }) async => throw const FormatException('bad');
+
   @override
   Future<MyMatchesResponseDto> fetchMyMatches({
     required int page,
@@ -66,6 +83,7 @@ class _FakeSocket implements ChatSocket {
   final deliveredC = StreamController<SocketReceipt>.broadcast();
   final seenC = StreamController<SocketReceipt>.broadcast();
   final typingC = StreamController<SocketTyping>.broadcast();
+  final presenceC = StreamController<SocketPresence>.broadcast();
   final connectionC = StreamController<bool>.broadcast();
 
   final emitted = <String>[];
@@ -80,6 +98,8 @@ class _FakeSocket implements ChatSocket {
   Stream<SocketReceipt> get seen => seenC.stream;
   @override
   Stream<SocketTyping> get typing => typingC.stream;
+  @override
+  Stream<SocketPresence> get presence => presenceC.stream;
   @override
   Stream<bool> get connection => connectionC.stream;
   @override
@@ -143,7 +163,11 @@ void main() {
         'https://api.test',
       );
 
-  setUpAll(() => registerFallbackValue(const ArchiveBodyDto(archived: true)));
+  setUpAll(() {
+    registerFallbackValue(const ArchiveBodyDto(archived: true));
+    registerFallbackValue(const MuteBodyDto(muted: true));
+    registerFallbackValue(const SendMessageBodyDto(text: ''));
+  });
 
   setUp(() {
     chat = _MockChat();
@@ -345,7 +369,8 @@ void main() {
     socket.deliveredC.add(
       SocketReceipt(
         conversationId: 'c1',
-        messageId: 'm1',
+        messageIds: const ['m1'],
+        by: 'peer',
         at: DateTime.utc(2026, 11, 11, 9),
       ),
     );
@@ -353,7 +378,12 @@ void main() {
     expect(byId('m1').status, MessageStatus.delivered);
 
     socket.seenC.add(
-      SocketReceipt(conversationId: 'c1', at: DateTime.utc(2026, 11, 11, 10)),
+      SocketReceipt(
+        conversationId: 'c1',
+        messageIds: const ['m1'],
+        by: 'peer',
+        at: DateTime.utc(2026, 11, 11, 10),
+      ),
     );
     await settle();
     expect(byId('m1').status, MessageStatus.seen);
@@ -363,7 +393,8 @@ void main() {
     socket.deliveredC.add(
       SocketReceipt(
         conversationId: 'c1',
-        messageId: 'm1',
+        messageIds: const ['m1'],
+        by: 'peer',
         at: DateTime.utc(2026, 11, 11, 11),
       ),
     );
@@ -371,37 +402,167 @@ void main() {
     expect(byId('m1').status, MessageStatus.seen);
   });
 
-  test('receipts triggered by me (sent to both users) are ignored', () async {
+  test('a receipt only touches the messages it names', () async {
+    when(
+      () => chat.fetchMessages(
+        any(),
+        limit: any(named: 'limit'),
+        before: any(named: 'before'),
+      ),
+    ).thenAnswer(
+      (_) async => MessagesResponseDto.fromJson({
+        'data': {
+          'messages': [
+            _msg('a', from: 'me'),
+            _msg('bb', from: 'me'),
+          ],
+          'hasMore': false,
+        },
+      }),
+    );
     await openThread();
-    // I read the peer's messages: the server echoes `seenBy: me` to me.
     socket.seenC.add(
       SocketReceipt(
         conversationId: 'c1',
-        seenBy: 'me',
-        at: DateTime.utc(2026, 11, 11, 10),
-      ),
-    );
-    // I delivered: `deliveredTo` is the sender, i.e. the peer.
-    socket.deliveredC.add(
-      SocketReceipt(
-        conversationId: 'c1',
-        deliveredTo: 'peer',
+        messageIds: const ['a'],
+        by: 'peer',
         at: DateTime.utc(2026, 11, 11, 10),
       ),
     );
     await settle();
-    expect(byId('m1').status, MessageStatus.sent);
+    expect(byId('a').status, MessageStatus.seen);
+    expect(byId('bb').status, MessageStatus.sent);
+  });
 
-    // The peer reading my messages is the real one.
-    socket.seenC.add(
-      SocketReceipt(
-        conversationId: 'c1',
-        seenBy: 'peer',
-        at: DateTime.utc(2026, 11, 11, 10),
+  test(
+    'a receipt triggered by someone other than the peer is ignored',
+    () async {
+      await openThread();
+      socket.seenC.add(
+        SocketReceipt(
+          conversationId: 'c1',
+          messageIds: const ['m1'],
+          by: 'me',
+          at: DateTime.utc(2026, 11, 11, 10),
+        ),
+      );
+      await settle();
+      expect(byId('m1').status, MessageStatus.sent);
+    },
+  );
+
+  test('presence flips the peer online and back to last seen', () async {
+    await openThread();
+    expect(list.single.peer.isOnline, isFalse);
+    socket.presenceC.add(const SocketPresence(userId: 'peer', online: true));
+    await settle();
+    expect(list.single.peer.isOnline, isTrue);
+    expect(list.single.peer.lastSeenAt, isNull);
+
+    socket.presenceC.add(
+      SocketPresence(
+        userId: 'peer',
+        online: false,
+        lastActiveAt: DateTime.utc(2026, 11, 12, 9),
       ),
     );
     await settle();
-    expect(byId('m1').status, MessageStatus.seen);
+    expect(list.single.peer.isOnline, isFalse);
+    expect(list.single.peer.lastSeenAt, isNotNull);
+  });
+
+  test('watchPeer follows presence', () async {
+    await openThread();
+    final peers = <ChatPeer>[];
+    final sub = repo.watchPeer('c1').listen(peers.add);
+    addTearDown(sub.cancel);
+    await settle();
+    socket.presenceC.add(const SocketPresence(userId: 'peer', online: true));
+    await settle();
+    expect(peers.first.isOnline, isFalse);
+    expect(peers.last.isOnline, isTrue);
+  });
+
+  test('a reply is sent with replyToId and read back as a quote', () async {
+    when(
+      () => chat.sendMessage(any(), any()),
+    ).thenAnswer(
+      (_) async => SendMessageResponseDto.fromJson({
+        'data': {
+          ..._msg('m9', from: 'me', text: 'answer'),
+          'replyToId': 'm22',
+          'replyTo': {
+            '_id': 'm22',
+            'senderId': 'peer',
+            'messageType': 'text',
+            'text': 'salam',
+            'deletedForMe': false,
+          },
+        },
+      }),
+    );
+    await openThread();
+    await repo.sendMessage(
+      conversationId: 'c1',
+      text: 'answer',
+      replyToMessageId: 'm22',
+    );
+    final body =
+        verify(() => chat.sendMessage('c1', captureAny())).captured.single
+            as SendMessageBodyDto;
+    expect(body.replyToId, 'm22');
+    expect(body.toJson(), {'text': 'answer', 'replyToId': 'm22'});
+    await settle();
+    final quote = byId('m9').replyTo!;
+    expect(quote.messageId, 'm22');
+    expect(quote.text, 'salam');
+    expect(quote.isMine, isFalse); // it quotes the peer
+  });
+
+  test('a message without a reply sends no replyToId', () {
+    expect(const SendMessageBodyDto(text: 'hi').toJson(), {'text': 'hi'});
+  });
+
+  test('mute and unmute call the API and update the chat', () async {
+    when(() => chat.mute(any(), any())).thenAnswer((_) async {});
+    await openThread();
+    expect(list.single.isMuted, isFalse);
+    await repo.setMuted('c1', muted: true);
+    await settle();
+    expect(list.single.isMuted, isTrue);
+    final body =
+        verify(() => chat.mute('c1', captureAny())).captured.single
+            as MuteBodyDto;
+    expect(body.toJson(), {'muted': true});
+  });
+
+  test(
+    'clear chat empties the thread but keeps the chat in its slot',
+    () async {
+      when(() => chat.clearChat('c1')).thenAnswer((_) async {});
+      await openThread();
+      expect(thread, isNotEmpty);
+      final res = await repo.clearChat('c1');
+      expect(res.isRight(), isTrue);
+      await settle();
+      expect(thread, isEmpty);
+      expect(list.single.lastMessage, isNull);
+      expect(list, hasLength(1));
+    },
+  );
+
+  test('unmatched people are listed', () async {
+    final matches = _FakeMatches()..unmatched.add(_match('ended'));
+    await repo.dispose();
+    repo = MessagingRepositoryImpl(
+      chat,
+      matches,
+      socket,
+      testGuard(),
+      'https://api.test',
+    );
+    final res = await repo.fetchUnmatched();
+    expect(res.getOrElse((_) => const []).map((p) => p.id), ['ended']);
   });
 
   test('peer typing shows, and only for the peer', () async {
@@ -613,7 +774,7 @@ void main() {
     socket.seenC.add(
       SocketReceipt(
         conversationId: 'c1',
-        seenBy: 'peer',
+        by: 'peer',
         at: DateTime.utc(2026, 11, 11, 10),
       ),
     );

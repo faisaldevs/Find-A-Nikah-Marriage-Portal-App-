@@ -11,6 +11,7 @@ class Conversation extends Equatable {
     required this.slot,
     this.lastMessage,
     this.unreadCount = 0,
+    this.isMuted = false,
   });
 
   final String id;
@@ -25,6 +26,9 @@ class Conversation extends Equatable {
 
   final int unreadCount;
 
+  /// The signed-in user muted this chat.
+  final bool isMuted;
+
   bool get hasUnread => unreadCount > 0;
 
   Conversation copyWith({
@@ -33,6 +37,7 @@ class Conversation extends Equatable {
     int? slot,
     Object? lastMessage = unchanged,
     int? unreadCount,
+    bool? isMuted,
   }) {
     return Conversation(
       id: id ?? this.id,
@@ -42,6 +47,7 @@ class Conversation extends Equatable {
           ? this.lastMessage
           : lastMessage as ChatMessage?,
       unreadCount: unreadCount ?? this.unreadCount,
+      isMuted: isMuted ?? this.isMuted,
     );
   }
 
@@ -52,5 +58,6 @@ class Conversation extends Equatable {
     slot,
     lastMessage,
     unreadCount,
+    isMuted,
   ];
 }

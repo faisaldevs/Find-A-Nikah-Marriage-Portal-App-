@@ -27,6 +27,7 @@ const _grey900 = Color(0xFF171717);
 Future<ChatRoomAction?> showChatRoomActions(
   BuildContext context, {
   required String peerName,
+  bool muted = false,
   bool devTools = false,
 }) {
   return showModalBottomSheet<ChatRoomAction>(
@@ -36,14 +37,23 @@ Future<ChatRoomAction?> showChatRoomActions(
     backgroundColor: Colors.transparent,
     barrierColor: _scrim,
     elevation: 0,
-    builder: (context) => _ActionsSheet(peerName: peerName, devTools: devTools),
+    builder: (context) => _ActionsSheet(
+      peerName: peerName,
+      muted: muted,
+      devTools: devTools,
+    ),
   );
 }
 
 class _ActionsSheet extends StatelessWidget {
-  const _ActionsSheet({required this.peerName, required this.devTools});
+  const _ActionsSheet({
+    required this.peerName,
+    required this.muted,
+    required this.devTools,
+  });
 
   final String peerName;
+  final bool muted;
   final bool devTools;
 
   @override
@@ -56,8 +66,10 @@ class _ActionsSheet extends StatelessWidget {
       ),
       (
         ChatRoomAction.mute,
-        Icons.notifications_off_outlined,
-        'Mute notifications',
+        muted
+            ? Icons.notifications_active_outlined
+            : Icons.notifications_off_outlined,
+        muted ? 'Unmute notifications' : 'Mute notifications',
       ),
       (
         ChatRoomAction.clearChat,

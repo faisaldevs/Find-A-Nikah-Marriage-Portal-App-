@@ -84,6 +84,22 @@ abstract interface class MessagingRepository {
 
   Future<Either<Failure, Unit>> blockUser(String peerId);
 
+  /// Live peer of [conversationId] (presence / last seen), starting with
+  /// the current one.
+  Stream<ChatPeer> watchPeer(String conversationId);
+
+  /// Mutes / unmutes [conversationId] for this user.
+  Future<Either<Failure, Unit>> setMuted(
+    String conversationId, {
+    required bool muted,
+  });
+
+  /// Deletes every message of [conversationId] for this user only.
+  Future<Either<Failure, Unit>> clearChat(String conversationId);
+
+  /// Matches that ended (the "Unmatched" page).
+  Future<Either<Failure, List<ChatPeer>>> fetchUnmatched();
+
   /// Refetches the conversation list and matches now (instead of waiting
   /// for the next poll) — e.g. when the Matches panel opens.
   Future<void> refresh();

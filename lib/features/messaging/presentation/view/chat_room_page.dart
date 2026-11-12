@@ -64,6 +64,7 @@ class _ChatRoomView extends StatelessWidget {
     final action = await showChatRoomActions(
       context,
       peerName: peer.name,
+      muted: bloc.state.isMuted,
       // CALLS-ON-HOLD: "Simulate incoming call (dev)" hidden too. Restore
       // `devTools: devTools` to bring it back.
       // devTools: devTools,
@@ -103,11 +104,19 @@ class _ChatRoomView extends StatelessWidget {
         context
             .push<void>(RoutePaths.peerProfile, extra: bloc.state.peer)
             .ignore();
-      case ChatRoomAction.mute || ChatRoomAction.clearChat:
-        _comingSoon(
+      case ChatRoomAction.mute:
+        bloc.add(const ChatRoomMuteToggled());
+      case ChatRoomAction.clearChat:
+        if (await _confirm(
           context,
-          action == ChatRoomAction.mute ? 'Muting' : 'Clearing chats',
-        );
+          title: 'Clear this chat?',
+          message:
+              'Messages are removed for you only. ${peer.name} keeps '
+              'their copy.',
+          action: 'Clear',
+        )) {
+          bloc.add(const ChatRoomClearRequested());
+        }
     }
   }
 
@@ -258,9 +267,17 @@ class _ChatRoomView extends StatelessWidget {
               ChatRoomOutcome.unmatched => 'Unmatched',
               ChatRoomOutcome.reported => 'Thanks — we’ll review this report',
               ChatRoomOutcome.archived => 'Chat archived',
+              ChatRoomOutcome.muted => 'Notifications muted',
+              ChatRoomOutcome.unmuted => 'Notifications on',
+              ChatRoomOutcome.cleared => 'Chat cleared',
             });
             // Blocking, unmatching and archiving end the chat.
-            if (done != ChatRoomOutcome.reported) context.pop();
+            // Blocking, unmatching and archiving end the chat.
+            if (done == ChatRoomOutcome.blocked ||
+                done == ChatRoomOutcome.unmatched ||
+                done == ChatRoomOutcome.archived) {
+              context.pop();
+            }
           },
         ),
       ],

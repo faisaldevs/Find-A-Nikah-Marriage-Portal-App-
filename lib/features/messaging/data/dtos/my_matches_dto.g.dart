@@ -51,6 +51,7 @@ MatchPartnerDto _$MatchPartnerDtoFromJson(Map<String, dynamic> json) =>
       id: json['_id'] as String,
       fullName: json['fullName'] as String?,
       lastActiveAt: json['lastActiveAt'] as String?,
+      isOnline: json['isOnline'] as bool? ?? false,
     );
 
 MatchProfileDto _$MatchProfileDtoFromJson(Map<String, dynamic> json) =>

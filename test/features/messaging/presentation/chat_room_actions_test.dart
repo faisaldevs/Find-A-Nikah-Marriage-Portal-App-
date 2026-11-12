@@ -35,6 +35,7 @@ void main() {
       () => repo.watchPeerTyping(any()),
     ).thenAnswer((_) => Stream.value(false));
     when(() => repo.markRead(any())).thenAnswer((_) async => right(unit));
+    when(() => repo.watchPeer(any())).thenAnswer((_) => const Stream.empty());
   });
 
   tearDown(() => messages.close());

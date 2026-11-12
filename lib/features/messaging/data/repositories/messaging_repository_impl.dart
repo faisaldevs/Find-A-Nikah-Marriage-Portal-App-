@@ -36,6 +36,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
       _socket.delivered.listen(_onDelivered),
       _socket.seen.listen(_onSeen),
       _socket.typing.listen(_onTyping),
+      _socket.presence.listen(_onPresence),
       _socket.connection.listen(_onConnection),
     ]);
     _socket.connect();
@@ -220,7 +221,10 @@ class MessagingRepositoryImpl implements MessagingRepository {
         photoUrl: photo == null || photo.isEmpty
             ? ''
             : resolveImageUrl(_imageBaseUrl, photo),
-        lastSeenAt: partner?.lastActiveAt?.toLocal(),
+        isOnline: partner?.isOnline ?? false,
+        lastSeenAt: (partner?.isOnline ?? false)
+            ? null
+            : partner?.lastActiveAt?.toLocal(),
         matchId: row.matchId,
       ),
       slot: 0, // set by _slotted
@@ -236,6 +240,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
                   row.lastMessageSender != peerId,
             ),
       unreadCount: row.unreadCount,
+      isMuted: row.isMuted,
     );
   }
 
@@ -396,6 +401,18 @@ class MessagingRepositoryImpl implements MessagingRepository {
       imageUrl: dto.messageType == 'image' && attachment != null
           ? resolveImageUrl(_imageBaseUrl, attachment)
           : null,
+      replyTo: switch (dto.replyTo) {
+        null => null,
+        final r => MessageReply(
+          messageId: r.id,
+          isMine: r.senderId != _peerIdOf(conversationId),
+          text: r.deletedForMe
+              ? 'Message deleted'
+              : r.messageType == 'image'
+              ? 'Photo'
+              : r.text,
+        ),
+      },
     );
   }
 
@@ -436,7 +453,6 @@ class MessagingRepositoryImpl implements MessagingRepository {
   Future<Either<Failure, Unit>> sendMessage({
     required String conversationId,
     required String text,
-    // The API has no replies; the quote is dropped.
     String? replyToMessageId,
   }) async {
     final localId = 'local-${++_seq}';
@@ -449,10 +465,14 @@ class MessagingRepositoryImpl implements MessagingRepository {
         sentAt: DateTime.now(),
         isMine: true,
         status: MessageStatus.sending,
+        replyTo: _quoteOf(conversationId, replyToMessageId),
       ),
     );
     final sent = await _guard(
-      () => _chat.sendMessage(conversationId, SendMessageBodyDto(text: text)),
+      () => _chat.sendMessage(
+        conversationId,
+        SendMessageBodyDto(text: text, replyToId: replyToMessageId),
+      ),
     );
     return sent.match(
       (f) {
@@ -474,6 +494,18 @@ class MessagingRepositoryImpl implements MessagingRepository {
         _notify();
         return right(unit);
       },
+    );
+  }
+
+  /// The held message [id], shaped as a quote, for the optimistic bubble.
+  MessageReply? _quoteOf(String conversationId, String? id) {
+    if (id == null) return null;
+    final m = _messages[conversationId]?.where((m) => m.id == id).firstOrNull;
+    if (m == null) return null;
+    return MessageReply(
+      messageId: m.id,
+      isMine: m.isMine,
+      text: m.isImage ? 'Photo' : m.text,
     );
   }
 
@@ -658,26 +690,28 @@ class MessagingRepositoryImpl implements MessagingRepository {
   /// The server sends each receipt to both users, so first check it came
   /// from the peer: a `seenBy` that isn't the peer is our own read; a
   /// `deliveredTo` that is the peer means it was addressed to them.
-  void _onDelivered(SocketReceipt r) {
-    final peer = _peerIdOf(r.conversationId);
-    if (r.deliveredTo != null && r.deliveredTo == peer) return;
-    _applyReceipt(r, MessageStatus.delivered);
-  }
+  void _onDelivered(SocketReceipt r) => _onReceipt(r, MessageStatus.delivered);
 
-  void _onSeen(SocketReceipt r) {
+  void _onSeen(SocketReceipt r) => _onReceipt(r, MessageStatus.seen);
+
+  /// Receipts reach only the sender, and `by` is whoever received / read —
+  /// so it must be the peer. Anything else (our own echo) is ignored.
+  void _onReceipt(SocketReceipt r, MessageStatus to) {
     final peer = _peerIdOf(r.conversationId);
-    if (r.seenBy != null && r.seenBy != peer) return;
-    _applyReceipt(r, MessageStatus.seen);
+    if (r.by != null && peer != null && r.by != peer) return;
+    _applyReceipt(r, to);
   }
 
   void _applyReceipt(SocketReceipt r, MessageStatus to) {
     final list = _messages[r.conversationId];
     if (list == null) return;
+    final ids = r.messageIds.toSet();
     var changed = false;
     for (var i = 0; i < list.length; i++) {
       final m = list[i];
-      final hit = r.messageId != null
-          ? m.id == r.messageId
+      // By id when the server named them, else everything up to the time.
+      final hit = ids.isNotEmpty
+          ? ids.contains(m.id)
           : m.isMine && !m.isCall && !m.sentAt.isAfter(r.at.toLocal());
       // Ticks only move forward.
       if (hit &&
@@ -689,6 +723,50 @@ class MessagingRepositoryImpl implements MessagingRepository {
       }
     }
     if (changed) _notify();
+  }
+
+  // ── Presence ──
+
+  void _onPresence(SocketPresence p) {
+    var changed = false;
+    for (final entry in _byId.entries.toList()) {
+      final c = entry.value;
+      if (c.peer.id != p.userId) continue;
+      _byId[entry.key] = c.copyWith(
+        peer: c.peer.copyWith(
+          isOnline: p.online,
+          lastSeenAt: p.online ? null : (p.lastActiveAt?.toLocal()),
+        ),
+      );
+      changed = true;
+    }
+    if (_matchesById[p.userId] case final m?) {
+      _matchesById[p.userId] = ChatPeerDto(
+        id: m.id,
+        name: m.name,
+        photoUrl: m.photoUrl,
+        isOnline: p.online,
+        lastSeenAt: p.online ? null : p.lastActiveAt ?? m.lastSeenAt,
+        matchId: m.matchId,
+      );
+      changed = true;
+    }
+    if (changed) _notify();
+  }
+
+  @override
+  Stream<ChatPeer> watchPeer(String conversationId) async* {
+    ChatPeer? last;
+    ChatPeer? read() => _byId[conversationId]?.peer;
+    last = read();
+    if (last != null) yield last;
+    await for (final _ in _changes.stream) {
+      final now = read();
+      if (now != null && now != last) {
+        last = now;
+        yield now;
+      }
+    }
   }
 
   // ── Typing ──
@@ -900,6 +978,58 @@ class MessagingRepositoryImpl implements MessagingRepository {
       ),
     );
     return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> setMuted(
+    String conversationId, {
+    required bool muted,
+  }) => _guard(() async {
+    await _chat.mute(conversationId, MuteBodyDto(muted: muted));
+    final c = _byId[conversationId];
+    if (c != null) {
+      _byId[conversationId] = c.copyWith(isMuted: muted);
+      _notify();
+    }
+    return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> clearChat(String conversationId) =>
+      _guard(() async {
+        await _chat.clearChat(conversationId);
+        _messages[conversationId]?.clear();
+        _hasMore[conversationId] = false;
+        final c = _byId[conversationId];
+        if (c != null) {
+          // Stays in its slot (as a fresh chat) instead of dropping to the
+          // Matches panel.
+          _startedPeers.putIfAbsent(c.peer.id, () => null);
+          _byId[conversationId] = c.copyWith(
+            lastMessage: null,
+            unreadCount: 0,
+          );
+        }
+        _notify();
+        return unit;
+      });
+
+  @override
+  Future<Either<Failure, List<ChatPeer>>> fetchUnmatched() => _guard(() async {
+    final out = <ChatPeer>[];
+    for (var page = 1; page <= _maxMatchPages; page++) {
+      final res = await _matchesRemote.fetchUnmatched(
+        page: page,
+        limit: _matchesPageSize,
+      );
+      for (final m in res.data.matches) {
+        if (m.toPeerDto(imageBaseUrl: _imageBaseUrl) case final p?) {
+          out.add(p.toEntity());
+        }
+      }
+      if (!res.data.pagination.hasNext) break;
+    }
+    return out;
   });
 
   @override

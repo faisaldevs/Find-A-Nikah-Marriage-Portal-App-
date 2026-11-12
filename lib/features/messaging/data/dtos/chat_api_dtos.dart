@@ -53,6 +53,7 @@ class ConversationRowDto {
     this.lastMessagePreview,
     this.lastMessageSender,
     this.unreadCount = 0,
+    this.isMuted = false,
   });
 
   factory ConversationRowDto.fromJson(Map<String, dynamic> json) =>
@@ -72,6 +73,9 @@ class ConversationRowDto {
   /// User id of whoever sent the last message.
   final String? lastMessageSender;
   final int unreadCount;
+
+  /// The caller muted this thread.
+  final bool isMuted;
 }
 
 @JsonSerializable(createToJson: false)
@@ -81,6 +85,7 @@ class ConversationPartnerDto {
     this.fullName,
     this.photoUrl,
     this.lastActiveAt,
+    this.isOnline = false,
   });
 
   factory ConversationPartnerDto.fromJson(Map<String, dynamic> json) =>
@@ -93,6 +98,7 @@ class ConversationPartnerDto {
   /// Server-relative (`/public/upload/...`).
   final String? photoUrl;
   final DateTime? lastActiveAt;
+  final bool isOnline;
 }
 
 /// `POST /v1/conversations/:userId` — participants are ids only.
@@ -175,6 +181,8 @@ class MessageDto {
     this.deliveredAt,
     this.seenAt,
     this.deletedForMe = false,
+    this.replyToId,
+    this.replyTo,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) =>
@@ -202,7 +210,33 @@ class MessageDto {
   final bool deletedForMe;
   final DateTime createdAt;
 
+  /// The quoted message, populated by the server on every read.
+  final String? replyToId;
+  final ReplyToDto? replyTo;
+
   bool get seen => isSeen || isRead;
+}
+
+/// The quoted message inside a reply.
+@JsonSerializable(createToJson: false)
+class ReplyToDto {
+  const ReplyToDto({
+    required this.id,
+    this.senderId = '',
+    this.messageType = 'text',
+    this.text = '',
+    this.deletedForMe = false,
+  });
+
+  factory ReplyToDto.fromJson(Map<String, dynamic> json) =>
+      _$ReplyToDtoFromJson(json);
+
+  @JsonKey(name: '_id')
+  final String id;
+  final String senderId;
+  final String messageType;
+  final String text;
+  final bool deletedForMe;
 }
 
 /// `PATCH .../delivered|seen` and `GET /messages/unread-count`.
@@ -261,9 +295,23 @@ class ReportBodyDto {
 /// Body of `POST /v1/conversations/:id/messages`.
 @JsonSerializable(createFactory: false)
 class SendMessageBodyDto {
-  const SendMessageBodyDto({required this.text});
+  const SendMessageBodyDto({required this.text, this.replyToId});
 
   final String text;
 
+  /// The message being quoted (same conversation).
+  @JsonKey(includeIfNull: false)
+  final String? replyToId;
+
   Map<String, dynamic> toJson() => _$SendMessageBodyDtoToJson(this);
+}
+
+/// Body of `PATCH /v1/conversations/:id/mute`.
+@JsonSerializable(createFactory: false)
+class MuteBodyDto {
+  const MuteBodyDto({required this.muted});
+
+  final bool muted;
+
+  Map<String, dynamic> toJson() => _$MuteBodyDtoToJson(this);
 }

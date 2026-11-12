@@ -1,8 +1,11 @@
+import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/chat/presentation/bloc/unmatched_cubit.dart';
 import 'package:find_a_nikah/features/chat/presentation/widgets/chat_header.dart';
 import 'package:find_a_nikah/features/chat/presentation/widgets/chat_style.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,6 +16,19 @@ class ChatUnmatchedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<UnmatchedCubit>()..load(),
+      child: const _UnmatchedView(),
+    );
+  }
+}
+
+class _UnmatchedView extends StatelessWidget {
+  const _UnmatchedView();
+
+  @override
+  Widget build(BuildContext context) {
+    final people = context.select((UnmatchedCubit c) => c.state.people);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -54,16 +70,26 @@ class ChatUnmatchedPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 104.w),
-                    ChatEmptyMessage(
-                      horizontalPadding: 0,
-                      illustrationShift: 2,
-                      illustration: Assets.images.chatWarningIllustration,
-                      title: 'Unmatched profiles',
-                      message:
-                          'People who you have unmatched with will appear '
-                          'here.',
-                    ),
+                    SizedBox(height: people.isEmpty ? 104.w : 12.w),
+                    for (final p in people)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: AppAvatar(p.photoUrl, size: 48),
+                        title: Text(
+                          p.name,
+                          style: figmaText(16, 22, weight: FontWeight.w700),
+                        ),
+                      ),
+                    if (people.isEmpty)
+                      ChatEmptyMessage(
+                        horizontalPadding: 0,
+                        illustrationShift: 2,
+                        illustration: Assets.images.chatWarningIllustration,
+                        title: 'Unmatched profiles',
+                        message:
+                            'People who you have unmatched with will appear '
+                            'here.',
+                      ),
                   ],
                 ),
               ),

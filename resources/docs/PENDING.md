@@ -212,8 +212,11 @@ It also returns `conversationId` / `messageId`, unused until Chat is real.
 
 ## Marriage tab → real `/profiles/cards` API
 
-**Added:** 2026-10-18 · **Status:** reviewed, not started — waiting on
-backend answers
+**Added:** 2026-10-18 · **Status (2026-11-12): wired.** `di.dart` uses
+`MarriageCardsRepositoryImpl` (`/v1/profiles/cards`, swipe, undo,
+compliment, block, report); details load lazily. What's left waits on
+backend: `resources/docs/NEED_FROM_BACKEND_MARRIAGE.md`. The text below is
+the original plan, kept for history.
 
 The Marriage tab still runs on `DummyMarriageDataSource` in dev
 (`di.dart`) and calls `GET /discovery/profiles` expecting
@@ -617,3 +620,8 @@ skip them — so the server must re-check on upload.
 3. OK to move the face detector (`SelfieFaceChecker`, currently in
    `features/auth/face_verification/data/`) into `core/`? Features can't
    import each other, so onboarding can't reuse it where it is.
+
+## Chat — remaining (2026-11-12)
+- [ ] FCM: `POST /devices {token, platform}` / `DELETE /devices/:token` — needs firebase_messaging + config (ask before adding Firebase).
+- [ ] Verify on devices: typing bubble, mute, clear chat, Unmatched page, swipe-reply, block, unmatch, reconnect.
+- [ ] Restore real `lib/flavors/env/dev.json` URL before merge.

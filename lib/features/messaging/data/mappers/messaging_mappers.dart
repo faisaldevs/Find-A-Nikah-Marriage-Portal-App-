@@ -69,6 +69,7 @@ extension MatchDtoMapper on MatchDto {
       photoUrl: photo == null || photo.isEmpty
           ? ''
           : resolveImageUrl(imageBaseUrl, photo),
+      isOnline: partner?.isOnline ?? false,
       lastSeenAt: lastActive == null ? null : DateTime.tryParse(lastActive),
       matchId: matchId.isEmpty ? null : matchId,
     );

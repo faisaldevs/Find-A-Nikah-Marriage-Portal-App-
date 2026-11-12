@@ -236,7 +236,7 @@ decision
 
 ## ISS-010 — Chat socket: `typing` / `stop_typing` are never relayed
 
-**Owner:** Backend · **Severity:** Medium · **Status:** Open
+**Owner:** Backend · **Severity:** Medium · **Status:** Resolved by backend 2026-11-12 (relay verified with a probe socket). App-side bubble not yet seen on a device: the emulator loses connectivity (ISS-013).
 
 - **Actual (checked 2026-11-11, two accounts, both sockets in the room):**
   A emits `typing` with `{conversationId}`, with `{conversationId,
@@ -247,7 +247,7 @@ decision
 
 ## ISS-011 — Chat socket: per-message `message:delivered` / `message:seen` aren't broadcast
 
-**Owner:** Backend · **Severity:** Medium · **Status:** Open
+**Owner:** Backend · **Severity:** Medium · **Status:** Resolved by backend 2026-11-12: receipts go to the sender only, `by` = actor.
 
 - **Actual:** `message:delivered {messageId}` and `message:seen
   {messageId}` get `{success:true}` acks but the sender receives nothing,
@@ -264,7 +264,7 @@ decision
 
 ## ISS-012 — Chat socket: message events go to both participants, twice
 
-**Owner:** Backend · **Severity:** Low · **Status:** Open
+**Owner:** Backend · **Severity:** Low · **Status:** Resolved by backend 2026-11-12: `message:new` receiver only, `message:sent` sender's other devices.
 
 - **Actual:** a REST send makes the *sender and the receiver* each get
   `message:sent` and `message:new` for the same message (four events).
@@ -306,7 +306,7 @@ decision
 
 ## ISS-015 — "Last seen" is wrong while the peer is online
 
-**Owner:** Backend + App · **Severity:** Low · **Status:** Open
+**Owner:** Backend + App · **Severity:** Low · **Status:** Resolved by backend 2026-11-12: `partner.isOnline` + socket `presence`. Caveat: goes offline on any socket drop even if another is connected.
 
 - **Actual:** the chat header says "Last seen 1h ago" for a peer who is
   connected on the socket and chatting right now (`lastActiveAt` isn't
@@ -327,7 +327,7 @@ decision
 
 ## ISS-017 — Report: wrong request key, and no visible result
 
-**Owner:** App (fixed) + Backend doc · **Severity:** Medium · **Status:** Fixed in app
+**Owner:** App (fixed) + Backend doc · **Severity:** Medium · **Status:** Resolved: app sends `reportedUserId` (server accepts it; spec says `targetUserId`).
 
 - Reports failed with "Member not found": the live `POST /v1/reports` wants
   `reportedUserId`, but `MESSAGE_AND_CHAT_API_SPEC.md` says `targetUserId`

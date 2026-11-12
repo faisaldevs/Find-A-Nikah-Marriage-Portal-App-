@@ -18,4 +18,13 @@ abstract class MatchesRemoteDataSource {
     @Query('page') required int page,
     @Query('limit') required int limit,
   });
+
+  /// Ended matches. Same row shape as `my-matches`. (Use the query form:
+  /// `/matches/unmatched` returned the *active* matches when checked.)
+  @GET('/v1/matches')
+  Future<MyMatchesResponseDto> fetchUnmatched({
+    @Query('status') String status = 'unmatched',
+    @Query('page') required int page,
+    @Query('limit') required int limit,
+  });
 }

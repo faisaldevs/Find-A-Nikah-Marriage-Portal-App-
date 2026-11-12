@@ -76,6 +76,7 @@ class MatchPartnerDto {
     required this.id,
     this.fullName,
     this.lastActiveAt,
+    this.isOnline = false,
   });
 
   factory MatchPartnerDto.fromJson(Map<String, dynamic> json) =>
@@ -87,6 +88,7 @@ class MatchPartnerDto {
 
   /// ISO-8601.
   final String? lastActiveAt;
+  final bool isOnline;
 }
 
 @JsonSerializable(createToJson: false)

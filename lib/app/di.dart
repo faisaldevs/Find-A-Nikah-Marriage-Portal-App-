@@ -299,6 +299,9 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerFactory<UnreadCountCubit>(
       () => UnreadCountCubit(getIt<MessagingRepository>()),
     )
+    ..registerFactory<UnmatchedCubit>(
+      () => UnmatchedCubit(getIt<MessagingRepository>()),
+    )
     ..registerFactory<BlockedUsersCubit>(
       () => BlockedUsersCubit(getIt<MessagingRepository>()),
     )

@@ -61,6 +61,17 @@ abstract class ChatRemoteDataSource {
     @Body() ArchiveBodyDto body,
   );
 
+  /// Per-user mute; unread counts still grow, alerts are suppressed.
+  @PATCH('/v1/conversations/{id}/mute')
+  Future<void> mute(
+    @Path('id') String conversationId,
+    @Body() MuteBodyDto body,
+  );
+
+  /// Clear chat: every message deleted for the caller only.
+  @DELETE('/v1/conversations/{id}/messages')
+  Future<void> clearChat(@Path('id') String conversationId);
+
   @GET('/v1/messages/unread-count')
   Future<UnreadCountResponseDto> unreadCount();
 

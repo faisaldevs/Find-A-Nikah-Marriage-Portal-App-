@@ -212,6 +212,23 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
   }) async => right(unit);
 
   @override
+  Stream<ChatPeer> watchPeer(String conversationId) => const Stream.empty();
+
+  @override
+  Future<Either<Failure, Unit>> setMuted(
+    String conversationId, {
+    required bool muted,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> clearChat(String conversationId) async =>
+      right(unit);
+
+  @override
+  Future<Either<Failure, List<ChatPeer>>> fetchUnmatched() async =>
+      right(const <ChatPeer>[]);
+
+  @override
   Future<void> refresh() async {}
 
   @override
