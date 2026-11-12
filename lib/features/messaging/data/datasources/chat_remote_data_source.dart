@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:find_a_nikah/features/messaging/data/dtos/blocks_dto.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
 import 'package:retrofit/retrofit.dart';
 
@@ -66,6 +67,12 @@ abstract class ChatRemoteDataSource {
   /// Delete for me: the other side keeps their copy.
   @DELETE('/v1/messages/{id}')
   Future<void> deleteMessage(@Path('id') String messageId);
+
+  @GET('/v1/blocks')
+  Future<BlocksResponseDto> fetchBlocks({
+    @Query('page') required int page,
+    @Query('limit') required int limit,
+  });
 
   @POST('/v1/blocks/{userId}')
   Future<void> block(@Path('userId') String userId);

@@ -245,11 +245,17 @@ class ReportBodyDto {
     this.description,
   });
 
+  /// Sent as `reportedUserId` — the live server rejects the spec's
+  /// `targetUserId` with 404 "Member not found" (verified 2026-11-12).
   final String targetUserId;
   final String reason;
   final String? description;
 
-  Map<String, dynamic> toJson() => _$ReportBodyDtoToJson(this);
+  Map<String, dynamic> toJson() => {
+    'reportedUserId': targetUserId,
+    'reason': reason,
+    if (description != null) 'description': description,
+  };
 }
 
 /// Body of `POST /v1/conversations/:id/messages`.

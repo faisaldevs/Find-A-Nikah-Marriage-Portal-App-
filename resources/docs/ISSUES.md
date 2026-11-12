@@ -325,10 +325,13 @@ decision
 - **Decide:** should archived partners be hidden from the panel until
   restored?
 
-## ISS-017 — Report: no confirmation seen
+## ISS-017 — Report: wrong request key, and no visible result
 
-**Owner:** App (unverified) · **Severity:** Low · **Status:** Needs re-test
+**Owner:** App (fixed) + Backend doc · **Severity:** Medium · **Status:** Fixed in app
 
-- On the emulator (bad network, see ISS-013) the Report sheet closed and no
-  "Thanks — we'll review this report" toast was seen, and a failed request
-  would show nothing either. Re-test on the phone.
+- Reports failed with "Member not found": the live `POST /v1/reports` wants
+  `reportedUserId`, but `MESSAGE_AND_CHAT_API_SPEC.md` says `targetUserId`
+  (a request with `targetUserId` returns 404). The app now sends
+  `reportedUserId`. **Ask backend:** fix the spec, or accept both.
+- Failures now show their message as a toast; success shows "Thanks, we'll
+  review this report".

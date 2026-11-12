@@ -218,6 +218,11 @@ final List<RouteBase> appRoutes = [
   ),
   _page(RoutePaths.chatArchived, const ChatArchivedPage()),
   GoRoute(
+    path: RoutePaths.peerProfile,
+    builder: (_, state) => PeerProfilePage(peer: state.extra! as ChatPeer),
+  ),
+  _page(RoutePaths.blockedProfiles, const BlockedProfilesPage()),
+  GoRoute(
     path: RoutePaths.chatRoom,
     // builder: (_, state) => ChatRoomPage(peer: state.extra! as ChatPeer),
     builder: (_, state) => ChatRoomPage(

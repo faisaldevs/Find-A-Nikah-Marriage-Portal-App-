@@ -84,6 +84,15 @@ abstract interface class MessagingRepository {
 
   Future<Either<Failure, Unit>> blockUser(String peerId);
 
+  /// Refetches the conversation list and matches now (instead of waiting
+  /// for the next poll) — e.g. when the Matches panel opens.
+  Future<void> refresh();
+
+  /// Everyone this user blocked.
+  Future<Either<Failure, List<BlockedUser>>> fetchBlocked();
+
+  Future<Either<Failure, Unit>> unblockUser(String userId);
+
   /// Ends the match behind the chat; [matchId] is [ChatPeer.matchId].
   Future<Either<Failure, Unit>> unmatch(String matchId);
 

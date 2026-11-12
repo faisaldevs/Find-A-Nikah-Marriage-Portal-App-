@@ -211,5 +211,15 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
     String? description,
   }) async => right(unit);
 
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  Future<Either<Failure, List<BlockedUser>>> fetchBlocked() async =>
+      right(const <BlockedUser>[]);
+
+  @override
+  Future<Either<Failure, Unit>> unblockUser(String userId) async => right(unit);
+
   Future<void> dispose() => _dummy.dispose();
 }

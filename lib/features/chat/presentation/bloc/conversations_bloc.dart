@@ -12,6 +12,11 @@ final class ConversationsSubscribed extends ConversationsEvent {
   const ConversationsSubscribed();
 }
 
+/// The Matches panel opened: refetch now so a match made a moment ago shows.
+final class ConversationsRefreshRequested extends ConversationsEvent {
+  const ConversationsRefreshRequested();
+}
+
 /// A match was picked in the Matches panel: it takes the [slot] that
 /// opened the panel.
 final class ConversationStartRequested extends ConversationsEvent {
@@ -74,6 +79,10 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
     on<ConversationsSubscribed>(_onSubscribed, transformer: restartable());
     on<ConversationStartRequested>(
       _onStartRequested,
+      transformer: droppable(),
+    );
+    on<ConversationsRefreshRequested>(
+      (_, _) => _repo.refresh(),
       transformer: droppable(),
     );
   }

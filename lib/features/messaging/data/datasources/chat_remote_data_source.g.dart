@@ -289,6 +289,36 @@ class _ChatRemoteDataSource implements ChatRemoteDataSource {
   }
 
   @override
+  Future<BlocksResponseDto> fetchBlocks({
+    required int page,
+    required int limit,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'page': page, r'limit': limit};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<BlocksResponseDto>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/v1/blocks',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late BlocksResponseDto _value;
+    try {
+      _value = BlocksResponseDto.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<void> block(String userId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

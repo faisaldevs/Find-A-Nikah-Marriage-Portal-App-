@@ -151,6 +151,9 @@ class _ChatViewState extends State<_ChatView> {
                                 onSlotTap: (slot) => setState(() {
                                   _pickingSlot = slot;
                                   _matchesOpen = true;
+                                  context.read<ConversationsBloc>().add(
+                                    const ConversationsRefreshRequested(),
+                                  );
                                 }),
                                 onMoreSlots: () =>
                                     showChatGoldSheet(context).then((plan) {
@@ -229,6 +232,9 @@ class _ChatViewState extends State<_ChatView> {
                               // Opened from the bar, not a slot: first free.
                               _pickingSlot = null;
                               _matchesOpen = true;
+                              context.read<ConversationsBloc>().add(
+                                const ConversationsRefreshRequested(),
+                              );
                             }),
                             onHide: () => setState(() => _matchesOpen = false),
                             onGoToMarriage: () => _goToTab(0),

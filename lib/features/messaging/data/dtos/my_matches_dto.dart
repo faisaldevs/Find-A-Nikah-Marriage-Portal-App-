@@ -97,6 +97,16 @@ class MatchProfileDto {
     this.photoUrl,
     this.images = const [],
     this.lastActiveAt,
+    this.age,
+    this.city,
+    this.country,
+    this.educationLevel,
+    this.professionTitle,
+    this.faith = const [],
+    this.religion,
+    this.sect = const [],
+    this.maritalStatus,
+    this.isVerified = false,
   });
 
   factory MatchProfileDto.fromJson(Map<String, dynamic> json) =>
@@ -109,4 +119,28 @@ class MatchProfileDto {
   final String? photoUrl;
   final List<String> images;
   final String? lastActiveAt;
+  final int? age;
+  final String? city;
+  final String? country;
+  final String? educationLevel;
+  final String? professionTitle;
+
+  /// The API sends lists (and the older feed sent a string): both read.
+  @JsonKey(fromJson: _stringList)
+  final List<String> faith;
+  final String? religion;
+  @JsonKey(fromJson: _stringList)
+  final List<String> sect;
+  final String? maritalStatus;
+  final bool isVerified;
 }
+
+/// `"x"` → `['x']`, `['a','b']` → same, anything else → empty.
+List<String> _stringList(Object? v) => switch (v) {
+  final String s when s.isNotEmpty => [s],
+  final List<dynamic> l => [
+    for (final e in l)
+      if (e is String && e.isNotEmpty) e,
+  ],
+  _ => const <String>[],
+};

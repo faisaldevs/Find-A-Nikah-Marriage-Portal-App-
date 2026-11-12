@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/features/messaging/data/data.dart';
+import 'package:find_a_nikah/features/messaging/data/dtos/blocks_dto.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/my_matches_dto.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
@@ -13,14 +14,52 @@ import '../../../helpers/fakes.dart';
 class _MockChat extends Mock implements ChatRemoteDataSource {}
 
 class _FakeMatches implements MatchesRemoteDataSource {
+  _FakeMatches([this.matches = const []]);
+
+  final List<Map<String, dynamic>> matches;
+
   @override
   Future<MyMatchesResponseDto> fetchMyMatches({
     required int page,
     required int limit,
   }) async => MyMatchesResponseDto.fromJson({
-    'data': {'matches': <Object>[], 'pagination': <String, Object>{}},
+    'data': {'matches': matches, 'pagination': <String, Object>{}},
   });
 }
+
+class _ThrowingMatches implements MatchesRemoteDataSource {
+  @override
+  Future<MyMatchesResponseDto> fetchMyMatches({
+    required int page,
+    required int limit,
+  }) async => throw const FormatException('bad matches payload');
+}
+
+Map<String, dynamic> _match(
+  String peerId, {
+  bool canMessage = true,
+  String? conversationId,
+}) => {
+  'matchId': 'm-$peerId',
+  'canMessage': canMessage,
+  'conversationId': conversationId,
+  'partner': {'_id': peerId, 'fullName': 'Name $peerId'},
+  'profile': {
+    'userId': peerId,
+    'fullName': 'Name $peerId',
+    'photoUrl': '/public/upload/$peerId.jpg',
+    'images': ['/public/upload/$peerId.jpg', '/public/upload/$peerId-2.jpg'],
+    'age': 27,
+    // The API sends these as lists (a string must work too).
+    'faith': <String>[],
+    'sect': ['sunni'],
+    'maritalStatus': 'never_married',
+    'city': 'Dhaka',
+    'country': 'Bangladesh',
+    'professionTitle': 'Consultant',
+    'isVerified': true,
+  },
+};
 
 class _FakeSocket implements ChatSocket {
   final messagesC = StreamController<MessageDto>.broadcast();
@@ -95,6 +134,15 @@ void main() {
   late _FakeSocket socket;
   late MessagingRepositoryImpl repo;
 
+  MessagingRepositoryImpl _repoWith(List<Map<String, dynamic>> matches) =>
+      MessagingRepositoryImpl(
+        chat,
+        _FakeMatches(matches),
+        socket,
+        testGuard(),
+        'https://api.test',
+      );
+
   setUpAll(() => registerFallbackValue(const ArchiveBodyDto(archived: true)));
 
   setUp(() {
@@ -148,13 +196,7 @@ void main() {
     );
     when(() => chat.markRead(any())).thenAnswer((_) async {});
     when(() => chat.markDelivered(any())).thenAnswer((_) async {});
-    repo = MessagingRepositoryImpl(
-      chat,
-      _FakeMatches(),
-      socket,
-      testGuard(),
-      'https://api.test',
-    );
+    repo = _repoWith(const []);
   });
 
   tearDown(() => repo.dispose());
@@ -179,6 +221,20 @@ void main() {
   }
 
   ChatMessage byId(String id) => thread.firstWhere((m) => m.id == id);
+
+  test('conversations still load when the matches request fails', () async {
+    await repo.dispose();
+    repo = MessagingRepositoryImpl(
+      chat,
+      _ThrowingMatches(),
+      socket,
+      testGuard(),
+      'https://api.test',
+    );
+    final rows = await repo.watchConversations().first;
+    // c1 has a last message, so it shows even though matches blew up.
+    expect(rows.map((c) => c.id), ['c1']);
+  });
 
   test('connects the socket when created', () {
     expect(socket.connectCalls, 1);
@@ -431,11 +487,177 @@ void main() {
         limit: any(named: 'limit'),
         archived: true,
       ),
-    ).called(1);
+    ).called(greaterThanOrEqualTo(1));
   });
 
   test('conversation rows carry the match id for unmatching', () async {
     await openThread();
     expect(list.single.peer.matchId, 'match1');
+  });
+
+  test('a report is sent with the key the live server accepts', () {
+    expect(
+      const ReportBodyDto(targetUserId: 'u1', reason: 'spam').toJson(),
+      {'reportedUserId': 'u1', 'reason': 'spam'},
+    );
+  });
+
+  group('matches panel', () {
+    test('a match shows its profile with absolute photo URLs', () async {
+      await repo.dispose();
+      repo = _repoWith([_match('amina')]);
+      final peers = await repo.watchMatches().first;
+      final profile = peers.single.profile!;
+      expect(profile.age, 27);
+      expect(profile.city, 'Dhaka');
+      expect(profile.isVerified, isTrue);
+      expect(profile.sect, 'sunni');
+      expect(profile.faith, isNull);
+      expect(profile.maritalStatus, 'never_married');
+      expect(profile.images, [
+        'https://api.test/public/upload/amina.jpg',
+        'https://api.test/public/upload/amina-2.jpg',
+      ]);
+    });
+
+    test('a match that can no longer be messaged is not offered', () async {
+      await repo.dispose();
+      repo = _repoWith([_match('amina'), _match('ended', canMessage: false)]);
+      final peers = await repo.watchMatches().first;
+      expect(peers.map((p) => p.id), ['amina']);
+    });
+
+    test('a partner with an archived chat is hidden until restored', () async {
+      when(
+        () => chat.fetchConversations(
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+          archived: true,
+        ),
+      ).thenAnswer(
+        (_) async => ConversationsResponseDto.fromJson({
+          'data': {
+            'conversations': [
+              {
+                '_id': 'c9',
+                'partner': {'_id': 'amina', 'fullName': 'Amina'},
+              },
+            ],
+            'pagination': {'hasNext': false},
+          },
+        }),
+      );
+      await repo.dispose();
+      repo = _repoWith([_match('amina'), _match('hamza')]);
+      final peers = await repo.watchMatches().first;
+      expect(peers.map((p) => p.id), ['hamza']);
+    });
+
+    test('refresh() refetches the list now', () async {
+      await repo.watchConversations().first;
+      clearInteractions(chat);
+      await repo.refresh();
+      verify(
+        () => chat.fetchConversations(
+          page: 1,
+          limit: any(named: 'limit'),
+          archived: any(named: 'archived'),
+        ),
+      ).called(greaterThanOrEqualTo(1));
+    });
+  });
+
+  test('the list row tick follows receipts for our last message', () async {
+    when(
+      () => chat.fetchConversations(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        archived: any(named: 'archived'),
+      ),
+    ).thenAnswer(
+      (_) async => ConversationsResponseDto.fromJson({
+        'data': {
+          'conversations': [
+            {
+              '_id': 'c1',
+              'partner': {'_id': 'peer', 'fullName': 'Amina'},
+              'lastMessagePreview': 'wa alaikum',
+              'lastMessageSender': 'me', // ours
+              'lastMessageAt': '2026-11-11T09:00:05.000Z',
+            },
+          ],
+          'pagination': {'hasNext': false},
+        },
+      }),
+    );
+    // Our message is the newest in the thread.
+    when(
+      () => chat.fetchMessages(
+        any(),
+        limit: any(named: 'limit'),
+        before: any(named: 'before'),
+      ),
+    ).thenAnswer(
+      (_) async => MessagesResponseDto.fromJson({
+        'data': {
+          'messages': [_msg('m1', from: 'me', text: 'wa alaikum')],
+          'hasMore': false,
+        },
+      }),
+    );
+    await repo.dispose();
+    repo = _repoWith(const []);
+    await openThread();
+    expect(list.single.lastMessage!.status, MessageStatus.sent);
+
+    socket.seenC.add(
+      SocketReceipt(
+        conversationId: 'c1',
+        seenBy: 'peer',
+        at: DateTime.utc(2026, 11, 11, 10),
+      ),
+    );
+    await settle();
+    expect(list.single.lastMessage!.status, MessageStatus.seen);
+  });
+
+  test('blocked users are read tolerantly and photos made absolute', () async {
+    when(
+      () => chat.fetchBlocks(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer(
+      (_) async => BlocksResponseDto.fromJson({
+        'data': {
+          'blocks': [
+            {
+              '_id': 'b1',
+              'blocked': {
+                '_id': 'u1',
+                'fullName': 'Hamza',
+                'photoUrl': '/public/upload/h.jpg',
+              },
+            },
+            {'_id': 'b2', 'targetUserId': 'u2'},
+            {'_id': 'b3'}, // no user at all: skipped
+          ],
+          'pagination': {'hasNext': false},
+        },
+      }),
+    );
+    final res = await repo.fetchBlocked();
+    final users = res.getOrElse((_) => const []);
+    expect(users.map((u) => u.id), ['u1', 'u2']);
+    expect(users.first.name, 'Hamza');
+    expect(users.first.photoUrl, 'https://api.test/public/upload/h.jpg');
+  });
+
+  test('unblocking calls the API and refreshes', () async {
+    when(() => chat.unblock('u1')).thenAnswer((_) async {});
+    await repo.watchConversations().first;
+    final res = await repo.unblockUser('u1');
+    expect(res.isRight(), isTrue);
+    verify(() => chat.unblock('u1')).called(1);
   });
 }

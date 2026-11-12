@@ -84,6 +84,14 @@ class MessagingRepositoryImpl implements MessagingRepository {
   /// Matches without a started conversation, by peer id.
   final _matchesById = <String, ChatPeerDto>{};
 
+  /// "View profile" data from `my-matches`, by peer id (every match, with or
+  /// without a conversation).
+  final _profileById = <String, PeerProfile>{};
+
+  /// Partners of chats the user archived: kept out of the Matches panel until
+  /// the chat is restored.
+  final _archivedPeerIds = <String>{};
+
   Future<void>? _firstLoad;
 
   @override
@@ -114,7 +122,36 @@ class MessagingRepositoryImpl implements MessagingRepository {
   }
 
   Future<void> _refreshList() async {
-    await Future.wait([_fetchConversations(), _fetchMatches()]);
+    await Future.wait([
+      _fetchConversations(),
+      // The Matches panel is secondary: if it can't load (or can't be
+      // parsed) the conversations must still show.
+      _fetchMatches().catchError((Object _) {}),
+      _fetchArchivedPeers(),
+    ]);
+  }
+
+  Future<void> _fetchArchivedPeers() async {
+    try {
+      final ids = <String>{};
+      for (var page = 1; page <= _maxListPages; page++) {
+        final res = await _chat.fetchConversations(
+          page: page,
+          limit: _listPageSize,
+          archived: true,
+        );
+        for (final r in res.data.conversations) {
+          if (r.partner?.id case final id? when id.isNotEmpty) ids.add(id);
+        }
+        if (!res.data.pagination.hasNext) break;
+      }
+      _archivedPeerIds
+        ..clear()
+        ..addAll(ids);
+      _notify();
+    } on Object {
+      // Keep the last known set; the next poll retries.
+    }
   }
 
   Future<void> _fetchConversations() async {
@@ -153,9 +190,14 @@ class MessagingRepositoryImpl implements MessagingRepository {
         limit: _matchesPageSize,
       );
       for (final m in res.data.matches) {
-        if (m.toPeerDto(imageBaseUrl: _imageBaseUrl) case final peer?) {
-          peers.add(peer);
+        final peer = m.toPeerDto(imageBaseUrl: _imageBaseUrl);
+        if (peer == null) continue;
+        if (m.toPeerProfile(imageBaseUrl: _imageBaseUrl) case final profile?) {
+          _profileById[peer.id] = profile;
         }
+        // A match that can no longer be messaged (ended) isn't offered as
+        // a new conversation.
+        if (m.canMessage) peers.add(peer);
       }
       if (!res.data.pagination.hasNext) break;
     }
@@ -228,7 +270,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
     }
     return [
       for (final c in eligible)
-        if (_slotOf[c.id]! < _slotCount) c.copyWith(slot: _slotOf[c.id]),
+        if (_slotOf[c.id]! < _slotCount)
+          _enrich(c.copyWith(slot: _slotOf[c.id])),
     ]..sort((a, b) => a.slot.compareTo(b.slot));
   }
 
@@ -237,8 +280,17 @@ class MessagingRepositoryImpl implements MessagingRepository {
     final inSlots = {for (final c in _slotted()) c.peer.id};
     return [
       for (final m in _matchesById.values)
-        if (!inSlots.contains(m.id)) m.toEntity(),
+        if (!inSlots.contains(m.id) && !_archivedPeerIds.contains(m.id))
+          m.toEntity().copyWith(profile: _profileById[m.id]),
     ];
+  }
+
+  /// The conversation with its peer's profile attached, when known.
+  Conversation _enrich(Conversation c) {
+    final profile = _profileById[c.peer.id];
+    return profile == null || c.peer.profile == profile
+        ? c
+        : c.copyWith(peer: c.peer.copyWith(profile: profile));
   }
 
   @override
@@ -256,6 +308,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
         known?.peer ??
         _matchesById[peerId]?.toEntity() ??
         ChatPeer(id: peerId, name: '', photoUrl: '');
+    // (the room gets the profile through `_enrich` below)
     final base = known ?? Conversation(id: id, peer: peer, slot: 0);
     _byId[id] = base;
     if (!_order.contains(id)) _order.insert(0, id);
@@ -265,7 +318,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
     return _slotted().firstWhere(
       (c) => c.id == id,
       // Past the slot limit: still openable, just not on the tab.
-      orElse: () => base,
+      orElse: () => _enrich(base),
     );
   });
 
@@ -794,6 +847,9 @@ class MessagingRepositoryImpl implements MessagingRepository {
   }) => _guard(() async {
     await _chat.archive(conversationId, ArchiveBodyDto(archived: archived));
     if (archived) {
+      if (_byId[conversationId]?.peer.id case final peerId?) {
+        _archivedPeerIds.add(peerId);
+      }
       _dropConversation(conversationId);
     } else {
       await _refreshList();
@@ -846,10 +902,76 @@ class MessagingRepositoryImpl implements MessagingRepository {
     return unit;
   });
 
+  @override
+  Future<void> refresh() async {
+    try {
+      if (_firstLoad == null) {
+        await _ensureListLoaded();
+      } else {
+        await _refreshList();
+      }
+    } on Object {
+      // The slow poll retries; a failed refresh must not break the caller.
+    }
+  }
+
+  static const _blocksPageSize = 50;
+
+  @override
+  Future<Either<Failure, List<BlockedUser>>> fetchBlocked() => _guard(() async {
+    final out = <BlockedUser>[];
+    for (var page = 1; page <= _maxListPages; page++) {
+      final res = await _chat.fetchBlocks(page: page, limit: _blocksPageSize);
+      for (final b in res.blocks) {
+        if (b.userId.isEmpty) continue;
+        final photo = b.photoUrl;
+        out.add(
+          BlockedUser(
+            id: b.userId,
+            name: b.name ?? '',
+            photoUrl: photo == null || photo.isEmpty
+                ? ''
+                : resolveImageUrl(_imageBaseUrl, photo),
+          ),
+        );
+      }
+      if (!res.hasNext) break;
+    }
+    return out;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> unblockUser(String userId) => _guard(() async {
+    await _chat.unblock(userId);
+    // They may be matchable / chattable again: refetch.
+    await refresh();
+    return unit;
+  });
+
   // ── Plumbing ──────────────────────────────────────────────────────────
 
   void _notify() {
+    _syncLastStatuses();
     if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// The list row's last message is a stub built from the list preview, so it
+  /// never learns about receipts. When the thread is held and its newest
+  /// message is ours, the row takes that message's tick.
+  void _syncLastStatuses() {
+    for (final entry in _messages.entries) {
+      final c = _byId[entry.key];
+      final last = c?.lastMessage;
+      if (c == null || last == null || !last.isMine || entry.value.isEmpty) {
+        continue;
+      }
+      final newest = entry.value.last;
+      if (newest.isMine && !newest.isCall && newest.status != last.status) {
+        _byId[entry.key] = c.copyWith(
+          lastMessage: last.copyWith(status: newest.status),
+        );
+      }
+    }
   }
 
   /// [first] runs once per subscription — its error ends up in the stream.

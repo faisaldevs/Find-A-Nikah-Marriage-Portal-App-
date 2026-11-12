@@ -2,7 +2,11 @@ import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/message_bubble.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+
+/// Longest message the API accepts.
+const kMaxMessageLength = 5000;
 
 /// "+" · pill text field · mic (empty) or pink send (text), with the quote
 /// being replied to above it.
@@ -137,6 +141,10 @@ class _MessageComposerState extends State<MessageComposer> {
                       minLines: 1,
                       maxLines: 5,
                       textCapitalization: TextCapitalization.sentences,
+                      // The server rejects anything over 5000 characters.
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(kMaxMessageLength),
+                      ],
                       style: figmaText(15, 22),
                       decoration: InputDecoration(
                         hintText: 'Type a message',

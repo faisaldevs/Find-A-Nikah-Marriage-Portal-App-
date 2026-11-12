@@ -86,6 +86,12 @@ abstract final class RoutePaths {
   /// Over the tabs (no bottom nav).
   static const chatArchived = '/chat/archived';
 
+  /// A chat peer's profile (`ChatPeer` as `extra`), over the tabs.
+  static const peerProfile = '/chat/profile';
+
+  /// Settings → Profiles I've blocked, over the tabs.
+  static const blockedProfiles = '/settings/blocked';
+
   /// One conversation, over the tabs (no bottom nav). The peer
   /// (`ChatPeer`) travels as go_router `extra`.
   static const chatRoom = '/chat/room';
@@ -172,6 +178,8 @@ abstract final class RoutePaths {
     feedCompose,
     chatUnmatched,
     chatArchived,
+    peerProfile,
+    blockedProfiles,
     chatRoom,
     call,
     incomingCall,

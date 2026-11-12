@@ -97,14 +97,17 @@ class _ChatRoomView extends StatelessWidget {
       case ChatRoomAction.report:
         final reason = await _pickReportReason(context);
         if (reason != null) bloc.add(ChatRoomReportRequested(reason));
-      case ChatRoomAction.viewProfile ||
-          ChatRoomAction.mute ||
-          ChatRoomAction.clearChat:
-        _comingSoon(context, switch (action) {
-          ChatRoomAction.viewProfile => 'Profile',
-          ChatRoomAction.mute => 'Muting',
-          _ => 'Clearing chats',
-        });
+      case ChatRoomAction.viewProfile:
+        // The peer in the bloc carries the profile once the match data
+        // has loaded.
+        context
+            .push<void>(RoutePaths.peerProfile, extra: bloc.state.peer)
+            .ignore();
+      case ChatRoomAction.mute || ChatRoomAction.clearChat:
+        _comingSoon(
+          context,
+          action == ChatRoomAction.mute ? 'Muting' : 'Clearing chats',
+        );
     }
   }
 
