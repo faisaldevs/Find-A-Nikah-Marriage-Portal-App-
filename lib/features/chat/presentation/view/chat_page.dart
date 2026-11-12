@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:math' as math;
 
 import 'package:find_a_nikah/app/di.dart';
@@ -54,6 +56,30 @@ class _ChatViewState extends State<_ChatView> {
   /// The empty slot that opened the Matches panel.
   int? _pickingSlot;
 
+  // Changes made elsewhere (mute from another device, a match, a block) have
+  // no socket event, so the list is also refetched on every return to the
+  // foreground and on coming back from a room, on top of the 30s poll.
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (!mounted) return;
+    context.read<ConversationsBloc>().add(
+      const ConversationsRefreshRequested(),
+    );
+  }
+
   void _goToTab(int branch) {
     setState(() => _matchesOpen = false);
     StatefulNavigationShell.of(context).goBranch(branch);
@@ -62,7 +88,11 @@ class _ChatViewState extends State<_ChatView> {
   /// Opens the chat room over the tabs from a Marriage row.
   void _openChat(ChatPeer peer) {
     setState(() => _matchesOpen = false);
-    context.push<void>(RoutePaths.chatRoom, extra: peer).ignore();
+    unawaited(
+      context
+          .push<void>(RoutePaths.chatRoom, extra: peer)
+          .whenComplete(_refresh),
+    );
   }
 
   /// A match pick fills a conversation slot on the list; the room opens
