@@ -162,5 +162,54 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
         return unit;
       });
 
+  // The dummy source has no socket, images, archive or safety actions: these
+  // are inert so the dummy repository still satisfies the interface.
+  @override
+  void enterConversation(String conversationId) {}
+
+  @override
+  void leaveConversation(String conversationId) {}
+
+  @override
+  void setTyping(String conversationId, {required bool typing}) {}
+
+  @override
+  Future<Either<Failure, Unit>> sendImage({
+    required String conversationId,
+    required String path,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> deleteMessage({
+    required String conversationId,
+    required String messageId,
+  }) async => right(unit);
+
+  @override
+  Stream<int> watchUnreadCount() => Stream<int>.value(0);
+
+  @override
+  Future<Either<Failure, List<Conversation>>> fetchArchived() async =>
+      right(const <Conversation>[]);
+
+  @override
+  Future<Either<Failure, Unit>> setArchived(
+    String conversationId, {
+    required bool archived,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> blockUser(String peerId) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> unmatch(String matchId) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> reportUser({
+    required String peerId,
+    required String reason,
+    String? description,
+  }) async => right(unit);
+
   Future<void> dispose() => _dummy.dispose();
 }

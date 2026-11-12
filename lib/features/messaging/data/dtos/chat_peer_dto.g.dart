@@ -14,6 +14,7 @@ ChatPeerDto _$ChatPeerDtoFromJson(Map<String, dynamic> json) => ChatPeerDto(
   lastSeenAt: json['lastSeenAt'] == null
       ? null
       : DateTime.parse(json['lastSeenAt'] as String),
+  matchId: json['matchId'] as String?,
 );
 
 Map<String, dynamic> _$ChatPeerDtoToJson(ChatPeerDto instance) =>
@@ -23,4 +24,5 @@ Map<String, dynamic> _$ChatPeerDtoToJson(ChatPeerDto instance) =>
       'photoUrl': instance.photoUrl,
       'isOnline': instance.isOnline,
       'lastSeenAt': instance.lastSeenAt?.toIso8601String(),
+      'matchId': instance.matchId,
     };

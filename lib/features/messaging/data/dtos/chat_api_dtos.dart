@@ -48,6 +48,7 @@ class ConversationRowDto {
   const ConversationRowDto({
     required this.id,
     this.partner,
+    this.matchId,
     this.lastMessageAt,
     this.lastMessagePreview,
     this.lastMessageSender,
@@ -60,6 +61,9 @@ class ConversationRowDto {
   @JsonKey(name: '_id')
   final String id;
   final ConversationPartnerDto? partner;
+
+  /// The match behind the chat; Unmatch needs it.
+  final String? matchId;
   final DateTime? lastMessageAt;
 
   /// Null until the first message.
@@ -151,7 +155,9 @@ class SendMessageResponseDto {
   final MessageDto data;
 }
 
-/// A raw server message. No delivered state — `isRead` is all there is.
+/// A raw server message (`MESSAGE_AND_CHAT_API_SPEC.md` §2).
+///
+/// Ticks: sent → [isDelivered] → [isSeen] (`isRead` is the same flag).
 @JsonSerializable(createToJson: false)
 class MessageDto {
   const MessageDto({
@@ -159,9 +165,16 @@ class MessageDto {
     required this.senderId,
     required this.createdAt,
     this.conversationId = '',
+    this.receiverId,
     this.text = '',
     this.messageType = 'text',
+    this.attachmentUrl,
+    this.isDelivered = false,
     this.isRead = false,
+    this.isSeen = false,
+    this.deliveredAt,
+    this.seenAt,
+    this.deletedForMe = false,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) =>
@@ -171,12 +184,72 @@ class MessageDto {
   final String id;
   final String conversationId;
   final String senderId;
+  final String? receiverId;
   final String text;
 
-  /// `text` or `image` (images are out of scope for now).
+  /// `text` or `image`.
   final String messageType;
+
+  /// Server-relative (`/public/upload/...`) for an image message.
+  final String? attachmentUrl;
+  final bool isDelivered;
   final bool isRead;
+  final bool isSeen;
+  final DateTime? deliveredAt;
+  final DateTime? seenAt;
+
+  /// The caller deleted it (for themselves); hide it.
+  final bool deletedForMe;
   final DateTime createdAt;
+
+  bool get seen => isSeen || isRead;
+}
+
+/// `PATCH .../delivered|seen` and `GET /messages/unread-count`.
+@JsonSerializable(createToJson: false)
+class UnreadCountResponseDto {
+  const UnreadCountResponseDto({required this.data});
+
+  factory UnreadCountResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$UnreadCountResponseDtoFromJson(json);
+
+  final UnreadCountDto data;
+}
+
+@JsonSerializable(createToJson: false)
+class UnreadCountDto {
+  const UnreadCountDto({this.count = 0});
+
+  factory UnreadCountDto.fromJson(Map<String, dynamic> json) =>
+      _$UnreadCountDtoFromJson(json);
+
+  final int count;
+}
+
+/// Body of `PATCH /v1/conversations/:id/archive`.
+@JsonSerializable(createFactory: false)
+class ArchiveBodyDto {
+  const ArchiveBodyDto({required this.archived});
+
+  final bool archived;
+
+  Map<String, dynamic> toJson() => _$ArchiveBodyDtoToJson(this);
+}
+
+/// Body of `POST /v1/reports`.
+@JsonSerializable(createFactory: false)
+class ReportBodyDto {
+  const ReportBodyDto({
+    required this.targetUserId,
+    required this.reason,
+    this.description,
+  });
+
+  final String targetUserId;
+  final String reason;
+  final String? description;
+
+  Map<String, dynamic> toJson() => _$ReportBodyDtoToJson(this);
 }
 
 /// Body of `POST /v1/conversations/:id/messages`.

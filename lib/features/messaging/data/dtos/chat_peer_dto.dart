@@ -13,6 +13,7 @@ class ChatPeerDto {
     required this.photoUrl,
     this.isOnline = false,
     this.lastSeenAt,
+    this.matchId,
   });
 
   factory ChatPeerDto.fromJson(Map<String, dynamic> json) =>
@@ -23,6 +24,7 @@ class ChatPeerDto {
   final String photoUrl;
   final bool isOnline;
   final DateTime? lastSeenAt;
+  final String? matchId;
 
   Map<String, dynamic> toJson() => _$ChatPeerDtoToJson(this);
 }

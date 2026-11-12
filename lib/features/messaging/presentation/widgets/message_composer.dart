@@ -12,6 +12,7 @@ class MessageComposer extends StatefulWidget {
     required this.onAttach,
     required this.onVoice,
     required this.onCancelReply,
+    this.onTypingChanged,
     this.replyAuthor,
     this.replyText,
     super.key,
@@ -21,6 +22,9 @@ class MessageComposer extends StatefulWidget {
   final VoidCallback onAttach;
   final VoidCallback onVoice;
   final VoidCallback onCancelReply;
+
+  /// True while the field has text, false once it empties or is sent.
+  final ValueChanged<bool>? onTypingChanged;
 
   /// Both set while replying.
   final String? replyAuthor;
@@ -35,6 +39,22 @@ class _MessageComposerState extends State<MessageComposer> {
   final _focus = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onText);
+  }
+
+  var _typing = false;
+
+  void _onText() {
+    final typing = _controller.text.trim().isNotEmpty;
+    // Keystrokes while typing re-announce (the repository throttles); the
+    // edge to empty announces the stop.
+    if (typing || _typing) widget.onTypingChanged?.call(typing);
+    _typing = typing;
+  }
+
+  @override
   void didUpdateWidget(MessageComposer old) {
     super.didUpdateWidget(old);
     // Picking a message to reply to means "type the answer now".
@@ -45,7 +65,9 @@ class _MessageComposerState extends State<MessageComposer> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller
+      ..removeListener(_onText)
+      ..dispose();
     _focus.dispose();
     super.dispose();
   }

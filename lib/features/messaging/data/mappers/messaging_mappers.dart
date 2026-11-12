@@ -12,6 +12,7 @@ extension ChatPeerDtoMapper on ChatPeerDto {
     photoUrl: photoUrl,
     isOnline: isOnline,
     lastSeenAt: isOnline ? null : lastSeenAt?.toLocal(),
+    matchId: matchId,
   );
 }
 
@@ -69,6 +70,7 @@ extension MatchDtoMapper on MatchDto {
           ? ''
           : resolveImageUrl(imageBaseUrl, photo),
       lastSeenAt: lastActive == null ? null : DateTime.tryParse(lastActive),
+      matchId: matchId.isEmpty ? null : matchId,
     );
   }
 }

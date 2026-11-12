@@ -122,7 +122,12 @@ void main() {
     tearDown(() => dummy.dispose());
 
     DummyMessagingRepositoryImpl repoWith(_FakeMatchesRemote remote) =>
-        DummyMessagingRepositoryImpl(dummy, remote, testGuard(), 'https://api.test');
+        DummyMessagingRepositoryImpl(
+          dummy,
+          remote,
+          testGuard(),
+          'https://api.test',
+        );
 
     test('lists the API matches, not the fixture ones', () async {
       final repo = repoWith(

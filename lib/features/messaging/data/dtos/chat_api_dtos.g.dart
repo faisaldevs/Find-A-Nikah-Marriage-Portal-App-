@@ -36,6 +36,7 @@ ConversationRowDto _$ConversationRowDtoFromJson(Map<String, dynamic> json) =>
           : ConversationPartnerDto.fromJson(
               json['partner'] as Map<String, dynamic>,
             ),
+      matchId: json['matchId'] as String?,
       lastMessageAt: json['lastMessageAt'] == null
           ? null
           : DateTime.parse(json['lastMessageAt'] as String),
@@ -91,10 +92,40 @@ MessageDto _$MessageDtoFromJson(Map<String, dynamic> json) => MessageDto(
   senderId: json['senderId'] as String,
   createdAt: DateTime.parse(json['createdAt'] as String),
   conversationId: json['conversationId'] as String? ?? '',
+  receiverId: json['receiverId'] as String?,
   text: json['text'] as String? ?? '',
   messageType: json['messageType'] as String? ?? 'text',
+  attachmentUrl: json['attachmentUrl'] as String?,
+  isDelivered: json['isDelivered'] as bool? ?? false,
   isRead: json['isRead'] as bool? ?? false,
+  isSeen: json['isSeen'] as bool? ?? false,
+  deliveredAt: json['deliveredAt'] == null
+      ? null
+      : DateTime.parse(json['deliveredAt'] as String),
+  seenAt: json['seenAt'] == null
+      ? null
+      : DateTime.parse(json['seenAt'] as String),
+  deletedForMe: json['deletedForMe'] as bool? ?? false,
 );
+
+UnreadCountResponseDto _$UnreadCountResponseDtoFromJson(
+  Map<String, dynamic> json,
+) => UnreadCountResponseDto(
+  data: UnreadCountDto.fromJson(json['data'] as Map<String, dynamic>),
+);
+
+UnreadCountDto _$UnreadCountDtoFromJson(Map<String, dynamic> json) =>
+    UnreadCountDto(count: (json['count'] as num?)?.toInt() ?? 0);
+
+Map<String, dynamic> _$ArchiveBodyDtoToJson(ArchiveBodyDto instance) =>
+    <String, dynamic>{'archived': instance.archived};
+
+Map<String, dynamic> _$ReportBodyDtoToJson(ReportBodyDto instance) =>
+    <String, dynamic>{
+      'targetUserId': instance.targetUserId,
+      'reason': instance.reason,
+      'description': instance.description,
+    };
 
 Map<String, dynamic> _$SendMessageBodyDtoToJson(SendMessageBodyDto instance) =>
     <String, dynamic>{'text': instance.text};

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:find_a_nikah/app/di.dart';
+import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/chat/presentation/bloc/conversations_bloc.dart';
 import 'package:find_a_nikah/features/chat/presentation/widgets/chat_gold_sheet.dart';
@@ -79,7 +80,15 @@ class _ChatViewState extends State<_ChatView> {
     final marriage = _tab == _ChatTab.marriage;
     return BlocListener<ConversationsBloc, ConversationsState>(
       listenWhen: (a, b) => b.failure != null && a.failure != b.failure,
-      listener: (context, state) => showFailureToast(context, state.failure!),
+      listener: (context, state) {
+        final failure = state.failure!;
+        // 403 on opening a chat: no match yet and no paid entitlement.
+        if (failure is ForbiddenFailure) {
+          showChatGoldSheet(context).ignore();
+        } else {
+          showFailureToast(context, failure);
+        }
+      },
       child: PopScope(
         canPop: !_matchesOpen,
         onPopInvokedWithResult: (didPop, _) {
@@ -97,12 +106,25 @@ class _ChatViewState extends State<_ChatView> {
                       ChatHeader(
                         title: 'Your Chats',
                         action: marriage
-                            ? ChatCircleButton(
-                                icon: Assets.icons.chatUnmatched,
-                                tooltip: 'Unmatched',
-                                onTap: () => context
-                                    .push<void>(RoutePaths.chatUnmatched)
-                                    .ignore(),
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ChatCircleButton(
+                                    icon: Assets.icons.chatArchive,
+                                    tooltip: 'Archived chats',
+                                    onTap: () => context
+                                        .push<void>(RoutePaths.chatArchived)
+                                        .ignore(),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  ChatCircleButton(
+                                    icon: Assets.icons.chatUnmatched,
+                                    tooltip: 'Unmatched',
+                                    onTap: () => context
+                                        .push<void>(RoutePaths.chatUnmatched)
+                                        .ignore(),
+                                  ),
+                                ],
                               )
                             : ChatCircleButton(
                                 icon: Assets.icons.chatArchive,

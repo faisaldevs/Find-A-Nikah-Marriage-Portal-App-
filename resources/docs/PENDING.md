@@ -123,6 +123,28 @@ conversations API is wired, fill them from the list as it comes (in order,
 no saved position). Switch to a server `slot` field once the backend has
 one.
 
+**Realtime + actions wired (2026-11-11):** `socket_io_client` behind
+`ChatSocket` (`SocketIoChatSocket`, session scope) feeds the repository's
+stores: `message:new/sent`, conversation-level delivered/seen receipts,
+typing. Polling is now a slow safety net (list 30s, thread 15s) and a
+reconnect resyncs over REST. Also live: ticks (sent/delivered/seen),
+image messages (gallery/camera, compressed), delete-for-me (long-press),
+archive/restore (room ⋮ menu + Archived page), unread badge on the Chat
+tab, block / unmatch / report (room ⋮ menu), 403 → gold sheet.
+Verified against the dev server (ngrok) with the two test accounts: REST
+shapes, socket connect, message delivery and conversation receipts.
+**Not verified on a device/simulator** — only unit tests + a script.
+Still dummy / local-only (backend has none): replies, mute, clear chat,
+call records, voice calls, push (FCM). Typing is implemented but the
+backend doesn't relay it (ISS-010).
+
+- [ ] Run the app on two devices and check the chat end to end
+- [ ] Socket token refresh path is untested live (a handshake refusal
+      triggers `GET /messages/unread-count` to force a refresh)
+- [ ] Image bubbles: no full-screen viewer yet
+- [ ] Failed messages: tap to retry (text and image) — try it on a device
+- [ ] Hive cache stays off by decision ("online-only for this pass")
+
 - [ ] Real data source: conversation list, message history (cursor
       paging, older messages on scroll-up), send, mark-read
 - [ ] Backend: add a `slot` (0–4) to conversations + enforce the 5-chat

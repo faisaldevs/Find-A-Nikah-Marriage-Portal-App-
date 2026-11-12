@@ -53,6 +53,7 @@ class ChatMessage extends Equatable {
     this.status = MessageStatus.sent,
     this.replyTo,
     this.callLog,
+    this.imageUrl,
   });
 
   final String id;
@@ -67,6 +68,11 @@ class ChatMessage extends Equatable {
   final MessageReply? replyTo;
   final CallLog? callLog;
 
+  /// Absolute URL of the picture, for an image message; [text] is empty.
+  final String? imageUrl;
+
+  bool get isImage => imageUrl != null;
+
   bool get isCall => callLog != null;
 
   ChatMessage copyWith({
@@ -78,6 +84,7 @@ class ChatMessage extends Equatable {
     MessageStatus? status,
     Object? replyTo = unchanged,
     Object? callLog = unchanged,
+    Object? imageUrl = unchanged,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -92,6 +99,9 @@ class ChatMessage extends Equatable {
       callLog: identical(callLog, unchanged)
           ? this.callLog
           : callLog as CallLog?,
+      imageUrl: identical(imageUrl, unchanged)
+          ? this.imageUrl
+          : imageUrl as String?,
     );
   }
 
@@ -105,5 +115,6 @@ class ChatMessage extends Equatable {
     status,
     replyTo,
     callLog,
+    imageUrl,
   ];
 }

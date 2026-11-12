@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' show MultipartFile;
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/core/utils/profile_mapping.dart';
 import 'package:find_a_nikah/features/messaging/data/datasources/chat_remote_data_source.dart';
+import 'package:find_a_nikah/features/messaging/data/datasources/chat_socket_data_source.dart';
 import 'package:find_a_nikah/features/messaging/data/datasources/matches_remote_data_source.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_peer_dto.dart';
@@ -11,11 +13,12 @@ import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 
 /// Session-scoped: holds the signed-in user's chats, dropped on sign-out.
 ///
-/// Live over REST (`/v1/conversations`, `/v1/matches/my-matches`), text
-/// only. There is no socket yet, so the streams are kept fresh by polling:
-/// the list every [_listEvery], an open thread every [_threadEvery]. When
-/// the socket lands its events feed [_notify] / the stores below and the
-/// timers go. Typing and presence have no REST source, so they stay quiet.
+/// REST (`/v1/conversations`, `/v1/matches/my-matches`) is the source of
+/// truth; the [ChatSocket] pushes changes on top of it: new messages,
+/// delivered / seen ticks, typing. Socket events only ever land in the
+/// stores below and go out through the streams — never into bloc state.
+/// Polling stays as a slow safety net, and every socket (re)connect
+/// resyncs over REST in case events were missed while it was down.
 ///
 /// The dummy-backed version is `DummyMessagingRepositoryImpl`.
 class MessagingRepositoryImpl implements MessagingRepository {
@@ -24,17 +27,29 @@ class MessagingRepositoryImpl implements MessagingRepository {
   MessagingRepositoryImpl(
     this._chat,
     this._matchesRemote,
+    this._socket,
     this._guard,
     this._imageBaseUrl,
-  );
+  ) {
+    _subs.addAll([
+      _socket.messages.listen(_onSocketMessage),
+      _socket.delivered.listen(_onDelivered),
+      _socket.seen.listen(_onSeen),
+      _socket.typing.listen(_onTyping),
+      _socket.connection.listen(_onConnection),
+    ]);
+    _socket.connect();
+  }
 
   final ChatRemoteDataSource _chat;
   final MatchesRemoteDataSource _matchesRemote;
+  final ChatSocket _socket;
   final Guard _guard;
   final String _imageBaseUrl;
 
-  static const _listEvery = Duration(seconds: 10);
-  static const _threadEvery = Duration(seconds: 3);
+  // Slow: the socket does the live work, this only catches what it missed.
+  static const _listEvery = Duration(seconds: 30);
+  static const _threadEvery = Duration(seconds: 15);
   static const _listPageSize = 50;
   static const _maxListPages = 10;
   static const _matchesPageSize = 50;
@@ -45,6 +60,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
   static const _slotCount = 5;
 
   final _changes = StreamController<void>.broadcast();
+  final _subs = <StreamSubscription<Object?>>[];
   int _seq = 0;
 
   // ── Conversations ─────────────────────────────────────────────────────
@@ -163,6 +179,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
             ? ''
             : resolveImageUrl(_imageBaseUrl, photo),
         lastSeenAt: partner?.lastActiveAt?.toLocal(),
+        matchId: row.matchId,
       ),
       slot: 0, // set by _slotted
       lastMessage: preview == null
@@ -284,13 +301,25 @@ class MessagingRepositoryImpl implements MessagingRepository {
         : (_hasMore[conversationId] ?? res.data.hasMore);
     _merge(conversationId, res.data.messages);
     _notify();
+    // Fetching them is what "delivered" means for messages that arrived
+    // while the socket was down.
+    final peerId = _peerIdOf(conversationId);
+    if (res.data.messages.any(
+      (m) => m.senderId == peerId && !m.isDelivered && !m.seen,
+    )) {
+      unawaited(_guard(() => _chat.markDelivered(conversationId)));
+    }
   }
 
   void _merge(String conversationId, List<MessageDto> incoming) {
     final held = _messages[conversationId] ?? const <ChatMessage>[];
     final byId = {for (final m in held) m.id: m};
     for (final dto in incoming) {
-      if (dto.messageType != 'text' && dto.text.isEmpty) continue;
+      if (dto.deletedForMe) {
+        byId.remove(dto.id);
+        continue;
+      }
+      if (dto.text.isEmpty && dto.attachmentUrl == null) continue;
       byId[dto.id] = _messageOf(conversationId, dto);
     }
     _messages[conversationId] = byId.values.toList()
@@ -298,16 +327,28 @@ class MessagingRepositoryImpl implements MessagingRepository {
   }
 
   ChatMessage _messageOf(String conversationId, MessageDto dto) {
-    final mine = dto.senderId != _peerOf[conversationId];
+    final mine = dto.senderId != _peerIdOf(conversationId);
+    final attachment = dto.attachmentUrl;
     return ChatMessage(
       id: dto.id,
       conversationId: conversationId,
       text: dto.text,
       sentAt: dto.createdAt.toLocal(),
       isMine: mine,
-      status: dto.isRead ? MessageStatus.seen : MessageStatus.sent,
+      status: dto.seen
+          ? MessageStatus.seen
+          : dto.isDelivered
+          ? MessageStatus.delivered
+          : MessageStatus.sent,
+      imageUrl: dto.messageType == 'image' && attachment != null
+          ? resolveImageUrl(_imageBaseUrl, attachment)
+          : null,
     );
   }
+
+  /// The other side of [conversationId], from whichever store knows it.
+  String? _peerIdOf(String conversationId) =>
+      _peerOf[conversationId] ?? _byId[conversationId]?.peer.id;
 
   @override
   Future<Either<Failure, bool>> loadOlderMessages(String conversationId) =>
@@ -330,9 +371,13 @@ class MessagingRepositoryImpl implements MessagingRepository {
       });
 
   @override
-  Stream<bool> watchPeerTyping(String conversationId) =>
-      // No REST source; arrives with the socket.
-      Stream<bool>.value(false);
+  Stream<bool> watchPeerTyping(String conversationId) async* {
+    yield _peerTyping[conversationId] ?? false;
+    yield* _typingChanges.stream
+        .where((id) => id == conversationId)
+        .map((_) => _peerTyping[conversationId] ?? false)
+        .distinct();
+  }
 
   @override
   Future<Either<Failure, Unit>> sendMessage({
@@ -441,13 +486,365 @@ class MessagingRepositoryImpl implements MessagingRepository {
   Future<Either<Failure, Unit>> markRead(String conversationId) =>
       _guard(() async {
         await _chat.markRead(conversationId);
-        final c = _byId[conversationId];
-        if (c != null && c.hasUnread) {
-          _byId[conversationId] = c.copyWith(unreadCount: 0);
-          _notify();
-        }
+        _clearUnread(conversationId);
         return unit;
       });
+
+  void _clearUnread(String conversationId) {
+    final c = _byId[conversationId];
+    if (c != null && c.hasUnread) {
+      _unread = (_unread - c.unreadCount).clamp(0, 1 << 30);
+      _byId[conversationId] = c.copyWith(unreadCount: 0);
+      _notify();
+    }
+  }
+
+  // ── Realtime (socket) ─────────────────────────────────────────────────
+
+  /// The room on screen: incoming messages there are seen, not just
+  /// delivered.
+  String? _openRoom;
+
+  @override
+  void enterConversation(String conversationId) {
+    _openRoom = conversationId;
+    _socket.join(conversationId);
+  }
+
+  @override
+  void leaveConversation(String conversationId) {
+    if (_openRoom == conversationId) _openRoom = null;
+    _socket.leave(conversationId);
+    _stopTypingNow(conversationId);
+  }
+
+  var _firstConnection = true;
+
+  /// A reconnect means events may have been missed: refetch the list and
+  /// the open thread. (The first connect is covered by the initial load.)
+  void _onConnection(bool connected) {
+    if (!connected) return;
+    final isFirst = _firstConnection;
+    _firstConnection = false;
+    if (isFirst) return;
+    unawaited(_resync());
+  }
+
+  Future<void> _resync() async {
+    try {
+      if (_firstLoad != null) await _refreshList();
+      final room = _openRoom;
+      if (room != null) {
+        _socket.join(room);
+        await _refreshThread(room);
+      }
+      await _refreshUnread();
+    } on Object {
+      // The slow poll retries.
+    }
+  }
+
+  void _onSocketMessage(MessageDto dto) {
+    final id = dto.conversationId;
+    if (id.isEmpty) return;
+    if (!_byId.containsKey(id)) {
+      // A conversation we have not listed yet (a new match messaging first).
+      if (_firstLoad != null) unawaited(_refreshList().catchError((_) {}));
+      return;
+    }
+    final mine = dto.senderId != _peerIdOf(id);
+    final held = _messages[id];
+    if (held != null) {
+      final local = mine
+          ? held.where(
+              (m) =>
+                  m.id.startsWith('local-') &&
+                  m.status == MessageStatus.sending &&
+                  m.text == dto.text &&
+                  m.imageUrl == null,
+            )
+          : const <ChatMessage>[];
+      // Our own send echoed from another device or ahead of the REST
+      // response: drop the optimistic copy it replaces.
+      if (local.isNotEmpty) held.remove(local.first);
+      _merge(id, [dto]);
+    }
+    final c = _byId[id]!;
+    final preview = dto.messageType == 'image' ? 'Photo' : dto.text;
+    final isOpen = _openRoom == id;
+    if (!mine) {
+      // Conversation-level receipts: the server broadcasts those to the
+      // sender, but not the per-message socket ones (verified live).
+      if (isOpen) {
+        _socket.emitSeen(conversationId: id);
+        unawaited(_guard(() => _chat.markRead(id)));
+      } else {
+        _socket.emitDelivered(conversationId: id);
+        _unread++;
+      }
+      _setPeerTyping(id, typing: false);
+    }
+    _byId[id] = c.copyWith(
+      lastMessage: ChatMessage(
+        id: 'last-$id',
+        conversationId: id,
+        text: preview,
+        sentAt: dto.createdAt.toLocal(),
+        isMine: mine,
+      ),
+      unreadCount: mine || isOpen ? c.unreadCount : c.unreadCount + 1,
+    );
+    _order
+      ..remove(id)
+      ..insert(0, id);
+    _notify();
+  }
+
+  /// A delivered / seen receipt is about messages this user sent.
+  ///
+  /// The server sends each receipt to both users, so first check it came
+  /// from the peer: a `seenBy` that isn't the peer is our own read; a
+  /// `deliveredTo` that is the peer means it was addressed to them.
+  void _onDelivered(SocketReceipt r) {
+    final peer = _peerIdOf(r.conversationId);
+    if (r.deliveredTo != null && r.deliveredTo == peer) return;
+    _applyReceipt(r, MessageStatus.delivered);
+  }
+
+  void _onSeen(SocketReceipt r) {
+    final peer = _peerIdOf(r.conversationId);
+    if (r.seenBy != null && r.seenBy != peer) return;
+    _applyReceipt(r, MessageStatus.seen);
+  }
+
+  void _applyReceipt(SocketReceipt r, MessageStatus to) {
+    final list = _messages[r.conversationId];
+    if (list == null) return;
+    var changed = false;
+    for (var i = 0; i < list.length; i++) {
+      final m = list[i];
+      final hit = r.messageId != null
+          ? m.id == r.messageId
+          : m.isMine && !m.isCall && !m.sentAt.isAfter(r.at.toLocal());
+      // Ticks only move forward.
+      if (hit &&
+          m.isMine &&
+          !m.id.startsWith('local-') &&
+          m.status.index < to.index) {
+        list[i] = m.copyWith(status: to);
+        changed = true;
+      }
+    }
+    if (changed) _notify();
+  }
+
+  // ── Typing ──
+
+  final _peerTyping = <String, bool>{};
+  final _typingChanges = StreamController<String>.broadcast();
+  final _typingExpiry = <String, Timer>{};
+
+  void _onTyping(SocketTyping t) {
+    if (t.from != _peerIdOf(t.conversationId)) return;
+    _setPeerTyping(t.conversationId, typing: t.typing);
+  }
+
+  void _setPeerTyping(String conversationId, {required bool typing}) {
+    _typingExpiry.remove(conversationId)?.cancel();
+    if ((_peerTyping[conversationId] ?? false) == typing) {
+      if (!typing) return;
+    }
+    _peerTyping[conversationId] = typing;
+    // A lost `stop_typing` must not leave the bubble up for good.
+    if (typing) {
+      _typingExpiry[conversationId] = Timer(
+        const Duration(seconds: 6),
+        () => _setPeerTyping(conversationId, typing: false),
+      );
+    }
+    if (!_typingChanges.isClosed) _typingChanges.add(conversationId);
+  }
+
+  DateTime? _typingSentAt;
+  Timer? _typingIdle;
+
+  @override
+  void setTyping(String conversationId, {required bool typing}) {
+    if (!typing) {
+      _stopTypingNow(conversationId);
+      return;
+    }
+    final now = DateTime.now();
+    // One `typing` per 3s is enough to keep the peer's bubble up.
+    if (_typingSentAt == null ||
+        now.difference(_typingSentAt!) > const Duration(seconds: 3)) {
+      _typingSentAt = now;
+      _socket.emitTyping(conversationId, typing: true);
+    }
+    _typingIdle?.cancel();
+    _typingIdle = Timer(
+      const Duration(seconds: 4),
+      () => _stopTypingNow(conversationId),
+    );
+  }
+
+  void _stopTypingNow(String conversationId) {
+    _typingIdle?.cancel();
+    _typingIdle = null;
+    if (_typingSentAt == null) return;
+    _typingSentAt = null;
+    _socket.emitTyping(conversationId, typing: false);
+  }
+
+  // ── Images, delete, unread, archive, safety ───────────────────────────
+
+  @override
+  Future<Either<Failure, Unit>> sendImage({
+    required String conversationId,
+    required String path,
+  }) async {
+    final localId = 'local-${++_seq}';
+    _put(
+      conversationId,
+      ChatMessage(
+        id: localId,
+        conversationId: conversationId,
+        text: '',
+        sentAt: DateTime.now(),
+        isMine: true,
+        status: MessageStatus.sending,
+        imageUrl: path,
+      ),
+    );
+    final sent = await _guard(
+      () async => _chat.sendImage(
+        conversationId,
+        await MultipartFile.fromFile(path, filename: 'photo.jpg'),
+      ),
+    );
+    return sent.match(
+      (f) {
+        _replace(
+          conversationId,
+          localId,
+          (m) => m.copyWith(status: MessageStatus.failed),
+        );
+        return left(f);
+      },
+      (res) {
+        final list = _messages[conversationId]!
+          ..removeWhere((m) => m.id == localId || m.id == res.data.id);
+        list
+          ..add(_messageOf(conversationId, res.data))
+          ..sort((a, b) => a.sentAt.compareTo(b.sentAt));
+        _bumpPreview(conversationId, 'Photo');
+        _notify();
+        return right(unit);
+      },
+    );
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteMessage({
+    required String conversationId,
+    required String messageId,
+  }) => _guard(() async {
+    if (!messageId.startsWith('local-')) await _chat.deleteMessage(messageId);
+    _messages[conversationId]?.removeWhere((m) => m.id == messageId);
+    _notify();
+    return unit;
+  });
+
+  var _unread = 0;
+
+  Future<void> _refreshUnread() async {
+    final res = await _chat.unreadCount();
+    _unread = res.data.count;
+    _notify();
+  }
+
+  @override
+  Stream<int> watchUnreadCount() => _live<int>(
+    first: _refreshUnread,
+    refresh: _refreshUnread,
+    read: () => _unread,
+    every: _listEvery,
+  ).distinct();
+
+  @override
+  Future<Either<Failure, List<Conversation>>> fetchArchived() =>
+      _guard(() async {
+        final rows = <ConversationRowDto>[];
+        for (var page = 1; page <= _maxListPages; page++) {
+          final res = await _chat.fetchConversations(
+            page: page,
+            limit: _listPageSize,
+            archived: true,
+          );
+          rows.addAll(res.data.conversations);
+          if (!res.data.pagination.hasNext) break;
+        }
+        return [for (final r in rows) _conversationOf(r)];
+      });
+
+  @override
+  Future<Either<Failure, Unit>> setArchived(
+    String conversationId, {
+    required bool archived,
+  }) => _guard(() async {
+    await _chat.archive(conversationId, ArchiveBodyDto(archived: archived));
+    if (archived) {
+      _dropConversation(conversationId);
+    } else {
+      await _refreshList();
+    }
+    return unit;
+  });
+
+  /// Gone from the slots (archived / unmatched / blocked); its slot frees.
+  void _dropConversation(String conversationId) {
+    final peerId = _byId[conversationId]?.peer.id;
+    _byId.remove(conversationId);
+    _order.remove(conversationId);
+    _slotOf.remove(conversationId);
+    _messages.remove(conversationId);
+    if (peerId != null) _startedPeers.remove(peerId);
+    _notify();
+  }
+
+  @override
+  Future<Either<Failure, Unit>> blockUser(String peerId) => _guard(() async {
+    await _chat.block(peerId);
+    final id = _byId.values.where((c) => c.peer.id == peerId).firstOrNull?.id;
+    if (id != null) _dropConversation(id);
+    _matchesById.remove(peerId);
+    _notify();
+    return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> unmatch(String matchId) => _guard(() async {
+    await _chat.unmatch(matchId);
+    // The conversation closes server-side; refetch so list and matches agree.
+    await _refreshList();
+    return unit;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> reportUser({
+    required String peerId,
+    required String reason,
+    String? description,
+  }) => _guard(() async {
+    await _chat.report(
+      ReportBodyDto(
+        targetUserId: peerId,
+        reason: reason,
+        description: description,
+      ),
+    );
+    return unit;
+  });
 
   // ── Plumbing ──────────────────────────────────────────────────────────
 
@@ -505,5 +902,16 @@ class MessagingRepositoryImpl implements MessagingRepository {
     return controller.stream;
   }
 
-  Future<void> dispose() => _changes.close();
+  Future<void> dispose() async {
+    for (final sub in _subs) {
+      await sub.cancel();
+    }
+    for (final t in _typingExpiry.values) {
+      t.cancel();
+    }
+    _typingIdle?.cancel();
+    await _socket.dispose();
+    await _typingChanges.close();
+    await _changes.close();
+  }
 }

@@ -37,6 +37,57 @@ final class ChatRoomOlderRequested extends ChatRoomEvent {
   const ChatRoomOlderRequested();
 }
 
+/// The user started / stopped typing in the composer.
+final class ChatRoomTypingChanged extends ChatRoomEvent {
+  const ChatRoomTypingChanged({required this.typing});
+
+  final bool typing;
+}
+
+/// A picture was picked (already compressed) to send.
+final class ChatRoomImageSelected extends ChatRoomEvent {
+  const ChatRoomImageSelected(this.path);
+
+  final String path;
+}
+
+/// Delete for me.
+final class ChatRoomMessageDeleted extends ChatRoomEvent {
+  const ChatRoomMessageDeleted(this.message);
+
+  final ChatMessage message;
+}
+
+/// Resend a message that failed.
+final class ChatRoomRetryRequested extends ChatRoomEvent {
+  const ChatRoomRetryRequested(this.message);
+
+  final ChatMessage message;
+}
+
+final class ChatRoomBlockRequested extends ChatRoomEvent {
+  const ChatRoomBlockRequested();
+}
+
+final class ChatRoomUnmatchRequested extends ChatRoomEvent {
+  const ChatRoomUnmatchRequested();
+}
+
+final class ChatRoomReportRequested extends ChatRoomEvent {
+  const ChatRoomReportRequested(this.reason, {this.description});
+
+  final String reason;
+  final String? description;
+}
+
+final class ChatRoomArchiveRequested extends ChatRoomEvent {
+  const ChatRoomArchiveRequested();
+}
+
+/// What a safety action ended with; the page shows it once (and leaves the
+/// room for the ones that end the chat).
+enum ChatRoomOutcome { blocked, unmatched, reported, archived }
+
 enum ChatRoomStatus { loading, ready, failure }
 
 class ChatRoomState extends Equatable {
@@ -48,6 +99,7 @@ class ChatRoomState extends Equatable {
     this.peerTyping = false,
     this.replyingTo,
     this.failure,
+    this.outcome,
   });
 
   final ChatPeer peer;
@@ -65,6 +117,9 @@ class ChatRoomState extends Equatable {
   /// Set when a send fails; shown once by the page's listener.
   final Failure? failure;
 
+  /// Set when a block / unmatch / report / archive succeeded.
+  final ChatRoomOutcome? outcome;
+
   ChatRoomState copyWith({
     ChatPeer? peer,
     ChatRoomStatus? status,
@@ -73,6 +128,7 @@ class ChatRoomState extends Equatable {
     bool? peerTyping,
     Object? replyingTo = unchanged,
     Object? failure = unchanged,
+    Object? outcome = unchanged,
   }) {
     return ChatRoomState(
       peer: peer ?? this.peer,
@@ -88,6 +144,9 @@ class ChatRoomState extends Equatable {
       failure: identical(failure, unchanged)
           ? this.failure
           : failure as Failure?,
+      outcome: identical(outcome, unchanged)
+          ? this.outcome
+          : outcome as ChatRoomOutcome?,
     );
   }
 
@@ -100,6 +159,7 @@ class ChatRoomState extends Equatable {
     peerTyping,
     replyingTo,
     failure,
+    outcome,
   ];
 }
 
@@ -117,6 +177,20 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
       (_, emit) => emit(state.copyWith(replyingTo: null)),
       transformer: sequential(),
     );
+    on<ChatRoomTypingChanged>(
+      (e, _) {
+        final id = state.conversationId;
+        if (id != null) _repo.setTyping(id, typing: e.typing);
+      },
+      transformer: sequential(),
+    );
+    on<ChatRoomImageSelected>(_onImage, transformer: sequential());
+    on<ChatRoomMessageDeleted>(_onDeleted, transformer: sequential());
+    on<ChatRoomRetryRequested>(_onRetry, transformer: sequential());
+    on<ChatRoomBlockRequested>(_onBlock, transformer: droppable());
+    on<ChatRoomUnmatchRequested>(_onUnmatch, transformer: droppable());
+    on<ChatRoomReportRequested>(_onReport, transformer: droppable());
+    on<ChatRoomArchiveRequested>(_onArchive, transformer: droppable());
   }
 
   final MessagingRepository _repo;
@@ -142,6 +216,8 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
     }
     final id = conversation.id;
     emit(state.copyWith(conversationId: id, peer: conversation.peer));
+    // Join the socket room: from here on incoming messages count as seen.
+    _repo.enterConversation(id);
     await Future.wait([
       emit.forEach<List<ChatMessage>>(
         _repo.watchMessages(id),
@@ -179,6 +255,108 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
       replyToMessageId: quoted?.id,
     );
     sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
+  }
+
+  Future<void> _onImage(
+    ChatRoomImageSelected event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null) return;
+    final sent = await _repo.sendImage(conversationId: id, path: event.path);
+    sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
+  }
+
+  Future<void> _onDeleted(
+    ChatRoomMessageDeleted event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null) return;
+    final done = await _repo.deleteMessage(
+      conversationId: id,
+      messageId: event.message.id,
+    );
+    done.match((f) => emit(state.copyWith(failure: f)), (_) {});
+  }
+
+  /// A failed text goes out again as a new message; the failed bubble is
+  /// dropped locally.
+  Future<void> _onRetry(
+    ChatRoomRetryRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    final m = event.message;
+    if (id == null || m.status != MessageStatus.failed) return;
+    await _repo.deleteMessage(conversationId: id, messageId: m.id);
+    final imageUrl = m.imageUrl;
+    final sent = imageUrl != null
+        ? await _repo.sendImage(conversationId: id, path: imageUrl)
+        : await _repo.sendMessage(conversationId: id, text: m.text);
+    sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
+  }
+
+  Future<void> _onBlock(
+    ChatRoomBlockRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final done = await _repo.blockUser(state.peer.id);
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(state.copyWith(outcome: ChatRoomOutcome.blocked)),
+    );
+  }
+
+  Future<void> _onUnmatch(
+    ChatRoomUnmatchRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final matchId = state.peer.matchId;
+    if (matchId == null) {
+      emit(state.copyWith(failure: const NotFoundFailure()));
+      return;
+    }
+    final done = await _repo.unmatch(matchId);
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(state.copyWith(outcome: ChatRoomOutcome.unmatched)),
+    );
+  }
+
+  Future<void> _onReport(
+    ChatRoomReportRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final done = await _repo.reportUser(
+      peerId: state.peer.id,
+      reason: event.reason,
+      description: event.description,
+    );
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(state.copyWith(outcome: ChatRoomOutcome.reported)),
+    );
+  }
+
+  Future<void> _onArchive(
+    ChatRoomArchiveRequested event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null) return;
+    final done = await _repo.setArchived(id, archived: true);
+    done.match(
+      (f) => emit(state.copyWith(failure: f)),
+      (_) => emit(state.copyWith(outcome: ChatRoomOutcome.archived)),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    final id = state.conversationId;
+    if (id != null) _repo.leaveConversation(id);
+    return super.close();
   }
 
   /// Older messages arrive through the messages stream.

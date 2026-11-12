@@ -1,4 +1,5 @@
 import 'package:find_a_nikah/app/di.dart';
+import 'package:find_a_nikah/core/media/image_compressor.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 import 'package:find_a_nikah/features/messaging/presentation/bloc/chat_room_bloc.dart';
@@ -13,6 +14,7 @@ import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 
 /// One-to-one chat with a match, pushed over the tabs. Opened from a
@@ -52,39 +54,211 @@ class _ChatRoomView extends StatelessWidget {
     context.push<void>(route, extra: peer).ignore();
   }
 
-  /// None of these have a backend yet.
+  /// Mute and Clear chat have no backend yet; the rest are live.
   Future<void> _onMore(BuildContext context, ChatPeer peer) async {
     // Before the sheet: closing it hands focus back to whatever had it.
     // Unfocus the field itself: unfocusing the page's scope keeps the
     // field as its remembered child, which refocuses on return.
     FocusManager.instance.primaryFocus?.unfocus();
+    final bloc = context.read<ChatRoomBloc>();
     final action = await showChatRoomActions(
       context,
       peerName: peer.name,
       devTools: devTools,
     );
     if (action == null || !context.mounted) return;
-    if (action == ChatRoomAction.simulateIncomingCall) {
-      _openCall(context, RoutePaths.incomingCall, peer);
-      return;
+    switch (action) {
+      case ChatRoomAction.simulateIncomingCall:
+        _openCall(context, RoutePaths.incomingCall, peer);
+      case ChatRoomAction.archive:
+        bloc.add(const ChatRoomArchiveRequested());
+      case ChatRoomAction.block:
+        if (await _confirm(
+          context,
+          title: 'Block ${peer.name}?',
+          message:
+              'They won’t be able to message you, and this chat '
+              'will be removed.',
+          action: 'Block',
+        )) {
+          bloc.add(const ChatRoomBlockRequested());
+        }
+      case ChatRoomAction.unmatch:
+        if (await _confirm(
+          context,
+          title: 'Unmatch ${peer.name}?',
+          message: 'The chat will close for both of you.',
+          action: 'Unmatch',
+        )) {
+          bloc.add(const ChatRoomUnmatchRequested());
+        }
+      case ChatRoomAction.report:
+        final reason = await _pickReportReason(context);
+        if (reason != null) bloc.add(ChatRoomReportRequested(reason));
+      case ChatRoomAction.viewProfile ||
+          ChatRoomAction.mute ||
+          ChatRoomAction.clearChat:
+        _comingSoon(context, switch (action) {
+          ChatRoomAction.viewProfile => 'Profile',
+          ChatRoomAction.mute => 'Muting',
+          _ => 'Clearing chats',
+        });
     }
-    _comingSoon(context, switch (action) {
-      ChatRoomAction.viewProfile => 'Profile',
-      ChatRoomAction.mute => 'Muting',
-      ChatRoomAction.clearChat => 'Clearing chats',
-      ChatRoomAction.unmatch => 'Unmatching',
-      ChatRoomAction.block => 'Blocking',
-      ChatRoomAction.report => 'Reporting',
-      ChatRoomAction.simulateIncomingCall => 'Calls',
-    });
+  }
+
+  Future<bool> _confirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String action,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              action,
+              style: const TextStyle(color: AppColors.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  static const _reportReasons = <(String, String)>[
+    ('harassment', 'Harassment or abuse'),
+    ('inappropriate_content', 'Inappropriate content'),
+    ('fake_profile', 'Fake profile'),
+    ('spam', 'Spam or scam'),
+    ('other', 'Something else'),
+  ];
+
+  Future<String?> _pickReportReason(BuildContext context) {
+    return showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Text(
+                'Report this member',
+                style: figmaText(16, 22, weight: FontWeight.w700),
+              ),
+            ),
+            for (final (code, label) in _reportReasons)
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.of(context).pop(code),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "+" in the composer: a picture from the gallery or the camera.
+  Future<void> _onAttach(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final bloc = context.read<ChatRoomBloc>();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Photo library'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Camera'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    try {
+      final picked = await getIt<ImagePicker>().pickImage(source: source);
+      if (picked == null) return;
+      // Same shrink-and-strip-EXIF as profile photos.
+      final path = await getIt<ImageCompressor>().compress(
+        picked.path,
+        outputName: 'chat_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+      bloc.add(ChatRoomImageSelected(path));
+    } on Object {
+      if (context.mounted) {
+        CustomToast.showInfo(context, 'Couldn’t attach that photo.');
+      }
+    }
+  }
+
+  /// Long-press on a message: delete for me.
+  static Future<void> _onMessageMenu(
+    BuildContext context,
+    ChatMessage m,
+  ) async {
+    final bloc = context.read<ChatRoomBloc>();
+    final delete = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: ListTile(
+          leading: const Icon(
+            Icons.delete_outline_rounded,
+            color: AppColors.errorColor,
+          ),
+          title: const Text('Delete for me'),
+          onTap: () => Navigator.of(context).pop(true),
+        ),
+      ),
+    );
+    if (delete ?? false) bloc.add(ChatRoomMessageDeleted(m));
   }
 
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<ChatRoomBloc>();
-    return BlocListener<ChatRoomBloc, ChatRoomState>(
-      listenWhen: (a, b) => b.failure != null && a.failure != b.failure,
-      listener: (context, state) => showFailureToast(context, state.failure!),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ChatRoomBloc, ChatRoomState>(
+          listenWhen: (a, b) => b.failure != null && a.failure != b.failure,
+          listener: (context, state) =>
+              showFailureToast(context, state.failure!),
+        ),
+        BlocListener<ChatRoomBloc, ChatRoomState>(
+          listenWhen: (a, b) => b.outcome != null && a.outcome != b.outcome,
+          listener: (context, state) {
+            final done = state.outcome!;
+            CustomToast.showInfo(context, switch (done) {
+              ChatRoomOutcome.blocked => 'Blocked',
+              ChatRoomOutcome.unmatched => 'Unmatched',
+              ChatRoomOutcome.reported => 'Thanks — we’ll review this report',
+              ChatRoomOutcome.archived => 'Chat archived',
+            });
+            // Blocking, unmatching and archiving end the chat.
+            if (done != ChatRoomOutcome.reported) context.pop();
+          },
+        ),
+      ],
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -123,7 +297,9 @@ class _ChatRoomView extends StatelessWidget {
                     replyText: reply?.text,
                     onSend: (text) => bloc.add(ChatRoomMessageSubmitted(text)),
                     onCancelReply: () => bloc.add(const ChatRoomReplyCleared()),
-                    onAttach: () => _comingSoon(context, 'Attachments'),
+                    onTypingChanged: (typing) =>
+                        bloc.add(ChatRoomTypingChanged(typing: typing)),
+                    onAttach: () => _onAttach(context),
                     onVoice: () => _comingSoon(context, 'Voice messages'),
                   );
                 },
@@ -207,6 +383,10 @@ class _Thread extends StatelessWidget {
           peerName: state.peer.name,
           onReply: () => context.read<ChatRoomBloc>().add(
             ChatRoomReplySelected(message),
+          ),
+          onLongPress: () => _ChatRoomView._onMessageMenu(context, message),
+          onRetry: () => context.read<ChatRoomBloc>().add(
+            ChatRoomRetryRequested(message),
           ),
         ),
       ),

@@ -1,5 +1,11 @@
 # Messaging — backend contract (from source pasted 2026-10-29)
 
+> **OBSOLETE (2026-11-11).** The authoritative spec is the backend's
+> `MESSAGE_AND_CHAT_API_SPEC.md` (delivered/seen ticks, archive, delete,
+> unread count, images, block/unmatch/report, hardened socket). This file
+> is kept for history; backend gaps found while wiring are in ISSUES.md
+> (ISS-010..012).
+
 Source: `chat.controllers.js`, `message.model.js`, `chat.routes.js`,
 `socket/emit.js`, `socket/index.js`. Responses are wrapped
 `{ statusCode, data, message }`. Conversation router mounts at

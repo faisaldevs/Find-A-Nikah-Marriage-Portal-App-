@@ -10,6 +10,7 @@ class ChatPeer extends Equatable {
     required this.photoUrl,
     this.isOnline = false,
     this.lastSeenAt,
+    this.matchId,
   });
 
   final String id;
@@ -20,12 +21,17 @@ class ChatPeer extends Equatable {
   /// When they were last active; null while [isOnline] or unknown.
   final DateTime? lastSeenAt;
 
+  /// The match this chat belongs to — what Unmatch acts on. Null when the
+  /// source didn't say.
+  final String? matchId;
+
   ChatPeer copyWith({
     String? id,
     String? name,
     String? photoUrl,
     bool? isOnline,
     Object? lastSeenAt = unchanged,
+    Object? matchId = unchanged,
   }) {
     return ChatPeer(
       id: id ?? this.id,
@@ -35,6 +41,9 @@ class ChatPeer extends Equatable {
       lastSeenAt: identical(lastSeenAt, unchanged)
           ? this.lastSeenAt
           : lastSeenAt as DateTime?,
+      matchId: identical(matchId, unchanged)
+          ? this.matchId
+          : matchId as String?,
     );
   }
 
@@ -45,5 +54,6 @@ class ChatPeer extends Equatable {
     photoUrl,
     isOnline,
     lastSeenAt,
+    matchId,
   ];
 }

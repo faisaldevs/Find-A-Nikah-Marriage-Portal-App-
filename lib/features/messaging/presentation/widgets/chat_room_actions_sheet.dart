@@ -6,6 +6,7 @@ enum ChatRoomAction {
   viewProfile,
   mute,
   clearChat,
+  archive,
   unmatch,
   block,
   report,
@@ -63,6 +64,7 @@ class _ActionsSheet extends StatelessWidget {
         Icons.cleaning_services_outlined,
         'Clear chat',
       ),
+      (ChatRoomAction.archive, Icons.archive_outlined, 'Archive chat'),
       (ChatRoomAction.unmatch, Icons.heart_broken_outlined, 'Unmatch'),
       (ChatRoomAction.block, Icons.block_rounded, 'Block $peerName'),
       (ChatRoomAction.report, Icons.flag_outlined, 'Report'),
@@ -136,6 +138,7 @@ class _ActionsSheet extends StatelessWidget {
     ChatRoomAction.simulateIncomingCall ||
     ChatRoomAction.viewProfile ||
     ChatRoomAction.mute ||
+    ChatRoomAction.archive ||
     ChatRoomAction.clearChat => false,
   };
 }

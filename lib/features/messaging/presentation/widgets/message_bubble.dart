@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_style.dart';
@@ -12,10 +15,18 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     required this.peerName,
     required this.onReply,
+    this.onLongPress,
+    this.onRetry,
     super.key,
   });
 
   final ChatMessage message;
+
+  /// Opens the message menu (delete for me).
+  final VoidCallback? onLongPress;
+
+  /// Taps a failed message to send it again.
+  final VoidCallback? onRetry;
 
   /// Labels quotes of the peer's messages.
   final String peerName;
@@ -34,29 +45,72 @@ class MessageBubble extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: MediaQuery.sizeOf(context).width * 0.75,
           ),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.w),
-            decoration: BoxDecoration(
-              color: mine ? AppColors.primaryColor : kMsgGrey100,
-              borderRadius: BorderRadius.circular(16.w),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (reply != null) ...[
-                  ReplyQuote(
-                    author: reply.isMine ? 'You' : peerName,
-                    text: reply.text,
-                    onPink: mine,
-                  ),
-                  SizedBox(height: 8.w),
+          child: GestureDetector(
+            onLongPress: onLongPress,
+            onTap: message.status == MessageStatus.failed ? onRetry : null,
+            child: Container(
+              padding: message.isImage
+                  ? EdgeInsets.all(4.w)
+                  : EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.w),
+              decoration: BoxDecoration(
+                color: mine ? AppColors.primaryColor : kMsgGrey100,
+                borderRadius: BorderRadius.circular(16.w),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (reply != null) ...[
+                    ReplyQuote(
+                      author: reply.isMine ? 'You' : peerName,
+                      text: reply.text,
+                      onPink: mine,
+                    ),
+                    SizedBox(height: 8.w),
+                  ],
+                  if (message.isImage)
+                    _MessageImage(url: message.imageUrl!)
+                  else
+                    Text(
+                      message.text,
+                      style: figmaText(15, 22, color: textColor),
+                    ),
                 ],
-                Text(message.text, style: figmaText(15, 22, color: textColor)),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A sent / received picture; a local file while it is still uploading.
+class _MessageImage extends StatelessWidget {
+  const _MessageImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 220.w;
+    final remote = url.startsWith('http');
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.w),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: remote
+            ? CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => const ColoredBox(color: kMsgGrey200),
+                errorWidget: (_, _, _) => const ColoredBox(
+                  color: kMsgGrey200,
+                  child: Icon(Icons.broken_image_outlined),
+                ),
+              )
+            : Image.file(File(url), fit: BoxFit.cover),
       ),
     );
   }

@@ -105,6 +105,8 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerSingleton<ErrorReporter>(reporter)
     ..registerSingleton<Guard>(guard)
     ..registerSingleton<ApiClient>(api)
+    ..registerSingleton<TokenStore>(authLocal)
+    ..registerSingleton<ImagePicker>(picker)
     ..registerSingleton<JsonCache>(cache)
     // ── Repositories (stateless → root scope) ──────────────────────────
     ..registerLazySingleton<AuthRepository>(
@@ -294,6 +296,12 @@ Future<void> configureDependencies(AppConfig config) async {
       () => CreatePostBloc(getIt<FeedRepository>()),
     )
     // Messaging reads the session-scoped repository, resolved on open.
+    ..registerFactory<UnreadCountCubit>(
+      () => UnreadCountCubit(getIt<MessagingRepository>()),
+    )
+    ..registerFactory<ArchivedChatsCubit>(
+      () => ArchivedChatsCubit(getIt<MessagingRepository>()),
+    )
     ..registerFactory<ConversationsBloc>(
       () => ConversationsBloc(getIt<MessagingRepository>()),
     )
@@ -342,10 +350,23 @@ void pushSessionScope() => getIt.pushNewScope(
     //   ),
     //   dispose: (r) => (r as DummyMessagingRepositoryImpl).dispose(),
     // )
+    // The chat socket: websocket, JWT in the handshake. When the server
+    // refuses the handshake (expired token) a cheap authenticated REST call
+    // makes the auth interceptor refresh it before the retry.
+    ..registerLazySingleton<ChatSocket>(
+      () => SocketIoChatSocket(
+        url: getIt<AppConfig>().socketUrl ?? getIt<AppConfig>().imageBaseUrl,
+        readToken: () async => (await getIt<TokenStore>().read())?.accessToken,
+        refreshToken: () async {
+          await ChatRemoteDataSource(getIt<ApiClient>().dio).unreadCount();
+        },
+      ),
+    )
     ..registerLazySingleton<MessagingRepository>(
       () => MessagingRepositoryImpl(
         ChatRemoteDataSource(getIt<ApiClient>().dio),
         MatchesRemoteDataSource(getIt<ApiClient>().dio),
+        getIt<ChatSocket>(),
         getIt<Guard>(),
         getIt<AppConfig>().imageBaseUrl,
       ),

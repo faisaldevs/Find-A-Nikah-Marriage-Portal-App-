@@ -233,3 +233,102 @@ decision
 - **Ask backend:** remove the label-named duplicates. Keys with spaces and
   capitals are easy to misuse, and they make it unclear which field is
   the real one.
+
+## ISS-010 — Chat socket: `typing` / `stop_typing` are never relayed
+
+**Owner:** Backend · **Severity:** Medium · **Status:** Open
+
+- **Actual (checked 2026-11-11, two accounts, both sockets in the room):**
+  A emits `typing` with `{conversationId}`, with `{conversationId,
+  toUserId}` and with `{to}`. B never receives a `typing` event, and no
+  error or ack comes back. The app's typing bubble therefore never shows.
+- **Ask backend:** relay `typing` / `stop_typing` to the other participant
+  as `{ conversationId, from }` (spec §4.6), or say what the handler needs.
+
+## ISS-011 — Chat socket: per-message `message:delivered` / `message:seen` aren't broadcast
+
+**Owner:** Backend · **Severity:** Medium · **Status:** Open
+
+- **Actual:** `message:delivered {messageId}` and `message:seen
+  {messageId}` get `{success:true}` acks but the sender receives nothing,
+  so the ticks don't change. The conversation-level forms
+  (`{conversationId}`) and `PATCH /conversations/:id/seen` do broadcast.
+- **App does for now:** uses the conversation-level forms only.
+- **Related quirks:** the receipt goes to *both* users, and the payloads
+  disagree on meaning: `message:seen` has `seenBy` (the reader) while
+  `message:delivered` has `deliveredTo` (the sender, i.e. not the
+  recipient). The app filters on these. Receipts carry no `messageId` at
+  conversation level, so the app marks every own message up to the
+  timestamp. Ask: send `messageId`s (or a `deliveredBy`) and only to the
+  sender.
+
+## ISS-012 — Chat socket: message events go to both participants, twice
+
+**Owner:** Backend · **Severity:** Low · **Status:** Open
+
+- **Actual:** a REST send makes the *sender and the receiver* each get
+  `message:sent` and `message:new` for the same message (four events).
+  The spec says `message:sent` is only for the sender's other devices.
+- **App does for now:** dedupes by message `_id` and decides mine/theirs
+  from `senderId`, so it is harmless, but it is extra traffic.
+
+## ISS-013 — First chat request after an idle period fails on the emulator
+
+**Owner:** Unclear (emulator network, possibly app) · **Severity:** Medium ·
+**Status:** Needs a check on a real device
+
+- **Seen (2026-11-12, Android emulator, dev ngrok server):** the first send
+  after ~45 s idle hangs, then shows "No internet connection" / "Not sent";
+  tapping the failed bubble re-sends it fine. Delete-for-me took ~10 s to
+  show. An Archive tap and a Report did nothing visible. The same requests
+  worked on the physical Pixel 5.
+- **Probable cause: the emulator, not the app.** At the time `ping 8.8.8.8`
+  from the emulator had 66 % loss, DNS lookups failed, and it had both a
+  Wi-Fi and an LTE network flipping the default route (status bar went
+  Wi-Fi → 5G → Wi-Fi "?"). Android destroyed the app's TCP sockets at the
+  same moments.
+- **Still worth a look:** `RetryInterceptor` never retries a POST/PATCH (by
+  design), so one dropped connection surfaces as "Not sent" / a silent no-op.
+  Confirm on a real phone with a network switch (Wi-Fi ↔ mobile) before
+  changing anything. Also, a failed Archive / Report showed no error toast
+  that I could catch.
+
+## ISS-014 — Chat list row ticks never update
+
+**Owner:** App · **Severity:** Low · **Status:** Open
+
+- **Actual:** the row's last-message tick stays a single grey ✓ ("sent") even
+  when the other side has the message Delivered / Seen (checked on the phone:
+  the male's room had it Seen, the row still showed ✓).
+- **Why:** the row's `lastMessage` is rebuilt from the list preview /
+  `_bumpPreview` with the default status, and receipts only update the open
+  thread's messages.
+
+## ISS-015 — "Last seen" is wrong while the peer is online
+
+**Owner:** Backend + App · **Severity:** Low · **Status:** Open
+
+- **Actual:** the chat header says "Last seen 1h ago" for a peer who is
+  connected on the socket and chatting right now (`lastActiveAt` isn't
+  refreshed by socket activity, and there is no presence event).
+- **Ask backend:** touch `lastActiveAt` on socket connect / message, or send a
+  presence event so the app can show "Online".
+
+## ISS-016 — Archived chat's partner shows up again under "Matches"
+
+**Owner:** App · **Severity:** Low · **Status:** Open (needs a decision)
+
+- **Seen (2026-11-12, physical phone):** after Archive, the slot is freed and
+  the partner appears in the Matches panel ("Matches (1)") as if they had
+  never been chatted with; restoring moves them back to "Matches (0)".
+  Picking them from Matches would open the archived thread.
+- **Decide:** should archived partners be hidden from the panel until
+  restored?
+
+## ISS-017 — Report: no confirmation seen
+
+**Owner:** App (unverified) · **Severity:** Low · **Status:** Needs re-test
+
+- On the emulator (bad network, see ISS-013) the Report sheet closed and no
+  "Thanks — we'll review this report" toast was seen, and a failed request
+  would show nothing either. Re-test on the phone.
