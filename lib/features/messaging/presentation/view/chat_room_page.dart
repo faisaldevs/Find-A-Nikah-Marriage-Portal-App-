@@ -453,7 +453,12 @@ class _Thread extends StatelessWidget {
           !messages[i - 1].isCall &&
           messages[i - 1].isMine == m.isMine;
       items.add(_MessageItem(m, gap: newDay ? 0 : (sameSender ? 4 : 12)));
-      if (i == lastMine) items.add(_StatusItem(m.status));
+      // if (i == lastMine) items.add(_StatusItem(m.status));
+      // A failed message keeps its "Not sent" row even once a newer one
+      // exists, so it never looks delivered (tap the bubble to retry).
+      if (i == lastMine || (m.isMine && m.status == MessageStatus.failed)) {
+        items.add(_StatusItem(m.status));
+      }
     }
     if (state.peerTyping) items.add(const _TypingItem());
     return items;

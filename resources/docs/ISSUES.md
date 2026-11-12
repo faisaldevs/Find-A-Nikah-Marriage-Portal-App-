@@ -335,3 +335,40 @@ decision
   `reportedUserId`. **Ask backend:** fix the spec, or accept both.
 - Failures now show their message as a toast; success shows "Thanks, we'll
   review this report".
+
+## ISS-018 — A failed message looks sent once a newer message exists
+
+**Owner:** App · **Severity:** Medium · **Status:** Fixed (2026-11-12)
+
+- **Seen:** blocked user's send → 403 → bubble shows "Not sent"; after the next
+  message the old bubble showed no status, as if delivered. The status row was
+  only drawn under the newest own message. Now a failed message always keeps
+  its "Not sent" row.
+
+## ISS-019 — Blocked person still sees the blocker as Online and keeps the chat
+
+**Owner:** Backend (+ App) · **Severity:** Low · **Status:** Open
+
+- **Seen (2026-11-12):** after A blocks B, B still sees A's thread, "Online"
+  presence, and only learns on send (403 "You cannot message this member").
+  Suggest: hide presence from blocked users; optionally remove the chat.
+
+## ISS-020 — Toasts cover the screen header and block taps
+
+**Owner:** App · **Severity:** Low · **Status:** Open
+
+- The info/error toast sits over the app bar (top ~280px) for several seconds;
+  taps on the ⋮ menu / back button underneath are swallowed meanwhile.
+
+## ISS-021 — Muted state is not shown anywhere
+
+**Owner:** App · **Severity:** Low · **Status:** Open
+
+- Mute works (API `isMuted` true), but neither the chat row nor the room header
+  shows a muted icon, so the user can't tell without opening the menu.
+
+## ISS-022 — Message long-press only offers "Delete for me"
+
+**Owner:** App · **Severity:** Low · **Status:** Open
+
+- No Copy, Reply (swipe only), or "Delete for everyone" (backend has none yet).
