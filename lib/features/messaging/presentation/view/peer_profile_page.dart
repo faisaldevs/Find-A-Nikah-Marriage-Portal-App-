@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/image_viewer.dart';
@@ -7,17 +10,43 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
 /// "View profile" from the chat room: photos, name, age and the card facts
-/// the matches API returns. The peer (with its profile) travels as the
-/// route's `extra`; there is no extra request, so a chat opened before a
-/// match shows just the name and photo.
-class PeerProfilePage extends StatelessWidget {
+/// the matches API returns, then the full profile (about me, languages,
+/// practices, lifestyle) once `GET /profiles/:id` answers. The peer (with
+/// its profile) travels as the route's `extra`; if the full profile fails to
+/// load the page just keeps the basics.
+class PeerProfilePage extends StatefulWidget {
   const PeerProfilePage({required this.peer, super.key});
 
   final ChatPeer peer;
 
   @override
+  State<PeerProfilePage> createState() => _PeerProfilePageState();
+}
+
+class _PeerProfilePageState extends State<PeerProfilePage> {
+  PeerProfile? _full;
+
+  ChatPeer get peer => widget.peer;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final res = await getIt<MessagingRepository>().fetchPeerProfile(peer.id);
+    if (!mounted) return;
+    res.match((_) {}, (p) => setState(() => _full = p));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final profile = peer.profile;
+    final basic = peer.profile;
+    final full = _full;
+    final profile = basic == null
+        ? full
+        : (full == null ? basic : basic.withDetails(full));
     final photos = [
       if (profile != null && profile.images.isNotEmpty)
         ...profile.images
@@ -33,6 +62,13 @@ class PeerProfilePage extends StatelessWidget {
       if (_join([profile?.religion, profile?.sect]) case final v?)
         ('Religion', v),
       if (_join([profile?.faith]) case final v?) ('Practice', v),
+    ];
+    final extras = <(String, String)>[
+      if (_join(profile?.languages ?? const []) case final v?) ('Languages', v),
+      if (_join(profile?.practices ?? const []) case final v?)
+        ('Religious practice', v),
+      if ((profile?.lifestyle ?? const <String>[]).isNotEmpty)
+        ('Lifestyle', profile!.lifestyle.join('\n')),
     ];
     return Scaffold(
       backgroundColor: Colors.white,
@@ -93,13 +129,22 @@ class PeerProfilePage extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 16.w),
-                if (facts.isEmpty)
+                if (profile?.about case final about?) ...[
+                  Text(
+                    'About me',
+                    style: figmaText(13, 18, color: kMsgGrey500),
+                  ),
+                  SizedBox(height: 2.w),
+                  Text(about, style: figmaText(16, 22)),
+                  SizedBox(height: 14.w),
+                ],
+                if (facts.isEmpty && extras.isEmpty)
                   Text(
                     'No more details to show yet.',
                     style: figmaText(14, 20, color: kMsgGrey500),
                   )
                 else
-                  for (final (label, value) in facts) ...[
+                  for (final (label, value) in [...facts, ...extras]) ...[
                     Text(label, style: figmaText(13, 18, color: kMsgGrey500)),
                     SizedBox(height: 2.w),
                     Text(

@@ -14,6 +14,12 @@ import '../../../helpers/fakes.dart';
 class _MockChat extends Mock implements ChatRemoteDataSource {}
 
 class _FakeMatches implements MatchesRemoteDataSource {
+  /// What `GET /profiles/:id` returns; tests set it.
+  Object? profileResponse = <String, dynamic>{};
+
+  @override
+  Future<dynamic> fetchProfile(String userId) async => profileResponse;
+
   _FakeMatches([this.matches = const []]);
 
   final List<Map<String, dynamic>> matches;
@@ -38,6 +44,9 @@ class _FakeMatches implements MatchesRemoteDataSource {
 }
 
 class _ThrowingMatches implements MatchesRemoteDataSource {
+  @override
+  Future<dynamic> fetchProfile(String userId) async => <String, dynamic>{};
+
   @override
   Future<MyMatchesResponseDto> fetchUnmatched({
     String status = 'unmatched',
@@ -153,11 +162,12 @@ void main() {
   late _MockChat chat;
   late _FakeSocket socket;
   late MessagingRepositoryImpl repo;
+  var matchesFake = _FakeMatches();
 
   MessagingRepositoryImpl _repoWith(List<Map<String, dynamic>> matches) =>
       MessagingRepositoryImpl(
         chat,
-        _FakeMatches(matches),
+        matchesFake = _FakeMatches(matches),
         socket,
         testGuard(),
         'https://api.test',
@@ -820,5 +830,43 @@ void main() {
     final res = await repo.unblockUser('u1');
     expect(res.isRight(), isTrue);
     verify(() => chat.unblock('u1')).called(1);
+  });
+
+  test(
+    'fetchPeerProfile reads about, languages, practices and lifestyle',
+    () async {
+      matchesFake.profileResponse = {
+        'data': {
+          'profile': {
+            'aboutMe': ' Hello there ',
+            'languages': ['English', 'Bengali'],
+            'religiousPractices': ['actively_practising'],
+            'lifestyle': {
+              'halalFood': true,
+              'smoking': false,
+              'alcohol': false,
+            },
+          },
+        },
+      };
+      final res = await repo.fetchPeerProfile('u1');
+      final p = res.getOrElse((f) => throw StateError('$f'));
+      expect(p.about, 'Hello there');
+      expect(p.languages, ['English', 'Bengali']);
+      expect(p.practices, ['actively_practising']);
+      expect(p.lifestyle, [
+        'Eats halal food',
+        "Doesn't smoke",
+        "Doesn't drink alcohol",
+      ]);
+    },
+  );
+
+  test('fetchPeerProfile with an empty body gives an empty profile', () async {
+    final p = (await repo.fetchPeerProfile('u1')).getOrElse(
+      (f) => throw StateError('$f'),
+    );
+    expect(p.about, isNull);
+    expect(p.lifestyle, isEmpty);
   });
 }

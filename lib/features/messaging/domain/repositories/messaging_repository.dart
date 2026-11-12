@@ -107,6 +107,10 @@ abstract interface class MessagingRepository {
   /// Everyone this user blocked.
   Future<Either<Failure, List<BlockedUser>>> fetchBlocked();
 
+  /// The full profile of [peerId] for the View profile page: the matches
+  /// data plus about-me, languages, practices and lifestyle.
+  Future<Either<Failure, PeerProfile>> fetchPeerProfile(String peerId);
+
   Future<Either<Failure, Unit>> unblockUser(String userId);
 
   /// Ends the match behind the chat; [matchId] is [ChatPeer.matchId].

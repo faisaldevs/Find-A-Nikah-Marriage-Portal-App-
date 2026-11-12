@@ -16,6 +16,10 @@ class PeerProfile extends Equatable {
     this.sect,
     this.maritalStatus,
     this.isVerified = false,
+    this.about,
+    this.languages = const [],
+    this.practices = const [],
+    this.lifestyle = const [],
   });
 
   /// Absolute URLs, first one is the main photo.
@@ -31,6 +35,33 @@ class PeerProfile extends Equatable {
   final String? maritalStatus;
   final bool isVerified;
 
+  /// Only from the full profile (`GET /profiles/:id`), not the matches list.
+  final String? about;
+  final List<String> languages;
+  final List<String> practices;
+
+  /// Ready-to-show lines ("Halal food only", "Doesn't smoke", ...).
+  final List<String> lifestyle;
+
+  /// This profile with the extra fields of [full] filled in.
+  PeerProfile withDetails(PeerProfile full) => PeerProfile(
+    images: images.isNotEmpty ? images : full.images,
+    age: age ?? full.age,
+    city: city ?? full.city,
+    country: country ?? full.country,
+    education: education ?? full.education,
+    profession: profession ?? full.profession,
+    faith: faith ?? full.faith,
+    religion: religion ?? full.religion,
+    sect: sect ?? full.sect,
+    maritalStatus: maritalStatus ?? full.maritalStatus,
+    isVerified: isVerified || full.isVerified,
+    about: full.about,
+    languages: full.languages,
+    practices: full.practices,
+    lifestyle: full.lifestyle,
+  );
+
   @override
   List<Object?> get props => [
     images,
@@ -44,6 +75,10 @@ class PeerProfile extends Equatable {
     sect,
     maritalStatus,
     isVerified,
+    about,
+    languages,
+    practices,
+    lifestyle,
   ];
 }
 

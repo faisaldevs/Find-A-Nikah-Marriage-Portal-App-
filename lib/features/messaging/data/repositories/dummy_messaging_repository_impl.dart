@@ -236,6 +236,10 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
       right(const <BlockedUser>[]);
 
   @override
+  Future<Either<Failure, PeerProfile>> fetchPeerProfile(String peerId) async =>
+      right(const PeerProfile());
+
+  @override
   Future<Either<Failure, Unit>> unblockUser(String userId) async => right(unit);
 
   Future<void> dispose() => _dummy.dispose();

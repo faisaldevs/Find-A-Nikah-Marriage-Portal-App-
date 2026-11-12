@@ -355,20 +355,20 @@ decision
 
 ## ISS-020 — Toasts cover the screen header and block taps
 
-**Owner:** App · **Severity:** Low · **Status:** Open
+**Owner:** App · **Severity:** Low · **Status:** Fixed (2026-11-12): confirmations auto-close after ~1.8s.
 
 - The info/error toast sits over the app bar (top ~280px) for several seconds;
   taps on the ⋮ menu / back button underneath are swallowed meanwhile.
 
 ## ISS-021 — Muted state is not shown anywhere
 
-**Owner:** App · **Severity:** Low · **Status:** Open
+**Owner:** App · **Severity:** Low · **Status:** Fixed (2026-11-12): bell-off icon in the room header and chat row.
 
 - Mute works (API `isMuted` true), but neither the chat row nor the room header
   shows a muted icon, so the user can't tell without opening the menu.
 
 ## ISS-022 — Message long-press only offers "Delete for me"
 
-**Owner:** App · **Severity:** Low · **Status:** Open
+**Owner:** App · **Severity:** Low · **Status:** Partly fixed (2026-11-12): Copy added; Delete for everyone needs the backend.
 
 - No Copy, Reply (swipe only), or "Delete for everyone" (backend has none yet).

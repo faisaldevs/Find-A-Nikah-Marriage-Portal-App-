@@ -60,6 +60,9 @@ Map<String, dynamic> _response(
 };
 
 class _FakeMatchesRemote implements MatchesRemoteDataSource {
+  @override
+  Future<dynamic> fetchProfile(String userId) async => <String, dynamic>{};
+
   _FakeMatchesRemote(this.pages);
 
   /// Page number → raw response.

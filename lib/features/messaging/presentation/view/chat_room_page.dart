@@ -12,10 +12,13 @@ import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_s
 import 'package:find_a_nikah/features/messaging/presentation/widgets/typing_bubble.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+
+enum _MessageAction { copy, delete }
 
 /// One-to-one chat with a match, pushed over the tabs. Opened from a
 /// Chat-tab row or a match pick; the peer travels as the route's `extra`.
@@ -225,27 +228,45 @@ class _ChatRoomView extends StatelessWidget {
     }
   }
 
-  /// Long-press on a message: delete for me.
+  /// Long-press on a message: copy (text only) or delete for me.
   static Future<void> _onMessageMenu(
     BuildContext context,
     ChatMessage m,
   ) async {
     final bloc = context.read<ChatRoomBloc>();
-    final delete = await showModalBottomSheet<bool>(
+    final action = await showModalBottomSheet<_MessageAction>(
       context: context,
       useRootNavigator: true,
       builder: (context) => SafeArea(
-        child: ListTile(
-          leading: const Icon(
-            Icons.delete_outline_rounded,
-            color: AppColors.errorColor,
-          ),
-          title: const Text('Delete for me'),
-          onTap: () => Navigator.of(context).pop(true),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (m.text.trim().isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Copy'),
+                onTap: () => Navigator.of(context).pop(_MessageAction.copy),
+              ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.errorColor,
+              ),
+              title: const Text('Delete for me'),
+              onTap: () => Navigator.of(context).pop(_MessageAction.delete),
+            ),
+          ],
         ),
       ),
     );
-    if (delete ?? false) bloc.add(ChatRoomMessageDeleted(m));
+    switch (action) {
+      case _MessageAction.copy:
+        await Clipboard.setData(ClipboardData(text: m.text));
+      case _MessageAction.delete:
+        bloc.add(ChatRoomMessageDeleted(m));
+      case null:
+        break;
+    }
   }
 
   @override
@@ -289,9 +310,12 @@ class _ChatRoomView extends StatelessWidget {
             children: [
               BlocBuilder<ChatRoomBloc, ChatRoomState>(
                 buildWhen: (a, b) =>
-                    a.peer != b.peer || a.peerTyping != b.peerTyping,
+                    a.peer != b.peer ||
+                    a.peerTyping != b.peerTyping ||
+                    a.isMuted != b.isMuted,
                 builder: (context, state) => ChatRoomHeader(
                   peer: state.peer,
+                  muted: state.isMuted,
                   typing: state.peerTyping,
                   onBack: () => context.pop(),
                   // onVideoCall: () => _comingSoon(context, 'Video calls'),

@@ -33,11 +33,26 @@ class ConversationTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    peer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: figmaText(16, 22, weight: FontWeight.w700),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          peer.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: figmaText(16, 22, weight: FontWeight.w700),
+                        ),
+                      ),
+                      if (conversation.isMuted) ...[
+                        SizedBox(width: 6.w),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 16.r,
+                          color: kChatGrey500,
+                          semanticLabel: 'Muted',
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: 2.w),
                   Row(

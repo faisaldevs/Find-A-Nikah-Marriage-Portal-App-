@@ -1071,6 +1071,51 @@ class MessagingRepositoryImpl implements MessagingRepository {
   });
 
   @override
+  Future<Either<Failure, PeerProfile>> fetchPeerProfile(String peerId) =>
+      _guard(() async {
+        final res = await _matchesRemote.fetchProfile(peerId);
+        final data = res is Map ? res['data'] : null;
+        final p = data is Map ? data['profile'] : null;
+        final full = p is Map
+            ? _profileDetails(Map<String, dynamic>.from(p))
+            : const PeerProfile();
+        final held = _profileById[peerId];
+        final merged = held == null ? full : held.withDetails(full);
+        _profileById[peerId] = merged;
+        return merged;
+      });
+
+  /// The about-me / languages / practices / lifestyle of a full profile.
+  PeerProfile _profileDetails(Map<String, dynamic> p) {
+    List<String> list(Object? v) => [
+      if (v is List)
+        for (final x in v)
+          if (x is String && x.trim().isNotEmpty) x.trim(),
+    ];
+    final life = p['lifestyle'];
+    String? flag(String key, String yes, String no) {
+      final v = life is Map ? life[key] : null;
+      return v is bool ? (v ? yes : no) : null;
+    }
+
+    final about = p['aboutMe'];
+    return PeerProfile(
+      about: about is String && about.trim().isNotEmpty ? about.trim() : null,
+      languages: list(p['languages']),
+      practices: list(p['religiousPractices']),
+      lifestyle: [
+        ?flag('halalFood', 'Eats halal food', 'Does not require halal food'),
+        ?flag('smoking', 'Smokes', "Doesn't smoke"),
+        ?flag('alcohol', 'Drinks alcohol', "Doesn't drink alcohol"),
+      ],
+      images: [
+        for (final i in list(p['images'])) resolveImageUrl(_imageBaseUrl, i),
+      ],
+      country: p['country'] is String ? p['country'] as String : null,
+    );
+  }
+
+  @override
   Future<Either<Failure, Unit>> unblockUser(String userId) => _guard(() async {
     await _chat.unblock(userId);
     // They may be matchable / chattable again: refetch.

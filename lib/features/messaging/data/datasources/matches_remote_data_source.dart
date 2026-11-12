@@ -27,4 +27,9 @@ abstract class MatchesRemoteDataSource {
     @Query('page') required int page,
     @Query('limit') required int limit,
   });
+
+  /// The full profile of a matched member (raw JSON: `{ data: { profile:
+  /// {...} } }`). The app reads only the fields it shows.
+  @GET('/v1/profiles/{userId}')
+  Future<dynamic> fetchProfile(@Path('userId') String userId);
 }
