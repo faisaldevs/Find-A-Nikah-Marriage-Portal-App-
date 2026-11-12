@@ -64,7 +64,9 @@ class _ChatRoomView extends StatelessWidget {
     final action = await showChatRoomActions(
       context,
       peerName: peer.name,
-      devTools: devTools,
+      // CALLS-ON-HOLD: "Simulate incoming call (dev)" hidden too. Restore
+      // `devTools: devTools` to bring it back.
+      // devTools: devTools,
     );
     if (action == null || !context.mounted) return;
     switch (action) {
@@ -277,8 +279,10 @@ class _ChatRoomView extends StatelessWidget {
                   // onVoiceCall: () => context
                   //     .push<void>(RoutePaths.call, extra: state.peer)
                   //     .ignore(),
-                  onVoiceCall: () =>
-                      _openCall(context, RoutePaths.call, state.peer),
+                  // CALLS-ON-HOLD (2026-11-12): call button hidden. To bring
+                  // calls back, restore the line below.
+                  // onVoiceCall: () =>
+                  //     _openCall(context, RoutePaths.call, state.peer),
                   onMore: () => _onMore(context, state.peer),
                 ),
               ),

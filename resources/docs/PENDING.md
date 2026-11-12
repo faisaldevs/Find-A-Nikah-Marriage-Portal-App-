@@ -67,6 +67,11 @@ down on 2026-10-27). Backend items:
 
 ---
 
+> **ON HOLD (2026-11-12):** the chat room's call button and the dev menu's
+> "Simulate incoming call" are hidden. Search `CALLS-ON-HOLD` in
+> `chat_room_page.dart` / `chat_room_header.dart` to restore them. Call
+> screens, routes and `features/calling/` are untouched.
+
 ## Voice calls — UI on a fake call, SDK + signalling pending
 
 **Added:** 2026-10-24 · **Status:** screens done on `DummyCallDataSource`

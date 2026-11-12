@@ -13,7 +13,7 @@ class ChatRoomHeader extends StatelessWidget {
     required this.typing,
     required this.onBack,
     // required this.onVideoCall,
-    required this.onVoiceCall,
+    this.onVoiceCall,
     required this.onMore,
     super.key,
   });
@@ -22,7 +22,9 @@ class ChatRoomHeader extends StatelessWidget {
   final bool typing;
   final VoidCallback onBack;
   // final VoidCallback onVideoCall;
-  final VoidCallback onVoiceCall;
+  /// Null hides the call button. CALLS-ON-HOLD (2026-11-12): the page passes
+  /// null until the backend has a calling SDK + signalling.
+  final VoidCallback? onVoiceCall;
   final VoidCallback onMore;
 
   @override
@@ -87,11 +89,16 @@ class ChatRoomHeader extends StatelessWidget {
             //   ),
             // ),
             // SizedBox(width: 4.w),
-            _IconTap(
-              tooltip: 'Voice call',
-              onTap: onVoiceCall,
-              child: Icon(Icons.call_outlined, size: 24.r, color: kMsgIconDark),
-            ),
+            if (onVoiceCall case final onCall?)
+              _IconTap(
+                tooltip: 'Voice call',
+                onTap: onCall,
+                child: Icon(
+                  Icons.call_outlined,
+                  size: 24.r,
+                  color: kMsgIconDark,
+                ),
+              ),
             _IconTap(
               tooltip: 'More options',
               onTap: onMore,
