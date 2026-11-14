@@ -26,8 +26,16 @@ abstract class MarriageCardsRemoteDataSource {
 
   /// `{action: pass|like|undo, targetUserId}`; undo needs no target and
   /// rewinds the last pass only.
-  @POST('/v1/profiles/swipe')
   /// [body] is `SwipeRequestDto.toJson()` (a map, so Dio encodes it the
   /// same way as every other JSON body).
+  @POST('/v1/profiles/swipe')
   Future<SwipeResponseDto> swipe(@Body() Map<String, dynamic> body);
+
+  @POST('/v1/blocks/{userId}')
+  Future<void> block(@Path('userId') String userId);
+
+  /// `{reportedUserId, reason, description?}` — the live server wants
+  /// `reportedUserId`, not the spec's `targetUserId`.
+  @POST('/v1/reports')
+  Future<void> report(@Body() Map<String, dynamic> body);
 }

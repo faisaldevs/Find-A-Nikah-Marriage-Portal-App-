@@ -8,6 +8,7 @@ import 'package:find_a_nikah/features/menu/presentation/widgets/menu_format.dart
 import 'package:find_a_nikah/features/menu/presentation/widgets/menu_style.dart';
 import 'package:find_a_nikah/features/menu/presentation/widgets/menu_widgets.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
+import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -323,7 +324,8 @@ class _Privacy extends StatelessWidget {
           title: 'Profiles I’ve blocked',
           value: 'View and manage everyone you have blocked',
           trailing: _icon(Assets.icons.menuUserSquare),
-          onTap: () => soon('Blocked profiles'),
+          // Was: onTap: () => soon('Blocked profiles'),
+          onTap: () => context.push<void>(RoutePaths.blockedProfiles).ignore(),
         ),
         MenuInfoRow(
           title: 'Block my phone contacts',

@@ -26,6 +26,7 @@ ProfileCardsDataDto _$ProfileCardsDataDtoFromJson(Map<String, dynamic> json) =>
       totalReturned: (json['totalReturned'] as num?)?.toInt() ?? 0,
       limit: (json['limit'] as num?)?.toInt() ?? 0,
       hasMore: json['hasMore'] as bool? ?? false,
+      nextCursor: json['nextCursor'] as String?,
       viewerGender: json['viewerGender'] as String?,
       targetGender: json['targetGender'] as String?,
       targetReligion: json['targetReligion'] as String?,
@@ -38,6 +39,7 @@ Map<String, dynamic> _$ProfileCardsDataDtoToJson(
   'totalReturned': instance.totalReturned,
   'limit': instance.limit,
   'hasMore': instance.hasMore,
+  'nextCursor': instance.nextCursor,
   'viewerGender': instance.viewerGender,
   'targetGender': instance.targetGender,
   'targetReligion': instance.targetReligion,
@@ -97,6 +99,39 @@ ProfileCardDto _$ProfileCardDtoFromJson(
   action: json['action'] == null
       ? null
       : ProfileCardActionDto.fromJson(json['action'] as Map<String, dynamic>),
+  marriageIntentions: json['marriageIntentions'] == null
+      ? null
+      : ProfileMarriageIntentionsDto.fromJson(
+          json['marriageIntentions'] as Map<String, dynamic>,
+        ),
+  aboutYou: json['aboutYou'] == null
+      ? null
+      : ProfileAboutYouDto.fromJson(json['aboutYou'] as Map<String, dynamic>),
+  faceVerification: json['faceVerification'] == null
+      ? null
+      : ProfileFaceVerificationDto.fromJson(
+          json['faceVerification'] as Map<String, dynamic>,
+        ),
+  religiousPractices:
+      (json['religiousPractices'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  languages:
+      (json['languages'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  personalityTraits:
+      (json['personalityTraits'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  grewUpIn:
+      (json['grewUpIn'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  isFaceVerified: json['isFaceVerified'] as bool? ?? false,
+  isAgeVerified: json['isAgeVerified'] as bool? ?? false,
+  isIdVerified: json['isIdVerified'] as bool? ?? false,
+  isPremium: json['isPremium'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$ProfileCardDtoToJson(ProfileCardDto instance) =>
@@ -132,6 +167,17 @@ Map<String, dynamic> _$ProfileCardDtoToJson(ProfileCardDto instance) =>
       'complement': instance.complement,
       'complementText': instance.complementText,
       'action': instance.action,
+      'marriageIntentions': instance.marriageIntentions,
+      'aboutYou': instance.aboutYou,
+      'faceVerification': instance.faceVerification,
+      'religiousPractices': instance.religiousPractices,
+      'languages': instance.languages,
+      'personalityTraits': instance.personalityTraits,
+      'grewUpIn': instance.grewUpIn,
+      'isFaceVerified': instance.isFaceVerified,
+      'isAgeVerified': instance.isAgeVerified,
+      'isIdVerified': instance.isIdVerified,
+      'isPremium': instance.isPremium,
     };
 
 ProfileCardInterestsDto _$ProfileCardInterestsDtoFromJson(
@@ -258,6 +304,7 @@ ProfileMarriageIntentionsDto _$ProfileMarriageIntentionsDtoFromJson(
 ) => ProfileMarriageIntentionsDto(
   getToknowDuration: json['getToknowDuration'] as String?,
   marriageTimeline: json['marriageTimeline'] as String?,
+  involveFamily: json['involveFamily'] as String?,
 );
 
 Map<String, dynamic> _$ProfileMarriageIntentionsDtoToJson(
@@ -265,6 +312,7 @@ Map<String, dynamic> _$ProfileMarriageIntentionsDtoToJson(
 ) => <String, dynamic>{
   'getToknowDuration': instance.getToknowDuration,
   'marriageTimeline': instance.marriageTimeline,
+  'involveFamily': instance.involveFamily,
 };
 
 ProfileAboutYouDto _$ProfileAboutYouDtoFromJson(Map<String, dynamic> json) =>
@@ -308,8 +356,36 @@ Map<String, dynamic> _$SwipeResponseDtoToJson(SwipeResponseDto instance) =>
 
 SwipeResponseDataDto _$SwipeResponseDataDtoFromJson(
   Map<String, dynamic> json,
-) => SwipeResponseDataDto(isMatch: json['isMatch'] as bool? ?? false);
+) => SwipeResponseDataDto(
+  isMatch: json['isMatch'] as bool? ?? false,
+  matchId: json['matchId'] as String?,
+  conversationId: json['conversationId'] as String?,
+  messageId: json['messageId'] as String?,
+  matchedUser: json['matchedUser'] == null
+      ? null
+      : MatchedUserDto.fromJson(json['matchedUser'] as Map<String, dynamic>),
+  rewoundUserId: json['rewoundUserId'] as String?,
+);
 
 Map<String, dynamic> _$SwipeResponseDataDtoToJson(
   SwipeResponseDataDto instance,
-) => <String, dynamic>{'isMatch': instance.isMatch};
+) => <String, dynamic>{
+  'isMatch': instance.isMatch,
+  'matchId': instance.matchId,
+  'conversationId': instance.conversationId,
+  'messageId': instance.messageId,
+  'matchedUser': instance.matchedUser,
+  'rewoundUserId': instance.rewoundUserId,
+};
+
+MatchedUserDto _$MatchedUserDtoFromJson(Map<String, dynamic> json) =>
+    MatchedUserDto(
+      fullName: json['fullName'] as String? ?? '',
+      photoUrl: json['photoUrl'] as String?,
+    );
+
+Map<String, dynamic> _$MatchedUserDtoToJson(MatchedUserDto instance) =>
+    <String, dynamic>{
+      'fullName': instance.fullName,
+      'photoUrl': instance.photoUrl,
+    };

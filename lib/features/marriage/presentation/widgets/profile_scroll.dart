@@ -17,6 +17,9 @@ class ProfileScroll extends StatefulWidget {
     required this.heroBottomInset,
     required this.bottomPadding,
     required this.onComingSoon,
+    required this.onBlock,
+    required this.onReport,
+    this.complimentDraft,
     // required this.actions,
     super.key,
   });
@@ -33,6 +36,13 @@ class ProfileScroll extends StatefulWidget {
   /// Gap between the details and the photo's bottom edge.
   final double heroBottomInset;
   final double bottomPadding;
+
+  /// Failed compliment text, put back in the compliment box.
+  final String? complimentDraft;
+
+  /// Footer Block / Report (the page confirms and calls the API).
+  final VoidCallback onBlock;
+  final VoidCallback onReport;
 
   /// Snackbar for actions that aren't wired up yet.
   final ValueChanged<String> onComingSoon;
@@ -167,6 +177,8 @@ class ProfileScrollState extends State<ProfileScroll> {
           ProfileDetails(
             profile: profile,
             bottomPadding: bottomPadding,
+            complimented: compliment != null,
+            complimentDraft: widget.complimentDraft,
             onCheckFilters: () => onComingSoon('Filter match'),
             // onCompliment: (_) => CustomToast.showSuccess(
             //   context,
@@ -176,8 +188,8 @@ class ProfileScrollState extends State<ProfileScroll> {
             onCompliment: _sentFromBox,
             onShare: () => onComingSoon('Share profile'),
             onFavourite: () => onComingSoon('Favourite'),
-            onBlock: () => onComingSoon('Block'),
-            onReport: () => onComingSoon('Report'),
+            onBlock: widget.onBlock,
+            onReport: widget.onReport,
           ),
         ],
       ),

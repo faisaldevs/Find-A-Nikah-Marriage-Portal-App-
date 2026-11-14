@@ -8,6 +8,8 @@
          capture (the old single-selfie path uses image_picker, which
          delegates to the system camera app and needs no entry here). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- features/messaging: voice messages (record). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="Find A Nikah"
         android:name="${applicationName}"
@@ -32,6 +34,20 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Feed share links (https://findanikah.app/feed/post/:id and
+                 /feed/u/:userId). autoVerify needs the backend's
+                 /.well-known/assetlinks.json on findanikah.app. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                      android:host="findanikah.app"
+                      android:pathPrefix="/feed/post/"/>
+                <data android:scheme="https"
+                      android:host="findanikah.app"
+                      android:pathPrefix="/feed/u/"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

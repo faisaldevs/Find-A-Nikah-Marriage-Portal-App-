@@ -186,6 +186,22 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
   }) async => right(unit);
 
   @override
+  Future<Either<Failure, Unit>> sendAudio({
+    required String conversationId,
+    required String path,
+    required Duration duration,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> deleteMessageForEveryone({
+    required String conversationId,
+    required String messageId,
+  }) async => right(unit);
+
+  @override
+  int get slotLimit => 5;
+
+  @override
   Stream<int> watchUnreadCount() => Stream<int>.value(0);
 
   @override
@@ -210,6 +226,37 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
     required String reason,
     String? description,
   }) async => right(unit);
+
+  @override
+  Stream<ChatPeer> watchPeer(String conversationId) => const Stream.empty();
+
+  @override
+  Future<Either<Failure, Unit>> setMuted(
+    String conversationId, {
+    required bool muted,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> clearChat(String conversationId) async =>
+      right(unit);
+
+  @override
+  Future<Either<Failure, List<ChatPeer>>> fetchUnmatched() async =>
+      right(const <ChatPeer>[]);
+
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  Future<Either<Failure, List<BlockedUser>>> fetchBlocked() async =>
+      right(const <BlockedUser>[]);
+
+  @override
+  Future<Either<Failure, PeerProfile>> fetchPeerProfile(String peerId) async =>
+      right(const PeerProfile());
+
+  @override
+  Future<Either<Failure, Unit>> unblockUser(String userId) async => right(unit);
 
   Future<void> dispose() => _dummy.dispose();
 }

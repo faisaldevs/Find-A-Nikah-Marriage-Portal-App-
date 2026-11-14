@@ -20,10 +20,15 @@ class FeedCommentThread extends StatelessWidget {
     required this.onLike,
     required this.onReply,
     required this.onShare,
+    this.onMoreReplies,
     super.key,
   });
 
   final FeedComment comment;
+
+  /// "View N more replies" — shown when the server has replies we haven't
+  /// loaded; null hides it.
+  final VoidCallback? onMoreReplies;
   final ValueChanged<FeedAuthor> onAuthorTap;
   final ValueChanged<FeedComment> onMore;
   final ValueChanged<FeedComment> onLike;
@@ -52,6 +57,25 @@ class FeedCommentThread extends StatelessWidget {
             child: tile(reply, isReply: true),
           ),
         ],
+        if (onMoreReplies != null &&
+            comment.replyCount > comment.replies.length)
+          Padding(
+            padding: EdgeInsets.only(left: 20.w, top: 12.w),
+            child: GestureDetector(
+              onTap: onMoreReplies,
+              behavior: HitTestBehavior.opaque,
+              child: Text(
+                'View ${comment.replyCount - comment.replies.length} more '
+                '${comment.replyCount - comment.replies.length == 1 ? 'reply' : 'replies'}',
+                style: feedText(
+                  12,
+                  16,
+                  weight: FontWeight.w700,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -96,7 +120,7 @@ class _CommentTile extends StatelessWidget {
                 child: Row(
                   children: [
                     FeedPortrait(
-                      url: author.photoUrl,
+                      url: author.avatarUrl,
                       size: isReply ? 36 : 40,
                       countryCode: author.countryCode,
                     ),
@@ -193,7 +217,14 @@ class _CommentTile extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 child: Row(
                   children: [
-                    FeedIcon(Assets.icons.feedHeart, size: 16),
+                    if (comment.likedByMe)
+                      Icon(
+                        Icons.favorite,
+                        size: 16.w,
+                        color: AppColors.primaryColor,
+                      )
+                    else
+                      FeedIcon(Assets.icons.feedHeart, size: 16),
                     if (comment.likeCount > 0) ...[
                       SizedBox(width: 6.w),
                       Text(

@@ -23,6 +23,7 @@ class FeedPostCard extends StatelessWidget {
     this.onTap,
     this.onAuthorTap,
     this.onFollow,
+    this.following = false,
     this.topicColor = kFeedTopicRed,
     this.maxBodyLines,
     this.commentsHighlighted = false,
@@ -38,6 +39,9 @@ class FeedPostCard extends StatelessWidget {
 
   /// Shows the pink "Follow" pill (post page) when set.
   final VoidCallback? onFollow;
+
+  /// The pill reads "Following" (grey) instead.
+  final bool following;
 
   /// The design varies it per screen: red on the feed, pink on profiles,
   /// green on the post page.
@@ -68,6 +72,7 @@ class FeedPostCard extends StatelessWidget {
             topicColor: topicColor,
             onAuthorTap: onAuthorTap,
             onFollow: onFollow,
+            following: following,
             onMore: onMore,
           ),
           SizedBox(height: 12.w),
@@ -104,6 +109,7 @@ class _Author extends StatelessWidget {
     required this.topicColor,
     required this.onAuthorTap,
     required this.onFollow,
+    required this.following,
     required this.onMore,
   });
 
@@ -111,6 +117,7 @@ class _Author extends StatelessWidget {
   final Color topicColor;
   final VoidCallback? onAuthorTap;
   final VoidCallback? onFollow;
+  final bool following;
   final VoidCallback onMore;
 
   @override
@@ -119,7 +126,7 @@ class _Author extends StatelessWidget {
     final who = Row(
       children: [
         FeedPortrait(
-          url: author.photoUrl,
+          url: author.avatarUrl,
           size: 40,
           countryCode: author.countryCode,
         ),
@@ -153,7 +160,10 @@ class _Author extends StatelessWidget {
                       text: post.topic,
                       style: TextStyle(color: topicColor),
                     ),
-                    TextSpan(text: ' · ${post.postedAgo}'),
+                    TextSpan(
+                      text:
+                          ' · ${post.postedAgo}${post.edited ? ' · Edited' : ''}',
+                    ),
                   ],
                 ),
                 maxLines: 1,
@@ -178,8 +188,8 @@ class _Author extends StatelessWidget {
         if (onFollow != null) ...[
           SizedBox(width: 10.w),
           FeedPillButton(
-            label: 'Follow',
-            color: AppColors.primaryColor,
+            label: following ? 'Following' : 'Follow',
+            color: following ? kFeedGrey500 : AppColors.primaryColor,
             height: 28,
             horizontalPadding: 12.75,
             onTap: onFollow!,
@@ -317,7 +327,34 @@ class FeedEngagementRow extends StatelessWidget {
       height: 18.w,
       child: Row(
         children: [
-          stat(Assets.icons.feedHeart, likes, 6, 12, onLike),
+          GestureDetector(
+            onTap: onLike,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (post.likedByMe)
+                  Icon(
+                    Icons.favorite,
+                    size: 16.w,
+                    color: AppColors.primaryColor,
+                  )
+                else
+                  FeedIcon(Assets.icons.feedHeart, size: 16),
+                SizedBox(width: 6.w),
+                Text(
+                  likes,
+                  style: feedText(
+                    12,
+                    18,
+                    color: post.likedByMe
+                        ? AppColors.primaryColor
+                        : kFeedGrey500,
+                  ),
+                ),
+              ],
+            ),
+          ),
           SizedBox(width: 16.w),
           stat(
             Assets.icons.feedComment,

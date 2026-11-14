@@ -1,6 +1,102 @@
 import 'package:equatable/equatable.dart';
 import 'package:find_a_nikah/core/core.dart';
 
+/// What the app knows about a match's profile (from `my-matches`): enough
+/// for the "View profile" page. Every field is optional.
+class PeerProfile extends Equatable {
+  const PeerProfile({
+    this.images = const [],
+    this.age,
+    this.city,
+    this.country,
+    this.education,
+    this.profession,
+    this.faith,
+    this.religion,
+    this.sect,
+    this.maritalStatus,
+    this.isVerified = false,
+    this.about,
+    this.languages = const [],
+    this.practices = const [],
+    this.lifestyle = const [],
+  });
+
+  /// Absolute URLs, first one is the main photo.
+  final List<String> images;
+  final int? age;
+  final String? city;
+  final String? country;
+  final String? education;
+  final String? profession;
+  final String? faith;
+  final String? religion;
+  final String? sect;
+  final String? maritalStatus;
+  final bool isVerified;
+
+  /// Only from the full profile (`GET /profiles/:id`), not the matches list.
+  final String? about;
+  final List<String> languages;
+  final List<String> practices;
+
+  /// Ready-to-show lines ("Halal food only", "Doesn't smoke", ...).
+  final List<String> lifestyle;
+
+  /// This profile with the extra fields of [full] filled in.
+  PeerProfile withDetails(PeerProfile full) => PeerProfile(
+    images: images.isNotEmpty ? images : full.images,
+    age: age ?? full.age,
+    city: city ?? full.city,
+    country: country ?? full.country,
+    education: education ?? full.education,
+    profession: profession ?? full.profession,
+    faith: faith ?? full.faith,
+    religion: religion ?? full.religion,
+    sect: sect ?? full.sect,
+    maritalStatus: maritalStatus ?? full.maritalStatus,
+    isVerified: isVerified || full.isVerified,
+    about: full.about,
+    languages: full.languages,
+    practices: full.practices,
+    lifestyle: full.lifestyle,
+  );
+
+  @override
+  List<Object?> get props => [
+    images,
+    age,
+    city,
+    country,
+    education,
+    profession,
+    faith,
+    religion,
+    sect,
+    maritalStatus,
+    isVerified,
+    about,
+    languages,
+    practices,
+    lifestyle,
+  ];
+}
+
+/// Why a conversation no longer takes new messages.
+enum ChatClosure {
+  /// The match ended (either side unmatched).
+  unmatched,
+
+  /// The peer blocked this user.
+  blocked,
+
+  /// This user blocked the peer.
+  blockedByMe,
+
+  /// The server refused a send (403) without saying why.
+  unavailable,
+}
+
 /// The other person in a conversation (or a match not chatted with yet) —
 /// enough to draw the avatar row and the chat header.
 class ChatPeer extends Equatable {
@@ -11,6 +107,8 @@ class ChatPeer extends Equatable {
     this.isOnline = false,
     this.lastSeenAt,
     this.matchId,
+    this.profile,
+    this.closure,
   });
 
   final String id;
@@ -25,6 +123,12 @@ class ChatPeer extends Equatable {
   /// source didn't say.
   final String? matchId;
 
+  /// Null when the source had no profile (e.g. a chat opened before a match).
+  final PeerProfile? profile;
+
+  /// Null while the chat is open for new messages.
+  final ChatClosure? closure;
+
   ChatPeer copyWith({
     String? id,
     String? name,
@@ -32,6 +136,8 @@ class ChatPeer extends Equatable {
     bool? isOnline,
     Object? lastSeenAt = unchanged,
     Object? matchId = unchanged,
+    Object? profile = unchanged,
+    Object? closure = unchanged,
   }) {
     return ChatPeer(
       id: id ?? this.id,
@@ -44,6 +150,12 @@ class ChatPeer extends Equatable {
       matchId: identical(matchId, unchanged)
           ? this.matchId
           : matchId as String?,
+      profile: identical(profile, unchanged)
+          ? this.profile
+          : profile as PeerProfile?,
+      closure: identical(closure, unchanged)
+          ? this.closure
+          : closure as ChatClosure?,
     );
   }
 
@@ -55,5 +167,21 @@ class ChatPeer extends Equatable {
     isOnline,
     lastSeenAt,
     matchId,
+    profile,
+    closure,
   ];
+}
+
+/// Someone the signed-in user blocked (Settings → Profiles I've blocked).
+class BlockedUser extends Equatable {
+  const BlockedUser({required this.id, required this.name, this.photoUrl});
+
+  final String id;
+  final String name;
+
+  /// Absolute URL, or '' when unknown.
+  final String? photoUrl;
+
+  @override
+  List<Object?> get props => [id, name, photoUrl];
 }

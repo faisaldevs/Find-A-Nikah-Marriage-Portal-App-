@@ -12,10 +12,16 @@ import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_s
 import 'package:find_a_nikah/features/messaging/presentation/widgets/typing_bubble.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+
+enum _MessageAction { copy, delete, deleteForEveryone }
+
+/// How long after sending a message can still be deleted for everyone.
+const _deleteForEveryoneWindow = Duration(hours: 1);
 
 /// One-to-one chat with a match, pushed over the tabs. Opened from a
 /// Chat-tab row or a match pick; the peer travels as the route's `extra`.
@@ -64,6 +70,7 @@ class _ChatRoomView extends StatelessWidget {
     final action = await showChatRoomActions(
       context,
       peerName: peer.name,
+      muted: bloc.state.isMuted,
       // CALLS-ON-HOLD: "Simulate incoming call (dev)" hidden too. Restore
       // `devTools: devTools` to bring it back.
       // devTools: devTools,
@@ -97,14 +104,25 @@ class _ChatRoomView extends StatelessWidget {
       case ChatRoomAction.report:
         final reason = await _pickReportReason(context);
         if (reason != null) bloc.add(ChatRoomReportRequested(reason));
-      case ChatRoomAction.viewProfile ||
-          ChatRoomAction.mute ||
-          ChatRoomAction.clearChat:
-        _comingSoon(context, switch (action) {
-          ChatRoomAction.viewProfile => 'Profile',
-          ChatRoomAction.mute => 'Muting',
-          _ => 'Clearing chats',
-        });
+      case ChatRoomAction.viewProfile:
+        // The peer in the bloc carries the profile once the match data
+        // has loaded.
+        context
+            .push<void>(RoutePaths.peerProfile, extra: bloc.state.peer)
+            .ignore();
+      case ChatRoomAction.mute:
+        bloc.add(const ChatRoomMuteToggled());
+      case ChatRoomAction.clearChat:
+        if (await _confirm(
+          context,
+          title: 'Clear this chat?',
+          message:
+              'Messages are removed for you only. ${peer.name} keeps '
+              'their copy.',
+          action: 'Clear',
+        )) {
+          bloc.add(const ChatRoomClearRequested());
+        }
     }
   }
 
@@ -213,27 +231,64 @@ class _ChatRoomView extends StatelessWidget {
     }
   }
 
-  /// Long-press on a message: delete for me.
+  /// Long-press on a message: copy (text only) or delete for me.
   static Future<void> _onMessageMenu(
     BuildContext context,
     ChatMessage m,
   ) async {
     final bloc = context.read<ChatRoomBloc>();
-    final delete = await showModalBottomSheet<bool>(
+    // Own, sent (not a pending / failed local copy), inside the window.
+    final canRecall =
+        m.isMine &&
+        !m.isCall &&
+        !m.id.startsWith('local-') &&
+        DateTime.now().difference(m.sentAt) < _deleteForEveryoneWindow;
+    final action = await showModalBottomSheet<_MessageAction>(
       context: context,
       useRootNavigator: true,
       builder: (context) => SafeArea(
-        child: ListTile(
-          leading: const Icon(
-            Icons.delete_outline_rounded,
-            color: AppColors.errorColor,
-          ),
-          title: const Text('Delete for me'),
-          onTap: () => Navigator.of(context).pop(true),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (m.text.trim().isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Copy'),
+                onTap: () => Navigator.of(context).pop(_MessageAction.copy),
+              ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.errorColor,
+              ),
+              title: const Text('Delete for me'),
+              onTap: () => Navigator.of(context).pop(_MessageAction.delete),
+            ),
+            if (canRecall)
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_forever_outlined,
+                  color: AppColors.errorColor,
+                ),
+                title: const Text('Delete for everyone'),
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(_MessageAction.deleteForEveryone),
+              ),
+          ],
         ),
       ),
     );
-    if (delete ?? false) bloc.add(ChatRoomMessageDeleted(m));
+    switch (action) {
+      case _MessageAction.copy:
+        await Clipboard.setData(ClipboardData(text: m.text));
+      case _MessageAction.delete:
+        bloc.add(ChatRoomMessageDeleted(m));
+      case _MessageAction.deleteForEveryone:
+        bloc.add(ChatRoomMessageDeleted(m, forEveryone: true));
+      case null:
+        break;
+    }
   }
 
   @override
@@ -255,9 +310,17 @@ class _ChatRoomView extends StatelessWidget {
               ChatRoomOutcome.unmatched => 'Unmatched',
               ChatRoomOutcome.reported => 'Thanks — we’ll review this report',
               ChatRoomOutcome.archived => 'Chat archived',
+              ChatRoomOutcome.muted => 'Notifications muted',
+              ChatRoomOutcome.unmuted => 'Notifications on',
+              ChatRoomOutcome.cleared => 'Chat cleared',
             });
             // Blocking, unmatching and archiving end the chat.
-            if (done != ChatRoomOutcome.reported) context.pop();
+            // Blocking, unmatching and archiving end the chat.
+            if (done == ChatRoomOutcome.blocked ||
+                done == ChatRoomOutcome.unmatched ||
+                done == ChatRoomOutcome.archived) {
+              context.pop();
+            }
           },
         ),
       ],
@@ -269,9 +332,12 @@ class _ChatRoomView extends StatelessWidget {
             children: [
               BlocBuilder<ChatRoomBloc, ChatRoomState>(
                 buildWhen: (a, b) =>
-                    a.peer != b.peer || a.peerTyping != b.peerTyping,
+                    a.peer != b.peer ||
+                    a.peerTyping != b.peerTyping ||
+                    a.isMuted != b.isMuted,
                 builder: (context, state) => ChatRoomHeader(
                   peer: state.peer,
+                  muted: state.isMuted,
                   typing: state.peerTyping,
                   onBack: () => context.pop(),
                   // onVideoCall: () => _comingSoon(context, 'Video calls'),
@@ -289,7 +355,9 @@ class _ChatRoomView extends StatelessWidget {
               const Expanded(child: _Thread()),
               BlocBuilder<ChatRoomBloc, ChatRoomState>(
                 buildWhen: (a, b) =>
-                    a.replyingTo != b.replyingTo || a.peer.name != b.peer.name,
+                    a.replyingTo != b.replyingTo ||
+                    a.peer.name != b.peer.name ||
+                    a.peer.closure != b.peer.closure,
                 builder: (context, state) {
                   final reply = state.replyingTo;
                   return MessageComposer(
@@ -299,12 +367,30 @@ class _ChatRoomView extends StatelessWidget {
                         ? 'yourself'
                         : state.peer.name,
                     replyText: reply?.text,
+                    closedMessage: switch (state.peer.closure) {
+                      null => null,
+                      ChatClosure.unmatched =>
+                        'This match has ended. You can’t send messages.',
+                      ChatClosure.blocked =>
+                        'You can’t message ${state.peer.name}.',
+                      ChatClosure.blockedByMe =>
+                        'You blocked ${state.peer.name}. Unblock them in '
+                            'Settings to send messages.',
+                      ChatClosure.unavailable =>
+                        'You can’t message ${state.peer.name} right now.',
+                    },
                     onSend: (text) => bloc.add(ChatRoomMessageSubmitted(text)),
                     onCancelReply: () => bloc.add(const ChatRoomReplyCleared()),
                     onTypingChanged: (typing) =>
                         bloc.add(ChatRoomTypingChanged(typing: typing)),
                     onAttach: () => _onAttach(context),
-                    onVoice: () => _comingSoon(context, 'Voice messages'),
+                    onVoiceRecorded: (path, duration) =>
+                        bloc.add(ChatRoomVoiceRecorded(path, duration)),
+                    onVoiceDenied: () => CustomToast.showInfo(
+                      context,
+                      'Allow microphone access in Settings to send voice '
+                      'messages.',
+                    ),
                   );
                 },
               ),
@@ -433,7 +519,12 @@ class _Thread extends StatelessWidget {
           !messages[i - 1].isCall &&
           messages[i - 1].isMine == m.isMine;
       items.add(_MessageItem(m, gap: newDay ? 0 : (sameSender ? 4 : 12)));
-      if (i == lastMine) items.add(_StatusItem(m.status));
+      // if (i == lastMine) items.add(_StatusItem(m.status));
+      // A failed message keeps its "Not sent" row even once a newer one
+      // exists, so it never looks delivered (tap the bubble to retry).
+      if (i == lastMine || (m.isMine && m.status == MessageStatus.failed)) {
+        items.add(_StatusItem(m.status));
+      }
     }
     if (state.peerTyping) items.add(const _TypingItem());
     return items;

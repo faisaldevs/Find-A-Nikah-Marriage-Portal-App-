@@ -271,17 +271,10 @@ class DummyFeedDataSource {
   Future<FeedPost> createPost({
     required FeedTopic topic,
     required String body,
-    required bool anonymous,
   }) async {
     final post = FeedPost(
       id: 'new-${DateTime.now().microsecondsSinceEpoch}',
-      author: anonymous
-          ? const FeedAuthor(
-              name: 'Anonymous',
-              handle: 'anonymous',
-              photoUrl: '',
-            )
-          : _me,
+      author: _me,
       topic: topic.name,
       postedAgo: 'just now',
       body: body,

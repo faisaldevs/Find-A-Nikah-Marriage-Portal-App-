@@ -219,9 +219,14 @@ Future<void> configureDependencies(AppConfig config) async {
     //     imageBaseUrl: config.imageBaseUrl,
     //   ),
     // )
-    // Dummy-only for now — no Feed API exists yet.
+    // Real Feed API. (The old in-memory dummy source is kept in
+    // resources/outdated_code/dummy_feed_data_source.dart.txt.)
     ..registerLazySingleton<FeedRepository>(
-      () => FeedRepositoryImpl(DummyFeedDataSource(), guard),
+      () => FeedRepositoryImpl(
+        FeedRemoteDataSource(api.dio),
+        guard,
+        config.imageBaseUrl,
+      ),
     )
     // ── Session ────────────────────────────────────────────────────────
     ..registerLazySingleton<SessionScopeManager>(
@@ -286,18 +291,29 @@ Future<void> configureDependencies(AppConfig config) async {
     ..registerFactory<EditProfileBloc>(
       () => EditProfileBloc(getIt<MenuRepository>()),
     )
-    ..registerFactoryParam<PostDetailBloc, FeedPost, void>(
-      (post, _) => PostDetailBloc(getIt<FeedRepository>(), post),
+    ..registerFactoryParam<PostDetailBloc, String, FeedPost?>(
+      (postId, initial) =>
+          PostDetailBloc(getIt<FeedRepository>(), postId, initial: initial),
     )
-    ..registerFactoryParam<ProfileBloc, FeedAuthor, void>(
-      (author, _) => ProfileBloc(getIt<FeedRepository>(), author),
+    ..registerFactoryParam<ProfileBloc, String, FeedAuthor?>(
+      (userId, author) =>
+          ProfileBloc(getIt<FeedRepository>(), userId, author: author),
     )
-    ..registerFactory<CreatePostBloc>(
-      () => CreatePostBloc(getIt<FeedRepository>()),
+    ..registerFactoryParam<MemberSearchBloc, String, void>(
+      (userId, _) => MemberSearchBloc(getIt<FeedRepository>(), userId),
+    )
+    ..registerFactoryParam<CreatePostBloc, FeedPost?, void>(
+      (editing, _) => CreatePostBloc(getIt<FeedRepository>(), editing: editing),
     )
     // Messaging reads the session-scoped repository, resolved on open.
     ..registerFactory<UnreadCountCubit>(
       () => UnreadCountCubit(getIt<MessagingRepository>()),
+    )
+    ..registerFactory<UnmatchedCubit>(
+      () => UnmatchedCubit(getIt<MessagingRepository>()),
+    )
+    ..registerFactory<BlockedUsersCubit>(
+      () => BlockedUsersCubit(getIt<MessagingRepository>()),
     )
     ..registerFactory<ArchivedChatsCubit>(
       () => ArchivedChatsCubit(getIt<MessagingRepository>()),

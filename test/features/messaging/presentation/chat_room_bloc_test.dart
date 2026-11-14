@@ -34,6 +34,7 @@ void main() {
       () => repo.watchPeerTyping(any()),
     ).thenAnswer((_) => Stream.value(false));
     when(() => repo.markRead(any())).thenAnswer((_) async => right(unit));
+    when(() => repo.watchPeer(any())).thenAnswer((_) => const Stream.empty());
     when(
       () => repo.sendMessage(
         conversationId: any(named: 'conversationId'),
@@ -105,6 +106,24 @@ void main() {
         replyToMessageId: 'm1',
       ),
     ).called(1),
+  );
+
+  blocTest<ChatRoomBloc, ChatRoomState>(
+    'submitted: nothing is sent once the chat is closed',
+    build: () => ChatRoomBloc(repo, _peer),
+    seed: () => ChatRoomState(
+      peer: _peer.copyWith(closure: ChatClosure.unmatched),
+      conversationId: 'c1',
+    ),
+    act: (b) => b.add(const ChatRoomMessageSubmitted('hello')),
+    expect: () => <ChatRoomState>[],
+    verify: (_) => verifyNever(
+      () => repo.sendMessage(
+        conversationId: any(named: 'conversationId'),
+        text: any(named: 'text'),
+        replyToMessageId: any(named: 'replyToMessageId'),
+      ),
+    ),
   );
 
   blocTest<ChatRoomBloc, ChatRoomState>(

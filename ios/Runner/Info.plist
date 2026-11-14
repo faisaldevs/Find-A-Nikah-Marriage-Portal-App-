@@ -67,6 +67,8 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<!-- features/auth: selfie capture (image_picker camera), "Change photo" (gallery), distance map centring (geolocator) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Find A Nikah uses the microphone to record voice messages you send in chat.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Find A Nikah uses your camera to take a private selfie for profile verification. It is never shown on your profile.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

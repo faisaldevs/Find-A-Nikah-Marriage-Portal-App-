@@ -7,6 +7,11 @@ import 'package:find_a_nikah/core/network/dio_exception_mapper.dart';
 /// non-GET call the backend guarantees is idempotent, to make it retryable.
 const idempotentExtraKey = 'idempotent';
 
+/// `RequestOptions.extra` key: an `int` that replaces `maxRetries` for one
+/// call — screens that are waiting for the answer use a low number so the
+/// error appears sooner.
+const maxRetriesExtraKey = 'maxRetries';
+
 const _attemptExtraKey = 'retryAttempt';
 
 /// Retries transient failures of idempotent requests with exponential
@@ -42,9 +47,8 @@ class RetryInterceptor extends Interceptor {
   ) async {
     final options = err.requestOptions;
     final attempt = options.extra[_attemptExtraKey] as int? ?? 0;
-    if (attempt >= maxRetries ||
-        !_isIdempotent(options) ||
-        !_isTransient(err)) {
+    final limit = options.extra[maxRetriesExtraKey] as int? ?? maxRetries;
+    if (attempt >= limit || !_isIdempotent(options) || !_isTransient(err)) {
       handler.next(err);
       return;
     }

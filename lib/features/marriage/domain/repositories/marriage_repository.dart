@@ -25,4 +25,24 @@ abstract interface class MarriageRepository {
     String? targetUserId,
     String? text,
   });
+
+  /// Blocks [userId] (`POST /v1/blocks/:userId`).
+  Future<Either<Failure, Unit>> block(String userId);
+
+  /// Reports [userId] (`POST /v1/reports`). [reason] is one of
+  /// [kReportReasons]' codes.
+  Future<Either<Failure, Unit>> report(
+    String userId, {
+    required String reason,
+    String? description,
+  });
 }
+
+/// `(code, label)` the API accepts for `reason`, in display order.
+const kReportReasons = <(String, String)>[
+  ('harassment', 'Harassment or abuse'),
+  ('inappropriate_content', 'Inappropriate content'),
+  ('fake_profile', 'Fake profile'),
+  ('spam', 'Spam or scam'),
+  ('other', 'Something else'),
+];

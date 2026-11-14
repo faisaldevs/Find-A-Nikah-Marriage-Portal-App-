@@ -70,6 +70,24 @@ abstract interface class MessagingRepository {
     required String messageId,
   });
 
+  /// Sends the recorded voice note at [path] ([duration] long, 1–120 s).
+  Future<Either<Failure, Unit>> sendAudio({
+    required String conversationId,
+    required String path,
+    required Duration duration,
+  });
+
+  /// Delete for everyone (sender only, within an hour): gone for both.
+  /// Fails with the server's message once the window has passed.
+  Future<Either<Failure, Unit>> deleteMessageForEveryone({
+    required String conversationId,
+    required String messageId,
+  });
+
+  /// Active-chat slots this user has (5 free, 10 Gold); the server's
+  /// `chatSlots.limit` once known.
+  int get slotLimit;
+
   /// Total unread messages across chats — the Chat tab's badge.
   Stream<int> watchUnreadCount();
 
@@ -83,6 +101,35 @@ abstract interface class MessagingRepository {
   });
 
   Future<Either<Failure, Unit>> blockUser(String peerId);
+
+  /// Live peer of [conversationId] (presence / last seen), starting with
+  /// the current one.
+  Stream<ChatPeer> watchPeer(String conversationId);
+
+  /// Mutes / unmutes [conversationId] for this user.
+  Future<Either<Failure, Unit>> setMuted(
+    String conversationId, {
+    required bool muted,
+  });
+
+  /// Deletes every message of [conversationId] for this user only.
+  Future<Either<Failure, Unit>> clearChat(String conversationId);
+
+  /// Matches that ended (the "Unmatched" page).
+  Future<Either<Failure, List<ChatPeer>>> fetchUnmatched();
+
+  /// Refetches the conversation list and matches now (instead of waiting
+  /// for the next poll) — e.g. when the Matches panel opens.
+  Future<void> refresh();
+
+  /// Everyone this user blocked.
+  Future<Either<Failure, List<BlockedUser>>> fetchBlocked();
+
+  /// The full profile of [peerId] for the View profile page: the matches
+  /// data plus about-me, languages, practices and lifestyle.
+  Future<Either<Failure, PeerProfile>> fetchPeerProfile(String peerId);
+
+  Future<Either<Failure, Unit>> unblockUser(String userId);
 
   /// Ends the match behind the chat; [matchId] is [ChatPeer.matchId].
   Future<Either<Failure, Unit>> unmatch(String matchId);

@@ -37,7 +37,7 @@ class FeedCommentPreview extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: 3.w),
             child: FeedPortrait(
-              url: comment.author.photoUrl,
+              url: comment.author.avatarUrl,
               size: 24,
               countryCode: comment.author.countryCode,
             ),
@@ -66,14 +66,17 @@ class FeedCommentPreview extends StatelessWidget {
                       FeedIcon(Assets.icons.feedHeart, size: 14),
                       SizedBox(width: 5.w),
                       Text(likes, style: grey),
-                      SizedBox(width: 17.5.w),
-                      FeedIcon(
-                        Assets.icons.feedReplies,
-                        size: 12,
-                        color: kFeedGrey500,
-                      ),
-                      SizedBox(width: 6.w),
-                      Text(replies, style: grey),
+                      // The post list's trimmed preview has no reply count.
+                      if (comment.replyCount > 0) ...[
+                        SizedBox(width: 17.5.w),
+                        FeedIcon(
+                          Assets.icons.feedReplies,
+                          size: 12,
+                          color: kFeedGrey500,
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(replies, style: grey),
+                      ],
                     ],
                   ),
                 ),

@@ -3,28 +3,63 @@ import 'dart:async';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-/// A delivered / seen receipt. [messageId] is null for a whole-conversation
-/// receipt (everything the sender had in it up to [at]).
+/// A delivered / seen receipt, sent only to the message's sender:
+/// `{ conversationId, messageIds, messageId, by, at }` where [by] is the
+/// user who triggered it (the recipient who received / read).
 class SocketReceipt {
   const SocketReceipt({
     required this.conversationId,
     required this.at,
-    this.messageId,
-    this.seenBy,
-    this.deliveredTo,
+    this.messageIds = const [],
+    this.by,
   });
 
   final String conversationId;
-  final String? messageId;
+
+  /// The messages affected. Empty for an old-style receipt that only has a
+  /// timestamp (everything up to [at]).
+  final List<String> messageIds;
   final DateTime at;
 
-  /// Who read it (`seenBy` / `readBy`) — the *reader*. The server also
-  /// sends the event to the reader, so a client must ignore its own.
-  final String? seenBy;
+  /// Who triggered it; null when the server didn't say.
+  final String? by;
+}
 
-  /// Who the delivery receipt is addressed to — the *sender* (not the
-  /// recipient who triggered it, despite the name).
-  final String? deliveredTo;
+/// `presence { userId, online, lastActiveAt }`.
+class SocketPresence {
+  const SocketPresence({
+    required this.userId,
+    required this.online,
+    this.lastActiveAt,
+  });
+
+  final String userId;
+  final bool online;
+  final DateTime? lastActiveAt;
+}
+
+/// `message:deleted { conversationId, messageId }` — delete for everyone.
+class SocketDeleted {
+  const SocketDeleted({required this.conversationId, required this.messageId});
+
+  final String conversationId;
+  final String messageId;
+}
+
+/// `conversation:updated { conversationId, canMessage, blockedBy }` — an
+/// unmatch, block or unblock.
+class SocketConversationUpdated {
+  const SocketConversationUpdated({
+    required this.conversationId,
+    required this.canMessage,
+    this.blockedBy,
+  });
+
+  final String conversationId;
+  final bool canMessage;
+
+  /// `them` | `me` | null.
+  final String? blockedBy;
 }
 
 class SocketTyping {
@@ -52,6 +87,9 @@ abstract interface class ChatSocket {
   Stream<SocketReceipt> get delivered;
   Stream<SocketReceipt> get seen;
   Stream<SocketTyping> get typing;
+  Stream<SocketPresence> get presence;
+  Stream<SocketDeleted> get deleted;
+  Stream<SocketConversationUpdated> get conversationUpdated;
 
   /// True on every (re)connect, false on drop — a reconnect means events
   /// may have been missed, so the repository resyncs over REST.
@@ -100,6 +138,10 @@ class SocketIoChatSocket implements ChatSocket {
   final _delivered = StreamController<SocketReceipt>.broadcast();
   final _seen = StreamController<SocketReceipt>.broadcast();
   final _typing = StreamController<SocketTyping>.broadcast();
+  final _presence = StreamController<SocketPresence>.broadcast();
+  final _deleted = StreamController<SocketDeleted>.broadcast();
+  final _conversationUpdated =
+      StreamController<SocketConversationUpdated>.broadcast();
   final _connection = StreamController<bool>.broadcast();
 
   @override
@@ -110,6 +152,13 @@ class SocketIoChatSocket implements ChatSocket {
   Stream<SocketReceipt> get seen => _seen.stream;
   @override
   Stream<SocketTyping> get typing => _typing.stream;
+  @override
+  Stream<SocketPresence> get presence => _presence.stream;
+  @override
+  Stream<SocketDeleted> get deleted => _deleted.stream;
+  @override
+  Stream<SocketConversationUpdated> get conversationUpdated =>
+      _conversationUpdated.stream;
   @override
   Stream<bool> get connection => _connection.stream;
 
@@ -156,7 +205,10 @@ class SocketIoChatSocket implements ChatSocket {
       // Older server event for the same thing.
       ..on('message:read', (d) => _onReceipt(d, _seen))
       ..on('typing', (d) => _onTyping(d, typing: true))
-      ..on('stop_typing', (d) => _onTyping(d, typing: false));
+      ..on('stop_typing', (d) => _onTyping(d, typing: false))
+      ..on('presence', _onPresence)
+      ..on('message:deleted', _onDeleted)
+      ..on('conversation:updated', _onConversationUpdated);
   }
 
   /// The handshake was refused (usually an expired JWT): refresh it, wait a
@@ -193,21 +245,66 @@ class SocketIoChatSocket implements ChatSocket {
     if (conversationId is! String) return;
     final at =
         DateTime.tryParse(
-          '${map['seenAt'] ?? map['deliveredAt'] ?? map['readAt'] ?? ''}',
+          '${map['at'] ?? map['seenAt'] ?? map['deliveredAt'] ?? map['readAt'] ?? ''}',
         ) ??
         DateTime.now();
-    final messageId = map['messageId'];
-    final seenBy = map['seenBy'] ?? map['readBy'];
-    final deliveredTo = map['deliveredTo'];
+    final ids = <String>[
+      if (map['messageIds'] is List)
+        for (final id in map['messageIds'] as List)
+          if (id is String) id,
+      if (map['messageIds'] is! List && map['messageId'] is String)
+        map['messageId'] as String,
+    ];
+    final by = map['by'] ?? map['seenBy'] ?? map['readBy'];
     _add(
       into,
       SocketReceipt(
         conversationId: conversationId,
-        messageId: messageId is String ? messageId : null,
+        messageIds: ids,
         at: at,
-        seenBy: seenBy is String ? seenBy : null,
-        deliveredTo: deliveredTo is String ? deliveredTo : null,
+        by: by is String ? by : null,
       ),
+    );
+  }
+
+  void _onPresence(dynamic data) {
+    final map = _asMap(data);
+    final userId = map?['userId'];
+    if (map == null || userId is! String) return;
+    _add(
+      _presence,
+      SocketPresence(
+        userId: userId,
+        online: map['online'] == true,
+        lastActiveAt: DateTime.tryParse('${map['lastActiveAt'] ?? ''}'),
+      ),
+    );
+  }
+
+  void _onConversationUpdated(dynamic data) {
+    final map = _asMap(data);
+    final conversationId = map?['conversationId'];
+    final canMessage = map?['canMessage'];
+    if (conversationId is! String || canMessage is! bool) return;
+    final blockedBy = map?['blockedBy'];
+    _add(
+      _conversationUpdated,
+      SocketConversationUpdated(
+        conversationId: conversationId,
+        canMessage: canMessage,
+        blockedBy: blockedBy is String ? blockedBy : null,
+      ),
+    );
+  }
+
+  void _onDeleted(dynamic data) {
+    final map = _asMap(data);
+    final conversationId = map?['conversationId'];
+    final messageId = map?['messageId'];
+    if (conversationId is! String || messageId is! String) return;
+    _add(
+      _deleted,
+      SocketDeleted(conversationId: conversationId, messageId: messageId),
     );
   }
 
@@ -294,6 +391,9 @@ class SocketIoChatSocket implements ChatSocket {
       _delivered.close(),
       _seen.close(),
       _typing.close(),
+      _presence.close(),
+      _deleted.close(),
+      _conversationUpdated.close(),
       _connection.close(),
     ]);
   }

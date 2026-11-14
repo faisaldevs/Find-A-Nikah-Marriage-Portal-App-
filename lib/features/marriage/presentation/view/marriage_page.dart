@@ -8,6 +8,7 @@ import 'package:find_a_nikah/features/marriage/presentation/widgets/marriage_top
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_action_buttons.dart';
 // import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_details.dart'; // now used by profile_scroll.dart
 // import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_hero.dart'; // now used by profile_scroll.dart
+import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_photo.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_scroll.dart';
 import 'package:find_a_nikah/features/marriage/presentation/widgets/profile_style.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
@@ -49,8 +50,149 @@ class _MarriageView extends StatelessWidget {
   /// (the profile shows it above the photo while it goes out).
   Future<void> _compose(BuildContext context, MarriageProfile profile) async {
     final feed = context.read<MarriageFeedBloc>();
-    final text = await showComplimentPage(context, name: profile.name);
+    // One compliment per profile: it already counts as a like.
+    if (feed.state.isComplimented(profile.id)) {
+      CustomToast.showInfo(
+        context,
+        'Compliment already sent',
+        description: 'You already sent ${profile.name} a compliment.',
+      );
+      return;
+    }
+    final text = await showComplimentPage(
+      context,
+      name: profile.name,
+      initialText: feed.state.complimentDrafts[profile.id],
+    );
     if (text != null) feed.add(MarriageComplimentSubmitted(text));
+  }
+
+  /// Footer Block: confirm, then block and move on to the next profile.
+  Future<void> _block(BuildContext context, MarriageProfile profile) async {
+    final feed = context.read<MarriageFeedBloc>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Block ${profile.name}?'),
+        content: const Text(
+          "They won't be able to see or message you, and you won't see "
+          'them again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Block',
+              style: TextStyle(color: AppColors.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok ?? false) feed.add(const MarriageProfileBlocked());
+  }
+
+  /// Footer Report: pick a reason, then report (stays on the profile).
+  Future<void> _report(BuildContext context, MarriageProfile profile) async {
+    final feed = context.read<MarriageFeedBloc>();
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Text(
+                'Report ${profile.name}',
+                style: TextFontStyle.headline16w700textDarkStyleSatoshi,
+              ),
+            ),
+            for (final (code, label) in kReportReasons)
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.of(context).pop(code),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (reason != null) feed.add(MarriageProfileReported(reason));
+  }
+
+  /// A like turned into a match: offer to go and say salaam.
+  Future<void> _showMatch(
+    BuildContext context, {
+    String? name,
+    String? photoUrl,
+  }) async {
+    final chat = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("It's a match!"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (photoUrl != null) ...[
+              ClipOval(
+                child: SizedBox.square(
+                  dimension: 88.r,
+                  child: ProfilePhoto(url: photoUrl),
+                ),
+              ),
+              SizedBox(height: 12.h),
+            ],
+            Text(
+              'You and ${name ?? 'they'} liked each other.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep browsing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Send a message'),
+          ),
+        ],
+      ),
+    );
+    if ((chat ?? false) && context.mounted) context.go(RoutePaths.chat);
+  }
+
+  /// After a report: it doesn't hide the profile, so offer to block too.
+  Future<void> _offerBlock(BuildContext context) async {
+    final feed = context.read<MarriageFeedBloc>();
+    final name = feed.state.current?.name ?? 'this member';
+    final block = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report sent'),
+        content: Text('Thanks — our team will take a look. Block $name too?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Block',
+              style: TextStyle(color: AppColors.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (block ?? false) feed.add(const MarriageProfileBlocked());
   }
 
   @override
@@ -64,10 +206,20 @@ class _MarriageView extends StatelessWidget {
     return BlocListener<MarriageFeedBloc, MarriageFeedState>(
       listenWhen: (prev, next) => prev.notice != next.notice,
       listener: (context, state) => switch (state.notice) {
-        MarriageFeedNotice.matched => CustomToast.showSuccess(
+        MarriageFeedNotice.matched => _showMatch(
           context,
-          "It's a match!",
-          description: 'You and ${state.matchedName} liked each other.',
+          name: state.matchedName,
+          photoUrl: state.matchedPhotoUrl,
+        ).ignore(),
+        MarriageFeedNotice.blocked => CustomToast.showSuccess(
+          context,
+          'Member blocked',
+        ),
+        MarriageFeedNotice.reported => _offerBlock(context).ignore(),
+        MarriageFeedNotice.alreadyReported => CustomToast.showInfo(
+          context,
+          'Already reported',
+          description: 'You already have an open report about them.',
         ),
         MarriageFeedNotice.undoUnavailable => CustomToast.showInfo(
           context,
@@ -106,9 +258,13 @@ class _MarriageView extends StatelessWidget {
                       onRetry: () => feed.add(const MarriageFeedSubscribed()),
                     ),
                     MarriageFeedStatus.ready when profile == null =>
-                      const AppEmptyView(
+                      AppMessageView(
+                        icon: Icons.inbox_outlined,
                         title: 'No profiles yet',
                         message: 'Try widening your filters.',
+                        actionLabel: 'Change filters',
+                        onAction: () =>
+                            context.push<void>(RoutePaths.addFilters).ignore(),
                       ),
                     MarriageFeedStatus.ready => LayoutBuilder(
                       builder: (context, constraints) {
@@ -183,7 +339,8 @@ class _MarriageView extends StatelessWidget {
                         //     heroBottomInset: 23.6.h,
                         //     bottomPadding: 24.h,
                         //     actions: ProfileActionButtons(...),
-                        //     onComingSoon: (what) => _comingSoon(context, what),
+                        //     onComingSoon: (what) =>
+                        //         _comingSoon(context, what),
                         //   ),
                         // );
                         // Pinned again, per the reference app: the buttons
@@ -217,6 +374,10 @@ class _MarriageView extends StatelessWidget {
                                   key: ValueKey(profile!.id),
                                   profile: profile,
                                   compliment: state.compliments[profile.id],
+                                  complimentDraft:
+                                      state.complimentDrafts[profile.id],
+                                  onBlock: () => _block(context, profile),
+                                  onReport: () => _report(context, profile),
                                   onCompliment: (text) => feed.add(
                                     MarriageComplimentSubmitted(text),
                                   ),
@@ -238,7 +399,8 @@ class _MarriageView extends StatelessWidget {
                               height: button,
                               child: ProfileActionButtons(
                                 // onCancel: () =>
-                                //     feed.add(const MarriageProfileAdvanced()),
+                                //     feed.add(
+                                //       const MarriageProfileAdvanced()),
                                 onCancel: () =>
                                     feed.add(const MarriageProfilePassed()),
                                 // Always full colour, per the mockup; no-op
@@ -249,7 +411,8 @@ class _MarriageView extends StatelessWidget {
                                 //     _comingSoon(context, 'Messaging'),
                                 onMessage: () => _compose(context, profile),
                                 // onSave: () =>
-                                //     feed.add(const MarriageProfileAdvanced()),
+                                //     feed.add(
+                                //       const MarriageProfileAdvanced()),
                                 onSave: () =>
                                     feed.add(const MarriageProfileLiked()),
                               ),

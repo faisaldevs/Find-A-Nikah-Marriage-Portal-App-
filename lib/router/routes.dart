@@ -185,19 +185,62 @@ final List<RouteBase> appRoutes = [
 
   // Feed flow pages, over the bottom nav.
   GoRoute(
-    path: RoutePaths.feedPost,
-    builder: (_, state) => PostDetailPage(post: state.extra! as FeedPost),
+    path: RoutePaths.feedPostPattern,
+    builder: (_, state) => PostDetailPage(
+      // Keyed by id: a second link to another post must not reuse the first
+      // post's state.
+      key: ValueKey(state.pathParameters['postId']),
+      postId: state.pathParameters['postId']!,
+      initial: state.extra is FeedPost ? state.extra! as FeedPost : null,
+    ),
+  ),
+  // More specific than the profile pattern, so listed first.
+  GoRoute(
+    path: RoutePaths.feedProfileSearchPattern,
+    builder: (_, state) => ProfileSearchPage(
+      userId: state.pathParameters['userId']!,
+      name: state.extra is FeedAuthor
+          ? (state.extra! as FeedAuthor).name
+          : null,
+      handle: state.extra is FeedAuthor
+          ? (state.extra! as FeedAuthor).handle
+          : null,
+    ),
   ),
   GoRoute(
-    path: RoutePaths.feedProfile,
-    builder: (_, state) => ProfilePage(author: state.extra! as FeedAuthor),
+    path: RoutePaths.feedMe,
+    builder: (_, _) => const OwnProfilePage(),
   ),
   GoRoute(
-    path: RoutePaths.feedProfileSearch,
-    builder: (_, state) =>
-        ProfileSearchPage(author: state.extra! as FeedAuthor),
+    path: RoutePaths.feedMemberLinkPattern,
+    redirect: (_, state) =>
+        RoutePaths.feedProfilePath(state.pathParameters['userId']!),
   ),
-  _page(RoutePaths.feedCompose, const CreatePostPage()),
+  GoRoute(
+    path: RoutePaths.feedProfilePattern,
+    builder: (context, state) => ProfilePage(
+      key: ValueKey(state.pathParameters['userId']),
+      userId: state.pathParameters['userId']!,
+      author: state.extra is FeedAuthor ? state.extra! as FeedAuthor : null,
+      // Feed can't import chat: the router builds the peer.
+      onOpenChat: (author, {matchId}) => context.push<void>(
+        RoutePaths.chatRoom,
+        extra: ChatPeer(
+          id: author.userId,
+          name: author.name,
+          photoUrl: author.photoUrl,
+          matchId: matchId,
+        ),
+      ),
+    ),
+  ),
+  GoRoute(
+    path: RoutePaths.feedCompose,
+    // `extra` is a post when editing, nothing when writing a new one.
+    builder: (_, state) => CreatePostPage(
+      editing: state.extra is FeedPost ? state.extra! as FeedPost : null,
+    ),
+  ),
 
   // Menu flow pages over the bottom nav (Figma: no nav bar on these).
   GoRoute(
@@ -217,6 +260,11 @@ final List<RouteBase> appRoutes = [
     },
   ),
   _page(RoutePaths.chatArchived, const ChatArchivedPage()),
+  GoRoute(
+    path: RoutePaths.peerProfile,
+    builder: (_, state) => PeerProfilePage(peer: state.extra! as ChatPeer),
+  ),
+  _page(RoutePaths.blockedProfiles, const BlockedProfilesPage()),
   GoRoute(
     path: RoutePaths.chatRoom,
     // builder: (_, state) => ChatRoomPage(peer: state.extra! as ChatPeer),

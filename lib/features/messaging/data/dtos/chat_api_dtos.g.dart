@@ -26,6 +26,14 @@ ConversationsDataDto _$ConversationsDataDtoFromJson(
   pagination: json['pagination'] == null
       ? const ApiPaginationDto()
       : ApiPaginationDto.fromJson(json['pagination'] as Map<String, dynamic>),
+  chatSlots: json['chatSlots'] == null
+      ? null
+      : ChatSlotsDto.fromJson(json['chatSlots'] as Map<String, dynamic>),
+);
+
+ChatSlotsDto _$ChatSlotsDtoFromJson(Map<String, dynamic> json) => ChatSlotsDto(
+  limit: (json['limit'] as num?)?.toInt() ?? 5,
+  used: (json['used'] as num?)?.toInt() ?? 0,
 );
 
 ConversationRowDto _$ConversationRowDtoFromJson(Map<String, dynamic> json) =>
@@ -43,6 +51,10 @@ ConversationRowDto _$ConversationRowDtoFromJson(Map<String, dynamic> json) =>
       lastMessagePreview: json['lastMessagePreview'] as String?,
       lastMessageSender: json['lastMessageSender'] as String?,
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+      isMuted: json['isMuted'] as bool? ?? false,
+      canMessage: json['canMessage'] as bool?,
+      blockedBy: json['blockedBy'] as String?,
+      lastMessageType: json['lastMessageType'] as String?,
     );
 
 ConversationPartnerDto _$ConversationPartnerDtoFromJson(
@@ -54,6 +66,7 @@ ConversationPartnerDto _$ConversationPartnerDtoFromJson(
   lastActiveAt: json['lastActiveAt'] == null
       ? null
       : DateTime.parse(json['lastActiveAt'] as String),
+  isOnline: json['isOnline'] as bool? ?? false,
 );
 
 OpenConversationResponseDto _$OpenConversationResponseDtoFromJson(
@@ -106,6 +119,21 @@ MessageDto _$MessageDtoFromJson(Map<String, dynamic> json) => MessageDto(
       ? null
       : DateTime.parse(json['seenAt'] as String),
   deletedForMe: json['deletedForMe'] as bool? ?? false,
+  deletedForEveryone: json['deletedForEveryone'] as bool? ?? false,
+  durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
+  replyToId: json['replyToId'] as String?,
+  replyTo: json['replyTo'] == null
+      ? null
+      : ReplyToDto.fromJson(json['replyTo'] as Map<String, dynamic>),
+);
+
+ReplyToDto _$ReplyToDtoFromJson(Map<String, dynamic> json) => ReplyToDto(
+  id: json['_id'] as String,
+  senderId: json['senderId'] as String? ?? '',
+  messageType: json['messageType'] as String? ?? 'text',
+  text: json['text'] as String? ?? '',
+  deletedForMe: json['deletedForMe'] as bool? ?? false,
+  deletedForEveryone: json['deletedForEveryone'] as bool? ?? false,
 );
 
 UnreadCountResponseDto _$UnreadCountResponseDtoFromJson(
@@ -128,4 +156,7 @@ Map<String, dynamic> _$ReportBodyDtoToJson(ReportBodyDto instance) =>
     };
 
 Map<String, dynamic> _$SendMessageBodyDtoToJson(SendMessageBodyDto instance) =>
-    <String, dynamic>{'text': instance.text};
+    <String, dynamic>{'text': instance.text, 'replyToId': ?instance.replyToId};
+
+Map<String, dynamic> _$MuteBodyDtoToJson(MuteBodyDto instance) =>
+    <String, dynamic>{'muted': instance.muted};

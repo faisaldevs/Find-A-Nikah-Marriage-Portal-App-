@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'chat_api_dtos.g.dart';
 
-/// Wire formats of the chat REST API (`resources/docs/MESSAGING_API.md`).
+/// Wire formats of the chat REST API (`resources/docs/outdated/MESSAGING_API.md`).
 /// Every response is `{statusCode, data, message}`. These are the raw
 /// server shapes; `ConversationDto` / `ChatMessageDto` stay the dummy
 /// source's format.
@@ -33,6 +33,7 @@ class ConversationsDataDto {
   const ConversationsDataDto({
     this.conversations = const [],
     this.pagination = const ApiPaginationDto(),
+    this.chatSlots,
   });
 
   factory ConversationsDataDto.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +41,21 @@ class ConversationsDataDto {
 
   final List<ConversationRowDto> conversations;
   final ApiPaginationDto pagination;
+
+  /// Active-chat limit and use; null on an older server.
+  final ChatSlotsDto? chatSlots;
+}
+
+/// `chatSlots: { limit, used }`.
+@JsonSerializable(createToJson: false)
+class ChatSlotsDto {
+  const ChatSlotsDto({this.limit = 5, this.used = 0});
+
+  factory ChatSlotsDto.fromJson(Map<String, dynamic> json) =>
+      _$ChatSlotsDtoFromJson(json);
+
+  final int limit;
+  final int used;
 }
 
 /// A list row: the raw conversation plus `partner` and `unreadCount`.
@@ -53,6 +69,10 @@ class ConversationRowDto {
     this.lastMessagePreview,
     this.lastMessageSender,
     this.unreadCount = 0,
+    this.isMuted = false,
+    this.canMessage,
+    this.blockedBy,
+    this.lastMessageType,
   });
 
   factory ConversationRowDto.fromJson(Map<String, dynamic> json) =>
@@ -72,6 +92,19 @@ class ConversationRowDto {
   /// User id of whoever sent the last message.
   final String? lastMessageSender;
   final int unreadCount;
+
+  /// The caller muted this thread.
+  final bool isMuted;
+
+  /// Null when the server doesn't say (older API): treated as open. False
+  /// once the match ended or either side blocked.
+  final bool? canMessage;
+
+  /// `"them"` when the peer blocked the caller, `"me"` for the reverse.
+  final String? blockedBy;
+
+  /// `text` | `image` | `audio`; null on an older server.
+  final String? lastMessageType;
 }
 
 @JsonSerializable(createToJson: false)
@@ -81,6 +114,7 @@ class ConversationPartnerDto {
     this.fullName,
     this.photoUrl,
     this.lastActiveAt,
+    this.isOnline = false,
   });
 
   factory ConversationPartnerDto.fromJson(Map<String, dynamic> json) =>
@@ -93,6 +127,7 @@ class ConversationPartnerDto {
   /// Server-relative (`/public/upload/...`).
   final String? photoUrl;
   final DateTime? lastActiveAt;
+  final bool isOnline;
 }
 
 /// `POST /v1/conversations/:userId` — participants are ids only.
@@ -175,6 +210,10 @@ class MessageDto {
     this.deliveredAt,
     this.seenAt,
     this.deletedForMe = false,
+    this.deletedForEveryone = false,
+    this.durationSeconds,
+    this.replyToId,
+    this.replyTo,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) =>
@@ -187,7 +226,7 @@ class MessageDto {
   final String? receiverId;
   final String text;
 
-  /// `text` or `image`.
+  /// `text`, `image` or `audio`.
   final String messageType;
 
   /// Server-relative (`/public/upload/...`) for an image message.
@@ -200,9 +239,43 @@ class MessageDto {
 
   /// The caller deleted it (for themselves); hide it.
   final bool deletedForMe;
+
+  /// The sender deleted it for both sides (not shipped yet; hide it).
+  final bool deletedForEveryone;
+
+  /// Length of a voice message (1–120).
+  final int? durationSeconds;
   final DateTime createdAt;
 
+  /// The quoted message, populated by the server on every read.
+  final String? replyToId;
+  final ReplyToDto? replyTo;
+
   bool get seen => isSeen || isRead;
+}
+
+/// The quoted message inside a reply.
+@JsonSerializable(createToJson: false)
+class ReplyToDto {
+  const ReplyToDto({
+    required this.id,
+    this.senderId = '',
+    this.messageType = 'text',
+    this.text = '',
+    this.deletedForMe = false,
+    this.deletedForEveryone = false,
+  });
+
+  factory ReplyToDto.fromJson(Map<String, dynamic> json) =>
+      _$ReplyToDtoFromJson(json);
+
+  @JsonKey(name: '_id')
+  final String id;
+  final String senderId;
+  final String messageType;
+  final String text;
+  final bool deletedForMe;
+  final bool deletedForEveryone;
 }
 
 /// `PATCH .../delivered|seen` and `GET /messages/unread-count`.
@@ -245,19 +318,39 @@ class ReportBodyDto {
     this.description,
   });
 
+  /// Sent as `reportedUserId` — the live server rejects the spec's
+  /// `targetUserId` with 404 "Member not found" (verified 2026-11-12).
   final String targetUserId;
   final String reason;
   final String? description;
 
-  Map<String, dynamic> toJson() => _$ReportBodyDtoToJson(this);
+  Map<String, dynamic> toJson() => {
+    'reportedUserId': targetUserId,
+    'reason': reason,
+    if (description != null) 'description': description,
+  };
 }
 
 /// Body of `POST /v1/conversations/:id/messages`.
 @JsonSerializable(createFactory: false)
 class SendMessageBodyDto {
-  const SendMessageBodyDto({required this.text});
+  const SendMessageBodyDto({required this.text, this.replyToId});
 
   final String text;
 
+  /// The message being quoted (same conversation).
+  @JsonKey(includeIfNull: false)
+  final String? replyToId;
+
   Map<String, dynamic> toJson() => _$SendMessageBodyDtoToJson(this);
+}
+
+/// Body of `PATCH /v1/conversations/:id/mute`.
+@JsonSerializable(createFactory: false)
+class MuteBodyDto {
+  const MuteBodyDto({required this.muted});
+
+  final bool muted;
+
+  Map<String, dynamic> toJson() => _$MuteBodyDtoToJson(this);
 }

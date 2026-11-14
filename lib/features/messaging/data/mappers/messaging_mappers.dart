@@ -69,8 +69,35 @@ extension MatchDtoMapper on MatchDto {
       photoUrl: photo == null || photo.isEmpty
           ? ''
           : resolveImageUrl(imageBaseUrl, photo),
+      isOnline: partner?.isOnline ?? false,
       lastSeenAt: lastActive == null ? null : DateTime.tryParse(lastActive),
       matchId: matchId.isEmpty ? null : matchId,
+    );
+  }
+}
+
+extension MatchProfileMapper on MatchDto {
+  /// The "View profile" data for this match, with photo paths made absolute.
+  PeerProfile? toPeerProfile({required String imageBaseUrl}) {
+    final p = profile;
+    if (p == null) return null;
+    final raw = [
+      if (p.photoUrl case final photo? when photo.isNotEmpty) photo,
+      for (final img in p.images)
+        if (img.isNotEmpty && img != p.photoUrl) img,
+    ];
+    return PeerProfile(
+      images: [for (final r in raw) resolveImageUrl(imageBaseUrl, r)],
+      age: p.age,
+      city: p.city,
+      country: p.country,
+      education: p.educationLevel,
+      profession: p.professionTitle,
+      faith: p.faith.isEmpty ? null : p.faith.join(', '),
+      religion: p.religion,
+      sect: p.sect.isEmpty ? null : p.sect.join(', '),
+      maritalStatus: p.maritalStatus,
+      isVerified: p.isVerified,
     );
   }
 }

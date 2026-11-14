@@ -63,12 +63,43 @@ abstract final class RoutePaths {
   static const chat = '/chat';
   static const menu = '/menu';
 
-  // Feed flow, pushed over the tabs (no bottom nav). Each page's subject
-  // (post / author) travels as go_router `extra`.
+  // Feed flow, pushed over the tabs (no bottom nav). Post and member pages
+  // are opened **by id** (so links and notifications work); the object that
+  // was tapped may travel as go_router `extra` to draw the page at once.
   static const feedPost = '/feed/post';
   static const feedProfile = '/feed/profile';
-  static const feedProfileSearch = '/feed/profile/search';
+
+  /// The signed-in member's own Feed profile (opened from the Menu).
+  static const feedMe = '/feed/me';
   static const feedCompose = '/feed/compose';
+  static const feedPostPattern = '$feedPost/:postId';
+  static const feedProfilePattern = '$feedProfile/:userId';
+
+  /// The share-link spelling of a member (`/feed/u/:userId`); redirects to
+  /// [feedProfilePattern].
+  static const feedMemberLinkPattern = '/feed/u/:userId';
+  static const feedProfileSearchPattern = '$feedProfile/:userId/search';
+
+  static String feedPostPath(String postId) => '$feedPost/$postId';
+  static String feedProfilePath(String userId) => '$feedProfile/$userId';
+  static String feedProfileSearchPath(String userId) =>
+      '$feedProfile/$userId/search';
+
+  /// True for any signed-in app location, including the id-based Feed pages
+  /// (which are not in [app] because their path carries an id).
+  /// A shared Feed link (post, member) — remembered across splash / login so
+  /// a cold start still lands on it.
+  static bool isFeedLink(String location) =>
+      location.startsWith('$feedPost/') ||
+      location.startsWith('/feed/u/') ||
+      (location.startsWith('$feedProfile/') && !location.endsWith('/search'));
+
+  static bool isAppLocation(String location) =>
+      app.contains(location) ||
+      location.startsWith('$feedPost/') ||
+      location.startsWith('/feed/u/') ||
+      location == feedMe ||
+      location.startsWith('$feedProfile/');
 
   /// Inside the Chat tab (bottom nav stays).
   static const chatUnmatched = '/chat/unmatched';
@@ -85,6 +116,12 @@ abstract final class RoutePaths {
 
   /// Over the tabs (no bottom nav).
   static const chatArchived = '/chat/archived';
+
+  /// A chat peer's profile (`ChatPeer` as `extra`), over the tabs.
+  static const peerProfile = '/chat/profile';
+
+  /// Settings → Profiles I've blocked, over the tabs.
+  static const blockedProfiles = '/settings/blocked';
 
   /// One conversation, over the tabs (no bottom nav). The peer
   /// (`ChatPeer`) travels as go_router `extra`.
@@ -166,12 +203,11 @@ abstract final class RoutePaths {
     menu,
     addFilters,
     locationFilter,
-    feedPost,
-    feedProfile,
-    feedProfileSearch,
     feedCompose,
     chatUnmatched,
     chatArchived,
+    peerProfile,
+    blockedProfiles,
     chatRoom,
     call,
     incomingCall,

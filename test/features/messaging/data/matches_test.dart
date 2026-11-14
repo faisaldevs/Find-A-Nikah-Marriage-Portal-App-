@@ -60,6 +60,9 @@ Map<String, dynamic> _response(
 };
 
 class _FakeMatchesRemote implements MatchesRemoteDataSource {
+  @override
+  Future<dynamic> fetchProfile(String userId) async => <String, dynamic>{};
+
   _FakeMatchesRemote(this.pages);
 
   /// Page number → raw response.
@@ -74,6 +77,13 @@ class _FakeMatchesRemote implements MatchesRemoteDataSource {
     requested.add(page);
     return MyMatchesResponseDto.fromJson(pages[page]!);
   }
+
+  @override
+  Future<MyMatchesResponseDto> fetchUnmatched({
+    String status = 'unmatched',
+    required int page,
+    required int limit,
+  }) async => MyMatchesResponseDto.fromJson(pages[1]!);
 }
 
 void main() {

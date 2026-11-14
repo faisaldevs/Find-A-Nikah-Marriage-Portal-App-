@@ -7,6 +7,10 @@ class CustomToast {
 
   static const _defaultDuration = Duration(seconds: 3);
 
+  // Confirmations are brief: the toast sits over the app bar and swallows
+  // taps on it, so it must not linger (ISS-020). Errors stay a bit longer.
+  static const _briefDuration = Duration(milliseconds: 1800);
+
   static void _show({
     required BuildContext context,
     required ToastificationType type,
@@ -63,6 +67,7 @@ class CustomToast {
   }) => _show(
     context: context,
     type: ToastificationType.success,
+    duration: _briefDuration,
     title: message,
     description: description,
     icon: Icons.check_circle_rounded,
@@ -102,6 +107,7 @@ class CustomToast {
   }) => _show(
     context: context,
     type: ToastificationType.info,
+    duration: _briefDuration,
     title: message,
     description: description,
     icon: Icons.info_outline_rounded,

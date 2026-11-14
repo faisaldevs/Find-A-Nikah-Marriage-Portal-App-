@@ -17,6 +17,32 @@ class _FakeFeed implements MarriageRepository {
   final calls = <String>[];
   final _passed = <MarriageProfile>[];
   Failure? failNext;
+  String? _lastRewound;
+  final blocked = <String>[];
+  final reported = <String>[];
+
+  @override
+  Future<Either<Failure, Unit>> block(String userId) async {
+    final f = failNext;
+    failNext = null;
+    if (f != null) return left(f);
+    blocked.add(userId);
+    deck.removeWhere((p) => p.id == userId);
+    return right(unit);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> report(
+    String userId, {
+    required String reason,
+    String? description,
+  }) async {
+    final f = failNext;
+    failNext = null;
+    if (f != null) return left(f);
+    reported.add('$userId:$reason');
+    return right(unit);
+  }
 
   @override
   Future<Either<Failure, MarriageFeedPage>> fetchPage({
@@ -44,9 +70,22 @@ class _FakeFeed implements MarriageRepository {
       case SwipeAction.like || SwipeAction.complement:
         deck.removeWhere((p) => p.id == targetUserId);
       case SwipeAction.undo:
-        deck.insert(0, _passed.removeLast());
+        final back = _passed.removeLast();
+        _lastRewound = back.id;
+        deck.insert(0, back);
     }
-    return right((isMatch: matchOn.contains(targetUserId)));
+    return right(
+      SwipeOutcome(
+        isMatch: matchOn.contains(targetUserId),
+        matchedName: matchOn.contains(targetUserId)
+            ? 'Matched $targetUserId'
+            : null,
+        matchedPhotoUrl: matchOn.contains(targetUserId)
+            ? 'https://x.test/p.jpg'
+            : null,
+        rewoundUserId: action == SwipeAction.undo ? _lastRewound : null,
+      ),
+    );
   }
 }
 
@@ -194,6 +233,164 @@ void main() {
     // The deck is now empty server-side → empty state, not a loop.
     expect(bloc.state.status, MarriageFeedStatus.ready);
     expect(bloc.state.profiles, isEmpty);
+    await bloc.close();
+  });
+
+  test('a failed swipe brings the card back and forgets the swipe', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')])
+      ..failNext = const NetworkFailure();
+    final bloc = await started(feed);
+    bloc.add(const MarriageProfilePassed());
+    await _settle();
+    await _settle();
+    expect(bloc.state.current!.id, 'a');
+    expect(bloc.state.swiped, isEmpty);
+    // Undo has nothing to rewind: no stray server call.
+    bloc.add(const MarriagePreviousRequested());
+    await _settle();
+    expect(feed.calls, ['pass:a']);
+    await bloc.close();
+  });
+
+  test('a failed swipe on the last card stays on it', () async {
+    final feed = _FakeFeed([testProfile('a')])
+      ..failNext = const NetworkFailure();
+    final bloc = await started(feed);
+    bloc.add(const MarriageProfileLiked());
+    for (var i = 0; i < 3; i++) {
+      await _settle();
+    }
+    expect(bloc.state.current!.id, 'a');
+    expect(bloc.state.swiped, isEmpty);
+    await bloc.close();
+  });
+
+  test(
+    'compliment: only one per profile; ✕/✓ afterwards only move on',
+    () async {
+      final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+      final bloc = await started(feed);
+      bloc.add(const MarriageComplimentSubmitted('hello'));
+      await _settle();
+      await _settle();
+      bloc.add(const MarriageComplimentSubmitted('again'));
+      await _settle();
+      expect(feed.calls, ['complement:a:hello']);
+      expect(bloc.state.isComplimented('a'), isTrue);
+      bloc.add(const MarriageProfileLiked());
+      await _settle();
+      expect(feed.calls, ['complement:a:hello']);
+      expect(bloc.state.current!.id, 'b');
+      await bloc.close();
+    },
+  );
+
+  test('compliment: a failed send keeps the text as a draft', () async {
+    final feed = _FakeFeed([testProfile('a')])
+      ..failNext = const NetworkFailure();
+    final bloc = await started(feed);
+    bloc.add(const MarriageComplimentSubmitted('hello'));
+    await _settle();
+    await _settle();
+    expect(bloc.state.complimentDrafts['a'], 'hello');
+    expect(bloc.state.isComplimented('a'), isFalse);
+    // Retrying clears it.
+    bloc.add(const MarriageComplimentSubmitted('hello'));
+    await _settle();
+    await _settle();
+    expect(bloc.state.complimentDrafts, isEmpty);
+    expect(bloc.state.isComplimented('a'), isTrue);
+    await bloc.close();
+  });
+
+  test('block removes the profile and shows the next', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+    final bloc = await started(feed);
+    final notices = <MarriageFeedNotice?>[];
+    final sub = bloc.stream.listen((s) => notices.add(s.notice));
+    bloc.add(const MarriageProfileBlocked());
+    await _settle();
+    await _settle();
+    expect(feed.blocked, ['a']);
+    expect(bloc.state.current!.id, 'b');
+    expect(notices, contains(MarriageFeedNotice.blocked));
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test('block failing keeps the profile', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+    final bloc = await started(feed);
+    feed.failNext = const NetworkFailure();
+    bloc.add(const MarriageProfileBlocked());
+    await _settle();
+    await _settle();
+    expect(bloc.state.current!.id, 'a');
+    await bloc.close();
+  });
+
+  test('report sends the reason and stays on the profile', () async {
+    final feed = _FakeFeed([testProfile('a')]);
+    final bloc = await started(feed);
+    final notices = <MarriageFeedNotice?>[];
+    final sub = bloc.stream.listen((s) => notices.add(s.notice));
+    bloc.add(const MarriageProfileReported('spam'));
+    await _settle();
+    await _settle();
+    expect(feed.reported, ['a:spam']);
+    expect(bloc.state.current!.id, 'a');
+    expect(notices, contains(MarriageFeedNotice.reported));
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test('a match carries who it matched with', () async {
+    final feed = _FakeFeed(
+      [testProfile('a', name: 'Amina'), testProfile('b')],
+      matchOn: {'a'},
+    );
+    final bloc = await started(feed);
+    final seen = <MarriageFeedState>[];
+    final sub = bloc.stream.listen(seen.add);
+    bloc.add(const MarriageProfileLiked());
+    await _settle();
+    await _settle();
+    final matched = seen.firstWhere(
+      (s) => s.notice == MarriageFeedNotice.matched,
+    );
+    expect(matched.matchedName, 'Matched a');
+    expect(matched.matchedPhotoUrl, 'https://x.test/p.jpg');
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test(
+    'a duplicate report (409) is "already reported", not an error',
+    () async {
+      final feed = _FakeFeed([testProfile('a')]);
+      final bloc = await started(feed);
+      feed.failNext = const ConflictFailure();
+      final seen = <MarriageFeedNotice?>[];
+      final sub = bloc.stream.listen((s) => seen.add(s.notice));
+      bloc.add(const MarriageProfileReported('spam'));
+      await _settle();
+      await _settle();
+      expect(seen, contains(MarriageFeedNotice.alreadyReported));
+      expect(seen, isNot(contains(MarriageFeedNotice.actionFailed)));
+      await sub.cancel();
+      await bloc.close();
+    },
+  );
+
+  test('undo goes back to the profile the server says it restored', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+    final bloc = await started(feed);
+    bloc.add(const MarriageProfilePassed());
+    await _settle();
+    bloc.add(const MarriagePreviousRequested());
+    await _settle();
+    expect(bloc.state.current!.id, 'a');
+    expect(bloc.state.swiped, isEmpty);
     await bloc.close();
   });
 }

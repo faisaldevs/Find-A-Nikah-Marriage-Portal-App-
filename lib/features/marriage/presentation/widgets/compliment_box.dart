@@ -6,9 +6,17 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 /// White "Compliment" band: a quick first message to the profile. Submit
 /// stays faded until something is typed.
 class ComplimentBox extends StatefulWidget {
-  const ComplimentBox({required this.name, required this.onSubmit, super.key});
+  const ComplimentBox({
+    required this.name,
+    required this.onSubmit,
+    this.draft,
+    super.key,
+  });
 
   final String name;
+
+  /// Text that failed to send: put back in the field to send again.
+  final String? draft;
 
   /// Receives the trimmed message; the box clears afterwards.
   final ValueChanged<String> onSubmit;
@@ -19,6 +27,19 @@ class ComplimentBox extends StatefulWidget {
 
 class _ComplimentBoxState extends State<ComplimentBox> {
   final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.text = widget.draft ?? '';
+  }
+
+  @override
+  void didUpdateWidget(ComplimentBox old) {
+    super.didUpdateWidget(old);
+    final draft = widget.draft;
+    if (draft != null && draft != old.draft) _controller.text = draft;
+  }
 
   @override
   void dispose() {
@@ -55,7 +76,7 @@ class _ComplimentBoxState extends State<ComplimentBox> {
             ),
             SizedBox(height: 4.5.h),
             Text(
-              'Don’t wait , chat with ${widget.name} now.',
+              'Don’t wait, chat with ${widget.name} now.',
               style: TextFontStyle.headline16w700textDarkStyleSatoshi
                   .copyWith(color: kProfileInk)
                   .lh(22),

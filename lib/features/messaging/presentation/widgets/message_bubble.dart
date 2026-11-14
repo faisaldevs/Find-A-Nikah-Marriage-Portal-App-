@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
+import 'package:find_a_nikah/features/messaging/presentation/widgets/image_viewer.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_style.dart';
+import 'package:find_a_nikah/features/messaging/presentation/widgets/voice_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -56,26 +58,60 @@ class MessageBubble extends StatelessWidget {
                 color: mine ? AppColors.primaryColor : kMsgGrey100,
                 borderRadius: BorderRadius.circular(16.w),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (reply != null) ...[
-                    ReplyQuote(
-                      author: reply.isMine ? 'You' : peerName,
-                      text: reply.text,
-                      onPink: mine,
+              // IntrinsicWidth: the right-aligned time must not stretch the
+              // bubble to its maximum width.
+              child: IntrinsicWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (reply != null) ...[
+                      ReplyQuote(
+                        author: reply.isMine ? 'You' : peerName,
+                        text: reply.text,
+                        onPink: mine,
+                      ),
+                      SizedBox(height: 8.w),
+                    ],
+                    if (message.isImage)
+                      GestureDetector(
+                        onTap: () =>
+                            showImageViewer(context, message.imageUrl!),
+                        child: _MessageImage(url: message.imageUrl!),
+                      )
+                    else if (message.isAudio)
+                      VoiceBubble(
+                        source: message.audioUrl!,
+                        duration: message.audioDuration ?? Duration.zero,
+                        onPink: mine,
+                      )
+                    else
+                      Text(
+                        message.text,
+                        style: figmaText(15, 22, color: textColor),
+                      ),
+                    // Time of day, small, bottom-right of the bubble.
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: 2.w,
+                        right: message.isImage ? 6.w : 0,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          TimeLabels.clock(message.sentAt),
+                          style: figmaText(
+                            11,
+                            14,
+                            color: mine
+                                ? Colors.white.withValues(alpha: 0.75)
+                                : kMsgGrey500,
+                          ),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 8.w),
                   ],
-                  if (message.isImage)
-                    _MessageImage(url: message.imageUrl!)
-                  else
-                    Text(
-                      message.text,
-                      style: figmaText(15, 22, color: textColor),
-                    ),
-                ],
+                ),
               ),
             ),
           ),

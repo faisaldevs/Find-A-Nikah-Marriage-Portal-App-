@@ -51,6 +51,7 @@ MatchPartnerDto _$MatchPartnerDtoFromJson(Map<String, dynamic> json) =>
       id: json['_id'] as String,
       fullName: json['fullName'] as String?,
       lastActiveAt: json['lastActiveAt'] as String?,
+      isOnline: json['isOnline'] as bool? ?? false,
     );
 
 MatchProfileDto _$MatchProfileDtoFromJson(Map<String, dynamic> json) =>
@@ -64,4 +65,14 @@ MatchProfileDto _$MatchProfileDtoFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       lastActiveAt: json['lastActiveAt'] as String?,
+      age: (json['age'] as num?)?.toInt(),
+      city: json['city'] as String?,
+      country: json['country'] as String?,
+      educationLevel: json['educationLevel'] as String?,
+      professionTitle: json['professionTitle'] as String?,
+      faith: json['faith'] == null ? const [] : _stringList(json['faith']),
+      religion: json['religion'] as String?,
+      sect: json['sect'] == null ? const [] : _stringList(json['sect']),
+      maritalStatus: json['maritalStatus'] as String?,
+      isVerified: json['isVerified'] as bool? ?? false,
     );

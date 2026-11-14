@@ -50,7 +50,8 @@ ApiException _fromResponse(Response<dynamic>? response) {
       message,
     ),
     403 => ForbiddenException(message),
-    404 => NotFoundException(message),
+    // 410: the thing existed but was deleted (e.g. Feed `POST_DELETED`).
+    404 || 410 => NotFoundException(message),
     409 => ConflictException(message),
     400 || 422 when fields.isNotEmpty => ValidationException(fields, message),
     422 => ValidationException(const {}, message),

@@ -25,6 +25,8 @@ class ProfileDetails extends StatelessWidget {
     required this.onBlock,
     required this.onReport,
     required this.bottomPadding,
+    this.complimented = false,
+    this.complimentDraft,
     super.key,
   });
 
@@ -35,6 +37,12 @@ class ProfileDetails extends StatelessWidget {
   final VoidCallback onFavourite;
   final VoidCallback onBlock;
   final VoidCallback onReport;
+
+  /// A compliment already went out: the box is left out (one per profile).
+  final bool complimented;
+
+  /// Failed compliment text, put back in the box.
+  final String? complimentDraft;
 
   /// Space after the last row, so it can scroll clear of the floating
   /// action buttons.
@@ -162,7 +170,12 @@ class ProfileDetails extends StatelessWidget {
           ),
         ],
         gap40,
-        ComplimentBox(name: p.name, onSubmit: onCompliment),
+        if (!complimented)
+          ComplimentBox(
+            name: p.name,
+            onSubmit: onCompliment,
+            draft: complimentDraft,
+          ),
         ProfileFooterActions(
           onShare: onShare,
           onFavourite: onFavourite,

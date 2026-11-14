@@ -15,6 +15,7 @@ class ChatRoomHeader extends StatelessWidget {
     // required this.onVideoCall,
     this.onVoiceCall,
     required this.onMore,
+    this.muted = false,
     super.key,
   });
 
@@ -26,6 +27,9 @@ class ChatRoomHeader extends StatelessWidget {
   /// null until the backend has a calling SDK + signalling.
   final VoidCallback? onVoiceCall;
   final VoidCallback onMore;
+
+  /// Notifications are muted for this thread (shows a bell-off icon).
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -63,11 +67,26 @@ class ChatRoomHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    peer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: figmaText(16, 22, weight: FontWeight.w700),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          peer.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: figmaText(16, 22, weight: FontWeight.w700),
+                        ),
+                      ),
+                      if (muted) ...[
+                        SizedBox(width: 6.w),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 16.r,
+                          color: kMsgGrey500,
+                          semanticLabel: 'Muted',
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     presence,

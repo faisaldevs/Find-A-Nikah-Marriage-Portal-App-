@@ -26,6 +26,7 @@ class ProfileCardsDataDto {
     this.totalReturned = 0,
     this.limit = 0,
     this.hasMore = false,
+    this.nextCursor,
     this.viewerGender,
     this.targetGender,
     this.targetReligion,
@@ -38,6 +39,9 @@ class ProfileCardsDataDto {
   final int totalReturned;
   final int limit;
   final bool hasMore;
+
+  /// Opaque; pass back as `cursor` for the next page. Null on the last.
+  final String? nextCursor;
   final String? viewerGender;
   final String? targetGender;
   final String? targetReligion;
@@ -81,6 +85,17 @@ class ProfileCardDto {
     this.complement = false,
     this.complementText,
     this.action,
+    this.marriageIntentions,
+    this.aboutYou,
+    this.faceVerification,
+    this.religiousPractices = const <String>[],
+    this.languages = const <String>[],
+    this.personalityTraits = const <String>[],
+    this.grewUpIn = const <String>[],
+    this.isFaceVerified = false,
+    this.isAgeVerified = false,
+    this.isIdVerified = false,
+    this.isPremium = false,
   });
 
   factory ProfileCardDto.fromJson(Map<String, dynamic> json) =>
@@ -134,6 +149,21 @@ class ProfileCardDto {
 
   /// Viewer's existing reaction to this card.
   final ProfileCardActionDto? action;
+
+  // The detail sections now come on the card itself (no per-card
+  // `GET /profiles/{userId}`). All optional: an unanswered field stays
+  // null / empty and the UI hides it — never a made-up default.
+  final ProfileMarriageIntentionsDto? marriageIntentions;
+  final ProfileAboutYouDto? aboutYou;
+  final ProfileFaceVerificationDto? faceVerification;
+  final List<String> religiousPractices;
+  final List<String> languages;
+  final List<String> personalityTraits;
+  final List<String> grewUpIn;
+  final bool isFaceVerified;
+  final bool isAgeVerified;
+  final bool isIdVerified;
+  final bool isPremium;
 
   Map<String, dynamic> toJson() => _$ProfileCardDtoToJson(this);
 }
@@ -242,6 +272,7 @@ class ProfileMarriageIntentionsDto {
   const ProfileMarriageIntentionsDto({
     this.getToknowDuration,
     this.marriageTimeline,
+    this.involveFamily,
   });
 
   factory ProfileMarriageIntentionsDto.fromJson(Map<String, dynamic> json) =>
@@ -252,6 +283,9 @@ class ProfileMarriageIntentionsDto {
 
   /// `4-12_months` — how soon they'd marry ("Marriage").
   final String? marriageTimeline;
+
+  /// When they'd involve family (a code, like the two above).
+  final String? involveFamily;
 
   Map<String, dynamic> toJson() => _$ProfileMarriageIntentionsDtoToJson(this);
 }
@@ -307,9 +341,10 @@ class SwipeRequestDto {
   Map<String, dynamic> toJson() => _$SwipeRequestDtoToJson(this);
 }
 
-/// `{data: {action, targetUserId, isMatch, matchId, conversationId}}` for
-/// like (complement adds `text`, `messageId`); pass/undo leave out the match fields (undo also returns the
-/// rewound `card`, which isn't read).
+/// `{data: {action, targetUserId, isMatch, matchId, conversationId,
+/// matchedUser}}` for like / complement (complement adds `messageId`).
+/// Undo returns `rewoundUserId` and the restored `card`; pass has no match
+/// fields.
 @JsonSerializable()
 class SwipeResponseDto {
   const SwipeResponseDto({
@@ -328,12 +363,41 @@ class SwipeResponseDto {
 class SwipeResponseDataDto {
   const SwipeResponseDataDto({
     this.isMatch = false,
+    this.matchId,
+    this.conversationId,
+    this.messageId,
+    this.matchedUser,
+    this.rewoundUserId,
   });
 
   factory SwipeResponseDataDto.fromJson(Map<String, dynamic> json) =>
       _$SwipeResponseDataDtoFromJson(json);
 
   final bool isMatch;
+  final String? matchId;
+  final String? conversationId;
+  final String? messageId;
+  final MatchedUserDto? matchedUser;
+
+  /// Undo only: the profile that is back in the deck.
+  final String? rewoundUserId;
 
   Map<String, dynamic> toJson() => _$SwipeResponseDataDtoToJson(this);
+}
+
+/// The other half of a match. `photoUrl` is server-relative.
+@JsonSerializable()
+class MatchedUserDto {
+  const MatchedUserDto({
+    this.fullName = '',
+    this.photoUrl,
+  });
+
+  factory MatchedUserDto.fromJson(Map<String, dynamic> json) =>
+      _$MatchedUserDtoFromJson(json);
+
+  final String fullName;
+  final String? photoUrl;
+
+  Map<String, dynamic> toJson() => _$MatchedUserDtoToJson(this);
 }

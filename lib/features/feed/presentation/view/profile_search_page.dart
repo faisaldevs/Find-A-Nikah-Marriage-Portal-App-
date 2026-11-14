@@ -1,9 +1,10 @@
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
-import 'package:find_a_nikah/features/feed/domain/domain.dart';
-import 'package:find_a_nikah/features/feed/presentation/bloc/profile_bloc.dart';
+import 'package:find_a_nikah/features/feed/presentation/bloc/member_search_bloc.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_circle_button.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_actions_sheet.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_card.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_profile_extras.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_search_field.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_style.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
@@ -13,55 +14,64 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 
-enum _SearchIn { posts, comments }
-
 /// Search one member's posts and comments (Figma "profile post and comment
-/// search"). Empty query shows the illustration.
+/// search"), on the server. Empty query shows the illustration.
 class ProfileSearchPage extends StatelessWidget {
-  const ProfileSearchPage({required this.author, super.key});
+  const ProfileSearchPage({
+    required this.userId,
+    this.name,
+    this.handle,
+    super.key,
+  });
 
-  final FeedAuthor author;
+  final String userId;
+  final String? name;
+  final String? handle;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          getIt<ProfileBloc>(param1: author)..add(const ProfileStarted()),
-      child: _ProfileSearchView(author: author),
+      create: (_) => getIt<MemberSearchBloc>(param1: userId),
+      child: _SearchView(name: name, handle: handle),
     );
   }
 }
 
-class _ProfileSearchView extends StatefulWidget {
-  const _ProfileSearchView({required this.author});
+class _SearchView extends StatefulWidget {
+  const _SearchView({this.name, this.handle});
 
-  final FeedAuthor author;
+  final String? name;
+  final String? handle;
 
   @override
-  State<_ProfileSearchView> createState() => _ProfileSearchViewState();
+  State<_SearchView> createState() => _SearchViewState();
 }
 
-class _ProfileSearchViewState extends State<_ProfileSearchView> {
+class _SearchViewState extends State<_SearchView> {
   final _query = TextEditingController();
-  _SearchIn _in = _SearchIn.posts;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _query.addListener(() => setState(() {}));
+    _scroll.addListener(() {
+      if (_scroll.hasClients && _scroll.position.extentAfter < 600) {
+        context.read<MemberSearchBloc>().add(const MemberSearchLoadMore());
+      }
+    });
   }
 
   @override
   void dispose() {
     _query.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
-  void _comingSoon(String what) =>
-      CustomToast.showInfo(context, '$what — coming soon');
-
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<MemberSearchBloc>().state;
+    final bloc = context.read<MemberSearchBloc>();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -84,7 +94,10 @@ class _ProfileSearchViewState extends State<_ProfileSearchView> {
                   Expanded(
                     child: FeedSearchField(
                       controller: _query,
-                      hint: 'Search @${widget.author.handle}',
+                      hint: widget.handle == null
+                          ? 'Search this member'
+                          : 'Search @${widget.handle}',
+                      onChanged: (q) => bloc.add(MemberSearchQueryChanged(q)),
                     ),
                   ),
                 ],
@@ -97,55 +110,97 @@ class _ProfileSearchViewState extends State<_ProfileSearchView> {
                 children: [
                   _Chip(
                     label: 'Posts',
-                    selected: _in == _SearchIn.posts,
-                    onTap: () => setState(() => _in = _SearchIn.posts),
+                    selected: state.where == MemberSearchIn.posts,
+                    onTap: () => bloc.add(
+                      const MemberSearchInChanged(MemberSearchIn.posts),
+                    ),
                   ),
                   SizedBox(width: 12.w),
                   _Chip(
                     label: 'Comments',
-                    selected: _in == _SearchIn.comments,
-                    onTap: () => setState(() => _in = _SearchIn.comments),
+                    selected: state.where == MemberSearchIn.comments,
+                    onTap: () => bloc.add(
+                      const MemberSearchInChanged(MemberSearchIn.comments),
+                    ),
                   ),
                 ],
               ),
             ),
             SizedBox(height: 13.w),
             Container(height: 1.w, color: kFeedGrey100),
-            Expanded(child: _results(context)),
+            Expanded(child: _results(context, state)),
           ],
         ),
       ),
     );
   }
 
-  Widget _results(BuildContext context) {
-    final q = _query.text.trim().toLowerCase();
-    if (q.isEmpty) return _Prompt(name: widget.author.name);
-    if (_in == _SearchIn.comments) {
-      return const AppMessageView(title: 'No comments found');
+  Widget _results(BuildContext context, MemberSearchState state) {
+    if (!state.hasQuery) {
+      return _Prompt(name: widget.name ?? 'this member');
     }
-    final posts = context
-        .watch<ProfileBloc>()
-        .state
-        .posts
-        .where((p) => p.body.toLowerCase().contains(q))
-        .toList();
-    if (posts.isEmpty) return const AppMessageView(title: 'No posts found');
+    final list = switch (state.where) {
+      MemberSearchIn.posts => state.posts,
+      MemberSearchIn.comments => state.comments,
+    };
+    if (list.isIdle || list.isLoading) return const AppLoadingView();
+    if (list.hasFailed) {
+      return AppMessageView(
+        title: 'Search failed',
+        message: state.error ?? 'Try again in a moment.',
+      );
+    }
+    if (state.where == MemberSearchIn.posts) {
+      final posts = state.posts.items;
+      if (posts.isEmpty) return const AppMessageView(title: 'No posts found');
+      return ColoredBox(
+        color: kFeedPageBackground,
+        child: ListView.separated(
+          controller: _scroll,
+          padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 24.w),
+          itemCount: posts.length,
+          separatorBuilder: (_, _) => SizedBox(height: 16.w),
+          itemBuilder: (context, i) => FeedPostCard(
+            post: posts[i],
+            topicColor: AppColors.primaryColor,
+            onTap: () => context
+                .push<void>(
+                  RoutePaths.feedPostPath(posts[i].id),
+                  extra: posts[i],
+                )
+                .ignore(),
+            onMore: () => shareFeedLink(feedPostLink(posts[i].id)),
+            onLike: () => context
+                .push<void>(
+                  RoutePaths.feedPostPath(posts[i].id),
+                  extra: posts[i],
+                )
+                .ignore(),
+            onComment: () => context
+                .push<void>(
+                  RoutePaths.feedPostPath(posts[i].id),
+                  extra: posts[i],
+                )
+                .ignore(),
+            onShare: () => shareFeedLink(feedPostLink(posts[i].id)),
+          ),
+        ),
+      );
+    }
+    final rows = state.comments.items;
+    if (rows.isEmpty) return const AppMessageView(title: 'No comments found');
     return ColoredBox(
       color: kFeedPageBackground,
       child: ListView.separated(
+        controller: _scroll,
         padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 24.w),
-        itemCount: posts.length,
+        itemCount: rows.length,
         separatorBuilder: (_, _) => SizedBox(height: 16.w),
-        itemBuilder: (context, i) => FeedPostCard(
-          post: posts[i],
-          topicColor: AppColors.primaryColor,
-          onTap: () =>
-              context.push<void>(RoutePaths.feedPost, extra: posts[i]).ignore(),
-          onMore: () => _comingSoon('Post options'),
-          onLike: () => _comingSoon('Likes'),
-          onComment: () => _comingSoon('Comments'),
-          onShare: () => _comingSoon('Share'),
+        itemBuilder: (context, i) => FeedUserCommentCard(
+          row: rows[i],
+          onTap: () => context
+              .push<void>(RoutePaths.feedPostPath(rows[i].postId))
+              .ignore(),
         ),
       ),
     );

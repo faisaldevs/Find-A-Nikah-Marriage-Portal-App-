@@ -3,7 +3,8 @@ import 'package:find_a_nikah/core/utils/profile_mapping.dart';
 import 'package:find_a_nikah/features/marriage/data/dtos/profile_card_dto.dart';
 import 'package:find_a_nikah/features/marriage/domain/entities/marriage_profile.dart';
 
-/// Card (+ optional full profile) → [MarriageProfile]. Raw backend codes
+/// Card (+ optional full profile as a fallback for older servers whose
+/// cards lack the detail fields) → [MarriageProfile]. Raw backend codes
 /// become display text here so the widgets never see `never_married`.
 /// Anything the API doesn't send yet comes out as '' / [] / null and the
 /// UI hides it.
@@ -19,18 +20,28 @@ extension ProfileCardMapper on ProfileCardDto {
     ].map((p) => resolveImageUrl(imageBaseUrl, p)).toList();
     final countryName = country?.trim() ?? '';
     final ethnicityName = ethnicity.isEmpty ? '' : ethnicity.first;
-    final grewUp = detail?.grewUpIn ?? const <String>[];
+    final grewUp = grewUpIn.isNotEmpty
+        ? grewUpIn
+        : detail?.grewUpIn ?? const <String>[];
     final grewUpName = grewUp.isEmpty ? '' : grewUp.first;
-    final intentions = detail?.marriageIntentions;
-    final aboutYou = detail?.aboutYou;
-    final practices = detail?.religiousPractices ?? const <String>[];
-    final relocate = aboutYou?.relocateAbroad;
+    final intentions = marriageIntentions ?? detail?.marriageIntentions;
+    final about = aboutYou ?? detail?.aboutYou;
+    final practices = religiousPractices.isNotEmpty
+        ? religiousPractices
+        : detail?.religiousPractices ?? const <String>[];
+    final languageList = languages.isNotEmpty
+        ? languages
+        : detail?.languages ?? const <String>[];
+    final traits = personalityTraits.isNotEmpty
+        ? personalityTraits
+        : detail?.personalityTraits ?? const <String>[];
+    final relocate = about?.relocateAbroad;
     return MarriageProfile(
       id: userId,
       name: fullName,
       age: age ?? 0,
       distanceKm: distanceKm,
-      area: '',
+      area: city?.trim() ?? '',
       country: countryName,
       countryFlag: flagForCountryName(countryName),
       profession: professionTitle?.trim() ?? '',
@@ -43,30 +54,36 @@ extension ProfileCardMapper on ProfileCardDto {
       similarities: List.unmodifiable(sharedInterests),
       heightCm: heightCm,
       maritalStatus: labelFromCode(maritalStatus),
-      children: switch (aboutYou?.haveChildren) {
+      children: switch (about?.haveChildren) {
         true => 'Has children',
         false => "Doesn't have children",
         null => '',
       },
-      // Not in the API: no "involve family" answer is collected.
-      involveFamily: '',
+      involveFamily: labelFromCode(intentions?.involveFamily),
       chatFor: labelFromCode(intentions?.getToknowDuration),
       marryWithin: labelFromCode(intentions?.marriageTimeline),
       faith: List.unmodifiable(faith.map(labelFromCode)),
       futurePlans: List.unmodifiable([
-        if (relocate != null)
-          relocate ? 'Open to relocate globally' : 'Not open to relocate',
+        ?switch (relocate) {
+          true => 'Open to relocate globally',
+          false => 'Not open to relocate',
+          null => null,
+        },
       ]),
       interests: List.unmodifiable(allInterests),
-      personality: List.unmodifiable(
-        detail?.personalityTraits ?? const <String>[],
-      ),
+      personality: List.unmodifiable(traits),
       education: labelFromCode(educationLevel),
-      languages: List.unmodifiable(detail?.languages ?? const <String>[]),
+      languages: List.unmodifiable(languageList),
       grewUpIn: grewUpName,
       grewUpFlag: flagForCountryName(grewUpName),
       bio: aboutMe?.trim() ?? '',
-      isPhotoVerified: detail?.faceVerification?.isFaceVerified ?? false,
+      isPhotoVerified:
+          isFaceVerified ||
+          (faceVerification ?? detail?.faceVerification)?.isFaceVerified ==
+              true,
+      isAgeVerified: isAgeVerified,
+      isIdVerified: isIdVerified,
+      isPremium: isPremium,
     );
   }
 }

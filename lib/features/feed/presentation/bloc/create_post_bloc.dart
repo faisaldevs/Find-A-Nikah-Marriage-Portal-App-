@@ -24,11 +24,12 @@ final class CreatePostTopicSelected extends CreatePostEvent {
   final FeedTopic topic;
 }
 
-final class CreatePostAnonymousToggled extends CreatePostEvent {
-  const CreatePostAnonymousToggled({required this.anonymous});
-
-  final bool anonymous;
-}
+// Anonymous posting dropped (every post is under the member).
+// final class CreatePostAnonymousToggled extends CreatePostEvent {
+//   const CreatePostAnonymousToggled({required this.anonymous});
+//
+//   final bool anonymous;
+// }
 
 final class CreatePostSubmitted extends CreatePostEvent {
   const CreatePostSubmitted();
@@ -43,25 +44,36 @@ class CreatePostState extends Equatable {
     this.topics = const <FeedTopic>[],
     this.topic,
     this.text = '',
-    this.anonymous = false,
+    this.original,
     this.published,
     this.failure,
   });
 
   final CreatePostStatus status;
   final FeedAuthor? me;
+
+  /// Topics the member can post into (read-only ones are left out).
   final List<FeedTopic> topics;
   final FeedTopic? topic;
   final String text;
-  final bool anonymous;
+
+  /// The post being edited, or null when writing a new one.
+  final FeedPost? original;
   final FeedPost? published;
   final Failure? failure;
 
-  /// "Post" lights up once there's something to say and a group for it.
+  bool get isEditing => original != null;
+
+  bool get tooLong => text.length > feedPostMaxLength;
+
+  /// "Post" lights up once there's something to say and a topic for it (an
+  /// edit also needs a change).
   bool get canPost =>
       text.trim().isNotEmpty &&
+      !tooLong &&
       topic != null &&
-      status != CreatePostStatus.submitting;
+      status != CreatePostStatus.submitting &&
+      (original == null || text.trim() != original!.body.trim());
 
   CreatePostState copyWith({
     CreatePostStatus? status,
@@ -69,7 +81,6 @@ class CreatePostState extends Equatable {
     List<FeedTopic>? topics,
     Object? topic = unchanged,
     String? text,
-    bool? anonymous,
     Object? published = unchanged,
     Object? failure = unchanged,
   }) {
@@ -79,7 +90,7 @@ class CreatePostState extends Equatable {
       topics: topics ?? this.topics,
       topic: identical(topic, unchanged) ? this.topic : topic as FeedTopic?,
       text: text ?? this.text,
-      anonymous: anonymous ?? this.anonymous,
+      original: original,
       published: identical(published, unchanged)
           ? this.published
           : published as FeedPost?,
@@ -96,23 +107,30 @@ class CreatePostState extends Equatable {
     topics,
     topic,
     text,
-    anonymous,
+    original,
     published,
     failure,
   ];
 }
 
+/// Writes a new post, or edits [editing] (body only — the topic is fixed).
 class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
-  CreatePostBloc(this._repo) : super(const CreatePostState()) {
+  CreatePostBloc(this._repo, {FeedPost? editing})
+    : super(
+        CreatePostState(
+          original: editing,
+          text: editing?.body ?? '',
+          topic: editing == null
+              ? null
+              : FeedTopic(id: editing.topicId, name: editing.topic),
+        ),
+      ) {
     on<CreatePostStarted>(_onStarted);
     on<CreatePostTextChanged>(
       (e, emit) => emit(state.copyWith(text: e.text)),
     );
     on<CreatePostTopicSelected>(
       (e, emit) => emit(state.copyWith(topic: e.topic)),
-    );
-    on<CreatePostAnonymousToggled>(
-      (e, emit) => emit(state.copyWith(anonymous: e.anonymous)),
     );
     on<CreatePostSubmitted>(_onSubmitted, transformer: droppable());
   }
@@ -128,7 +146,10 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     emit(
       state.copyWith(
         me: me.toNullable(),
-        topics: topics.getOrElse((_) => const []),
+        topics: [
+          for (final t in topics.getOrElse((_) => const <FeedTopic>[]))
+            if (t.canPost) t,
+        ],
       ),
     );
   }
@@ -140,17 +161,18 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     final topic = state.topic;
     if (!state.canPost || topic == null) return;
     emit(state.copyWith(status: CreatePostStatus.submitting));
-    final result = await _repo.createPost(
-      topic: topic,
-      body: state.text.trim(),
-      anonymous: state.anonymous,
-    );
+    final original = state.original;
+    final result = original == null
+        ? await _repo.createPost(topic: topic, body: state.text.trim())
+        : await _repo.editPost(original.id, state.text.trim());
     emit(
       result.fold(
         (f) => state.copyWith(status: CreatePostStatus.failure, failure: f),
+        // The create / edit responses of the dev server name the wrong topic
+        // ("General"); the member's own choice is the truth here.
         (post) => state.copyWith(
           status: CreatePostStatus.published,
-          published: post,
+          published: post.copyWith(topic: topic.name, topicId: topic.id),
         ),
       ),
     );

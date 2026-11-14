@@ -7,7 +7,7 @@ import 'package:find_a_nikah/features/feed/presentation/widgets/feed_icon.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_portrait.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_style.dart';
 import 'package:find_a_nikah/gen/assets.gen.dart';
-import 'package:flutter/cupertino.dart';
+// import 'package:flutter/cupertino.dart'; // only the anonymous switch used it
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -16,19 +16,39 @@ import 'package:go_router/go_router.dart';
 /// Compose a post (Figma "create post"). Pops with the published
 /// [FeedPost] so the feed can show it straight away.
 class CreatePostPage extends StatelessWidget {
-  const CreatePostPage({super.key});
+  const CreatePostPage({this.editing, super.key});
+
+  /// The post being edited (body only); null writes a new post.
+  final FeedPost? editing;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<CreatePostBloc>()..add(const CreatePostStarted()),
-      child: const _CreatePostView(),
+      create: (_) =>
+          getIt<CreatePostBloc>(param1: editing)
+            ..add(const CreatePostStarted()),
+      child: _CreatePostView(editing: editing),
     );
   }
 }
 
-class _CreatePostView extends StatelessWidget {
-  const _CreatePostView();
+class _CreatePostView extends StatefulWidget {
+  const _CreatePostView({this.editing});
+
+  final FeedPost? editing;
+
+  @override
+  State<_CreatePostView> createState() => _CreatePostViewState();
+}
+
+class _CreatePostViewState extends State<_CreatePostView> {
+  late final _controller = TextEditingController(text: widget.editing?.body);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   void _comingSoon(BuildContext context, String what) =>
       CustomToast.showInfo(context, '$what — coming soon');
@@ -52,7 +72,13 @@ class _CreatePostView extends StatelessWidget {
           case CreatePostStatus.published:
             context.pop(state.published);
           case CreatePostStatus.failure:
-            CustomToast.showError(context, state.failure!.title);
+            // The server's own words (rate limit, edit window, …) when it
+            // sent any, else the generic title.
+            final f = state.failure!;
+            CustomToast.showError(
+              context,
+              f.message.isNotEmpty ? f.message : f.title,
+            );
           case CreatePostStatus.editing || CreatePostStatus.submitting:
             break;
         }
@@ -78,6 +104,7 @@ class _CreatePostView extends StatelessWidget {
                       ),
                       const Spacer(),
                       _PostButton(
+                        label: state.isEditing ? 'Save' : 'Post',
                         enabled: state.canPost,
                         onTap: () => state.topic == null
                             ? _pickGroup(context)
@@ -94,13 +121,17 @@ class _CreatePostView extends StatelessWidget {
                   child: Row(
                     children: [
                       FeedPortrait(
-                        url: Assets.images.feedDefaultAvatar,
+                        url: (me?.photoUrl.isNotEmpty ?? false)
+                            ? me!.photoUrl
+                            : Assets.images.feedDefaultAvatar,
                         size: 40,
                       ),
                       SizedBox(width: 12.w),
                       _GroupSelect(
                         topic: state.topic,
-                        onTap: () => _pickGroup(context),
+                        locked: state.isEditing,
+                        onTap: () =>
+                            state.isEditing ? null : _pickGroup(context),
                       ),
                     ],
                   ),
@@ -110,6 +141,8 @@ class _CreatePostView extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: TextField(
+                      controller: _controller,
+                      maxLength: feedPostMaxLength,
                       autofocus: true,
                       maxLines: null,
                       expands: true,
@@ -121,6 +154,7 @@ class _CreatePostView extends StatelessWidget {
                       ),
                       decoration: InputDecoration(
                         isCollapsed: true,
+                        counterText: '',
                         // Figma draws the text just after the cursor.
                         contentPadding: EdgeInsets.only(left: 4.w),
                         border: InputBorder.none,
@@ -130,39 +164,42 @@ class _CreatePostView extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
-                  // CupertinoSwitch's box is its 51×31 track + 4pt each side.
-                  padding: EdgeInsets.only(right: 15.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Make this post anonymous',
-                        style: feedText(
-                          14,
-                          20,
-                          weight: FontWeight.w500,
-                          color: kFeedGrey700,
-                        ),
-                      ),
-                      SizedBox(width: 7.75.w),
-                      SizedBox(
-                        width: 59.w,
-                        height: 39.w,
-                        child: FittedBox(
-                          child: CupertinoSwitch(
-                            value: state.anonymous,
-                            activeTrackColor: AppColors.primaryColor,
-                            inactiveTrackColor: kFeedGrey300,
-                            onChanged: (v) => context
-                                .read<CreatePostBloc>()
-                                .add(CreatePostAnonymousToggled(anonymous: v)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Anonymous posting dropped: posts go out under the member.
+                // Padding(
+                //   // CupertinoSwitch's box is its 51×31 track + 4pt each side.
+                //   padding: EdgeInsets.only(right: 15.w),
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.end,
+                //     children: [
+                //       Text(
+                //         'Make this post anonymous',
+                //         style: feedText(
+                //           14,
+                //           20,
+                //           weight: FontWeight.w500,
+                //           color: kFeedGrey700,
+                //         ),
+                //       ),
+                //       SizedBox(width: 7.75.w),
+                //       SizedBox(
+                //         width: 59.w,
+                //         height: 39.w,
+                //         child: FittedBox(
+                //           child: CupertinoSwitch(
+                //             value: state.anonymous,
+                //             activeTrackColor: AppColors.primaryColor,
+                //             inactiveTrackColor: kFeedGrey300,
+                //             onChanged: (v) => context
+                //                 .read<CreatePostBloc>()
+                //                 .add(
+                //                   CreatePostAnonymousToggled(anonymous: v),
+                //                 ),
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 SizedBox(height: 7.5.w),
                 Container(height: 1.w, color: kFeedGrey200),
                 SizedBox(height: 12.w),
@@ -197,8 +234,13 @@ class _CreatePostView extends StatelessWidget {
 
 /// 72×36 "Post": grey until there's text, then pink.
 class _PostButton extends StatelessWidget {
-  const _PostButton({required this.enabled, required this.onTap});
+  const _PostButton({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
 
+  final String label;
   final bool enabled;
   final VoidCallback onTap;
 
@@ -215,7 +257,7 @@ class _PostButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(6.w),
         ),
         child: Text(
-          'Post',
+          label,
           style: feedText(
             15,
             20,
@@ -230,9 +272,16 @@ class _PostButton extends StatelessWidget {
 
 /// "Select group" outlined dropdown (160×34).
 class _GroupSelect extends StatelessWidget {
-  const _GroupSelect({required this.topic, required this.onTap});
+  const _GroupSelect({
+    required this.topic,
+    required this.onTap,
+    this.locked = false,
+  });
 
   final FeedTopic? topic;
+
+  /// Editing: the topic can't be changed, so no dropdown arrow.
+  final bool locked;
   final VoidCallback onTap;
 
   @override
@@ -251,17 +300,18 @@ class _GroupSelect extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                topic?.name ?? 'Select group',
+                topic?.name ?? 'Select topic',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: feedText(14, 20, weight: FontWeight.w500),
               ),
             ),
-            FeedIcon(
-              Assets.icons.feedChevronDown,
-              size: 16,
-              color: kFeedGrey500,
-            ),
+            if (!locked)
+              FeedIcon(
+                Assets.icons.feedChevronDown,
+                size: 16,
+                color: kFeedGrey500,
+              ),
           ],
         ),
       ),
