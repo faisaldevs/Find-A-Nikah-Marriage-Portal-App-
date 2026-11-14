@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:find_a_nikah/core/network/interceptors/retry_interceptor.dart';
 import 'package:find_a_nikah/features/feed/data/dtos/feed_dtos.dart';
 
 /// The Feed API. Same base as the other data sources (`api.dio`, `/v1` in
@@ -15,7 +16,9 @@ class FeedRemoteDataSource {
       FeedAuthorDto.fromJson(await _get('/v1/me/feed-author'));
 
   Future<List<FeedTopicDto>> fetchTopics() async {
-    final data = await _data(_dio.get<Object?>('/v1/feed/topics'));
+    final data = await _data(
+      _dio.get<Object?>('/v1/feed/topics', options: _readOptions),
+    );
     return [
       for (final t in data! as List<Object?>)
         FeedTopicDto.fromJson(t! as Map<String, dynamic>),
@@ -162,6 +165,13 @@ class FeedRemoteDataSource {
     required bool muted,
   }) => _send(muted ? 'PUT' : 'DELETE', '/v1/feed/users/$userId/mute');
 
+  /// Marriage's "compliment": a like with a first message. The API spells
+  /// the action `complement`; the server opens the chat when they match.
+  Future<void> sendCompliment(String userId, String text) => _dio.post<Object?>(
+    '/v1/profiles/swipe',
+    data: {'action': 'complement', 'targetUserId': userId, 'text': text},
+  );
+
   Future<void> blockMember(String userId) =>
       _dio.post<Object?>('/v1/blocks/$userId');
 
@@ -169,7 +179,7 @@ class FeedRemoteDataSource {
   /// Returned raw: the shape is shared with Marriage and only a few fields
   /// are read (see `FeedMarriageMapper`).
   Future<Map<String, dynamic>> fetchMarriageProfile(String userId) =>
-      _get('/v1/profiles/$userId');
+      _get('/v1/profiles/$userId?source=feed');
 
   // ── Search ─────────────────────────────────────────────────────────────
   Future<FeedPageDto<FeedPostDto>> searchPosts(
@@ -209,8 +219,12 @@ class FeedRemoteDataSource {
       _dio.post<Object?>('/v1/reports', data: body);
 
   // ── Plumbing ───────────────────────────────────────────────────────────
+  /// Reads the user is waiting on: one retry, so "no connection" shows in
+  /// seconds instead of after the full backoff.
+  static final _readOptions = Options(extra: {maxRetriesExtraKey: 1});
+
   Future<Map<String, dynamic>> _get(String path) async {
-    final data = await _data(_dio.get<Object?>(path));
+    final data = await _data(_dio.get<Object?>(path, options: _readOptions));
     return data! as Map<String, dynamic>;
   }
 
@@ -234,7 +248,9 @@ class FeedRemoteDataSource {
     T Function(Map<String, dynamic>) parse, {
     required Map<String, dynamic> query,
   }) async {
-    final raw = await _data(_dio.get<Object?>(path, queryParameters: query));
+    final raw = await _data(
+      _dio.get<Object?>(path, queryParameters: query, options: _readOptions),
+    );
     final data = raw! as Map<String, dynamic>;
     return FeedPageDto<T>(
       items: [

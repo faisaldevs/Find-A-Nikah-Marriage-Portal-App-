@@ -105,17 +105,33 @@ GoRouter createAppRouter({
   required bool Function(FeatureFlag) isEnabled,
   required Stream<Object?> remoteConfig,
 }) {
+  // A shared link that arrived before the app could show it (cold start:
+  // splash, or signed out): kept here and opened once the member is in.
+  String? pendingLink;
   return GoRouter(
     initialLocation: RoutePaths.splash,
     routes: appRoutes,
     observers: [AppRouteObserver()],
     refreshListenable: StreamListenable([authStatus, remoteConfig]),
-    redirect: (context, state) => appRedirect(
-      location: state.matchedLocation,
-      auth: currentAuth(),
-      updateRequired: updateRequired(),
-      faceVerificationEnabled: isEnabled(FeatureFlag.faceVerification),
-    ),
+    redirect: (context, state) {
+      final auth = currentAuth();
+      final signedIn = auth is Authenticated && auth.session.onboardingComplete;
+      if (!signedIn && RoutePaths.isFeedLink(state.matchedLocation)) {
+        pendingLink = state.uri.toString();
+      }
+      final target = appRedirect(
+        location: state.matchedLocation,
+        auth: auth,
+        updateRequired: updateRequired(),
+        faceVerificationEnabled: isEnabled(FeatureFlag.faceVerification),
+      );
+      if (signedIn && target == RoutePaths.marriage && pendingLink != null) {
+        final link = pendingLink;
+        pendingLink = null;
+        return link;
+      }
+      return target;
+    },
     errorBuilder: (_, state) =>
         Scaffold(body: Center(child: Text('Route not found: ${state.uri}'))),
   );

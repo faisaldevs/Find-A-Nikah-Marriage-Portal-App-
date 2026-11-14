@@ -7,6 +7,7 @@ import 'package:find_a_nikah/features/feed/presentation/bloc/post_page_result.da
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_circle_button.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_comment_thread.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_icon.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_navigation.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_notice.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_portrait.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_actions_sheet.dart';
@@ -83,7 +84,7 @@ class _PostDetailViewState extends State<_PostDetailView> {
     hiddenUserId: _hiddenUserId,
   );
 
-  void _close(PostDetailState state) => context.pop(_result(state));
+  void _close(PostDetailState state) => feedGoBack(context, _result(state));
 
   void _onState(BuildContext context, PostDetailState state) {
     switch (state.exit) {
@@ -152,7 +153,10 @@ class _PostDetailViewState extends State<_PostDetailView> {
         );
         if (ok) bloc.add(PostDetailCommentDeleted(c.id));
       case _CommentAction.report:
-        final reason = await showFeedReportReasons(context);
+        final reason = await showFeedReportReasons(
+          context,
+          FeedReportTarget.comment,
+        );
         if (reason != null) {
           bloc.add(
             PostDetailReported(
@@ -269,7 +273,6 @@ class _PostDetailViewState extends State<_PostDetailView> {
       return const AppLoadingView();
     }
     void openProfile(FeedAuthor a) {
-      if (a.isMe) return;
       context
           .push<void>(RoutePaths.feedProfilePath(a.userId), extra: a)
           .ignore();
@@ -550,7 +553,7 @@ class _Composer extends StatelessWidget {
               ),
             Row(
               children: [
-                FeedPortrait(url: me?.photoUrl ?? '', size: 36),
+                FeedPortrait(url: me?.avatarUrl ?? '', size: 36),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Container(

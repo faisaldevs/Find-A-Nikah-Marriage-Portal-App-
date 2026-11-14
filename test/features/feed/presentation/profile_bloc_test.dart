@@ -32,6 +32,7 @@ void main() {
 
   setUp(() {
     repo = _MockFeedRepository();
+    when(() => repo.hasSentCompliment(any())).thenReturn(false);
     when(() => repo.fetchProfile('u2')).thenAnswer((_) async => right(profile));
     when(
       () => repo.fetchProfilePosts('u2', cursor: any(named: 'cursor')),
@@ -260,6 +261,90 @@ void main() {
       seed: ready,
       act: (b) => b.add(const ProfileMuteToggled()),
       verify: (b) => expect(b.state.muted, isTrue),
+    );
+  });
+
+  group('compliment (Message)', () {
+    blocTest<ProfileBloc, ProfileState>(
+      'sends once and marks it sent',
+      build: () {
+        when(
+          () => repo.sendCompliment('u2', 'Nice profile'),
+        ).thenAnswer((_) async => right(unit));
+        return build();
+      },
+      seed: ready,
+      act: (b) => b.add(const ProfileComplimentSent('  Nice profile ')),
+      verify: (b) {
+        expect(b.state.complimentSent, isTrue);
+        verify(() => repo.sendCompliment('u2', 'Nice profile')).called(1);
+      },
+    );
+
+    blocTest<ProfileBloc, ProfileState>(
+      'blank text is ignored',
+      build: build,
+      seed: ready,
+      act: (b) => b.add(const ProfileComplimentSent('   ')),
+      verify: (b) {
+        expect(b.state.complimentSent, isFalse);
+        verifyNever(() => repo.sendCompliment(any(), any()));
+      },
+    );
+
+    blocTest<ProfileBloc, ProfileState>(
+      'failure keeps the text as a draft',
+      build: () {
+        when(
+          () => repo.sendCompliment('u2', 'Hi'),
+        ).thenAnswer((_) async => left(const NetworkFailure()));
+        return build();
+      },
+      seed: ready,
+      act: (b) => b.add(const ProfileComplimentSent('Hi')),
+      verify: (b) {
+        expect(b.state.complimentSent, isFalse);
+        expect(b.state.complimentDraft, 'Hi');
+      },
+    );
+    blocTest<ProfileBloc, ProfileState>(
+      '409 already liked counts as sent and keeps no draft',
+      build: () {
+        when(
+          () => repo.sendCompliment('u2', 'Hi'),
+        ).thenAnswer((_) async => left(const ConflictFailure()));
+        return build();
+      },
+      seed: ready,
+      act: (b) => b.add(const ProfileComplimentSent('Hi')),
+      verify: (b) {
+        expect(b.state.complimentSent, isTrue);
+        expect(b.state.complimentDraft, isNull);
+      },
+    );
+
+    blocTest<ProfileBloc, ProfileState>(
+      'a server refusal shows its own message',
+      build: () {
+        when(() => repo.sendCompliment('u2', 'Hi')).thenAnswer(
+          (_) async => left(
+            const ApiResponseFailure(
+              fallback: ServerFailure(),
+              message: 'Cannot like or compliment a member of the same gender',
+            ),
+          ),
+        );
+        return build();
+      },
+      seed: ready,
+      act: (b) => b.add(const ProfileComplimentSent('Hi')),
+      verify: (b) {
+        expect(b.state.complimentSent, isFalse);
+        expect(
+          b.state.notice?.text,
+          'Cannot like or compliment a member of the same gender',
+        );
+      },
     );
   });
 

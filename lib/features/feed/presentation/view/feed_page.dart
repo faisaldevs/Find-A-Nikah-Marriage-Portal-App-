@@ -242,14 +242,12 @@ class _PostsState extends State<_Posts> {
             post: post,
             maxBodyLines: 4,
             onTap: () => _open(post),
-            onAuthorTap: post.author.isMe
-                ? null
-                : () => context
-                      .push<void>(
-                        RoutePaths.feedProfilePath(post.author.userId),
-                        extra: post.author,
-                      )
-                      .ignore(),
+            onAuthorTap: () => context
+                .push<void>(
+                  RoutePaths.feedProfilePath(post.author.userId),
+                  extra: post.author,
+                )
+                .ignore(),
             onMore: () => showFeedPostMenu(
               context,
               post,

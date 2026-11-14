@@ -108,6 +108,15 @@ abstract interface class FeedRepository {
 
   Future<Either<Failure, Unit>> blockMember(String userId);
 
+  /// "Message" on a profile: sends a compliment (a like + first message), as
+  /// on Marriage. If they reply, the chat opens in Messages.
+  Future<Either<Failure, Unit>> sendCompliment(String userId, String text);
+
+  /// True once a compliment went to [userId] in this app session — so a
+  /// reopened profile doesn't offer a second one. (Until the server says it:
+  /// see BE-18 `complimentSent`.)
+  bool hasSentCompliment(String userId);
+
   /// The member's Marriage profile **as seen by the signed-in viewer**; the
   /// server withholds what the viewer may not see (see
   /// [FeedMarriageAccess]). Counts as a profile view.
@@ -155,6 +164,28 @@ enum FeedReportReason {
 
   final String code;
   final String label;
+
+  /// The reasons that make sense for [target]: a post or comment is about
+  /// what was written; a member is about who they are. (The server accepts
+  /// any of them for any target — this only keeps the menu sensible.)
+  static List<FeedReportReason> forTarget(FeedReportTarget target) =>
+      switch (target) {
+        FeedReportTarget.post || FeedReportTarget.comment => const [
+          inappropriateContent,
+          harassment,
+          spam,
+          other,
+        ],
+        FeedReportTarget.feedUser => const [
+          fakeProfile,
+          harassment,
+          inappropriatePhoto,
+          spam,
+          underage,
+          alreadyMarried,
+          other,
+        ],
+      };
 }
 
 class FeedReport {

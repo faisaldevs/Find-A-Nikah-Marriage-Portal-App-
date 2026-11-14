@@ -144,4 +144,102 @@ void main() {
 
     expect(mapper.map(data, now: now).access.isFull, isTrue);
   });
+
+  group('real backend samples (BE-4)', () {
+    test('partial: same gender, photos and intentions withheld', () {
+      final m = mapper.map({
+        'userId': 'u3',
+        'fullName': 'Tariq Mahmood',
+        'isVerified': true,
+        'profile': {
+          'aboutMe': 'Software engineer in Dhaka.',
+          'gender': 'male',
+          'country': 'Bangladesh',
+          'age': 30,
+          'marriageIntentions': null,
+          'partnerPreference': null,
+          'aboutYou': null,
+          'lifestyle': {'alcohol': false, 'halalFood': true, 'smoking': false},
+          'images': <Object?>[],
+        },
+        'photos': <Object?>[],
+        'images': <Object?>[],
+        'primaryPhoto': null,
+        'education': <Object?>[],
+        'profession': <Object?>[],
+        'family': null,
+        'access': {
+          'level': 'partial',
+          'reason': 'NOT_ELIGIBLE',
+          'unlockable': false,
+          'lockedSections': [
+            'photos',
+            'marriageIntentions',
+            'partnerPreference',
+            'aboutYou',
+          ],
+        },
+      }, now: now);
+
+      expect(m.access.level, FeedMarriageAccessLevel.partial);
+      expect(m.access.reason, 'NOT_ELIGIBLE');
+      expect(m.access.unlockable, isFalse);
+      expect(m.photos, isEmpty);
+      expect(m.fullName, 'Tariq Mahmood');
+      expect(m.age, 30);
+      expect(m.bio, 'Software engineer in Dhaka.');
+      expect(m.access.lockedSections, contains('photos'));
+    });
+
+    test('locked (blocked): top-level fields only, no profile map', () {
+      final m = mapper.map({
+        'userId': 'u4',
+        'fullName': 'Member',
+        'gender': 'female',
+        'age': null,
+        'country': 'Bangladesh',
+        'city': null,
+        'isVerified': false,
+        'primaryPhoto': null,
+        'photos': <Object?>[],
+        'images': <Object?>[],
+        'access': {
+          'level': 'locked',
+          'reason': 'BLOCKED',
+          'unlockable': false,
+          'lockedSections': ['photos', 'aboutMe', 'lifestyle'],
+        },
+        'hasLiked': false,
+        'matchId': null,
+      }, now: now);
+
+      expect(m.access.level, FeedMarriageAccessLevel.locked);
+      expect(m.access.reason, 'BLOCKED');
+      expect(m.photos, isEmpty);
+      expect(m.bio, isNull);
+      expect(m.isMatch, isFalse);
+    });
+
+    test('locked (premium): unlockable', () {
+      final m = mapper.map({
+        'userId': 'u2',
+        'fullName': 'Chat Target',
+        'age': 28,
+        'country': 'United Kingdom',
+        'isVerified': true,
+        'photos': <Object?>[],
+        'aboutMe': null,
+        'lifestyle': null,
+        'access': {
+          'level': 'locked',
+          'reason': 'PREMIUM_REQUIRED',
+          'unlockable': true,
+          'lockedSections': ['photos', 'aboutMe'],
+        },
+      }, now: now);
+
+      expect(m.access.level, FeedMarriageAccessLevel.locked);
+      expect(m.access.unlockable, isTrue);
+    });
+  });
 }

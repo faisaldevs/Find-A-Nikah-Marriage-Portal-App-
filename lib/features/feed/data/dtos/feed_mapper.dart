@@ -17,9 +17,11 @@ class FeedMapper {
     name: d.displayName,
     handle: d.handle,
     photoUrl: _url(d.photoUrl),
+    photoThumbUrl: _url(d.photoThumbUrl),
     countryCode: _code(d.countryCode),
     isVerified: d.isVerified,
     isMe: d.isMe,
+    isFollowing: d.isFollowing,
   );
 
   FeedTopic topic(FeedTopicDto d) => FeedTopic(
@@ -84,6 +86,7 @@ class FeedMapper {
         displayName: d.displayName,
         handle: d.handle,
         photoUrl: d.photoUrl,
+        photoThumbUrl: d.photoThumbUrl,
         countryCode: d.countryCode,
         isVerified: d.isVerified,
         isMe: d.isMe,
@@ -98,6 +101,12 @@ class FeedMapper {
     likesCount: d.likesCount,
     isFollowing: d.isFollowing,
     followsMe: d.followsMe,
+    isMuted: d.isMuted,
+    isBlocked: d.isBlocked,
+    complimentSent: d.complimentSent,
+    messageAction: FeedMessageAction.parse(d.messageAction),
+    conversationId: d.conversationId,
+    matchId: d.matchId,
   );
 
   FeedPaged<R> page<T, R>(FeedPageDto<T> p, R Function(T) map) => FeedPaged<R>(

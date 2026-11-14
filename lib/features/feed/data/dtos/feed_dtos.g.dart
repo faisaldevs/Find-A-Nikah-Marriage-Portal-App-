@@ -12,9 +12,11 @@ FeedAuthorDto _$FeedAuthorDtoFromJson(Map<String, dynamic> json) =>
       displayName: json['displayName'] as String,
       handle: json['handle'] as String,
       photoUrl: json['photoUrl'] as String?,
+      photoThumbUrl: json['photoThumbUrl'] as String?,
       countryCode: json['countryCode'] as String?,
       isVerified: json['isVerified'] as bool? ?? false,
       isMe: json['isMe'] as bool? ?? false,
+      isFollowing: json['isFollowing'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$FeedAuthorDtoToJson(FeedAuthorDto instance) =>
@@ -23,9 +25,11 @@ Map<String, dynamic> _$FeedAuthorDtoToJson(FeedAuthorDto instance) =>
       'displayName': instance.displayName,
       'handle': instance.handle,
       'photoUrl': instance.photoUrl,
+      'photoThumbUrl': instance.photoThumbUrl,
       'countryCode': instance.countryCode,
       'isVerified': instance.isVerified,
       'isMe': instance.isMe,
+      'isFollowing': instance.isFollowing,
     };
 
 FeedTopicDto _$FeedTopicDtoFromJson(Map<String, dynamic> json) => FeedTopicDto(
@@ -145,6 +149,7 @@ FeedProfileDto _$FeedProfileDtoFromJson(Map<String, dynamic> json) =>
       displayName: json['displayName'] as String,
       handle: json['handle'] as String,
       photoUrl: json['photoUrl'] as String?,
+      photoThumbUrl: json['photoThumbUrl'] as String?,
       countryCode: json['countryCode'] as String?,
       isVerified: json['isVerified'] as bool? ?? false,
       isMe: json['isMe'] as bool? ?? false,
@@ -159,6 +164,12 @@ FeedProfileDto _$FeedProfileDtoFromJson(Map<String, dynamic> json) =>
       likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
       isFollowing: json['isFollowing'] as bool? ?? false,
       followsMe: json['followsMe'] as bool? ?? false,
+      isMuted: json['isMuted'] as bool? ?? false,
+      isBlocked: json['isBlocked'] as bool? ?? false,
+      complimentSent: json['complimentSent'] as bool? ?? false,
+      messageAction: json['messageAction'] as String?,
+      conversationId: json['conversationId'] as String?,
+      matchId: json['matchId'] as String?,
     );
 
 Map<String, dynamic> _$FeedProfileDtoToJson(FeedProfileDto instance) =>
@@ -167,6 +178,7 @@ Map<String, dynamic> _$FeedProfileDtoToJson(FeedProfileDto instance) =>
       'displayName': instance.displayName,
       'handle': instance.handle,
       'photoUrl': instance.photoUrl,
+      'photoThumbUrl': instance.photoThumbUrl,
       'countryCode': instance.countryCode,
       'isVerified': instance.isVerified,
       'isMe': instance.isMe,
@@ -179,6 +191,12 @@ Map<String, dynamic> _$FeedProfileDtoToJson(FeedProfileDto instance) =>
       'likesCount': instance.likesCount,
       'isFollowing': instance.isFollowing,
       'followsMe': instance.followsMe,
+      'isMuted': instance.isMuted,
+      'isBlocked': instance.isBlocked,
+      'complimentSent': instance.complimentSent,
+      'messageAction': instance.messageAction,
+      'conversationId': instance.conversationId,
+      'matchId': instance.matchId,
     };
 
 FeedCommentPostDto _$FeedCommentPostDtoFromJson(Map<String, dynamic> json) =>

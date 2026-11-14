@@ -175,14 +175,16 @@ class _ActionsSheet<T> extends StatelessWidget {
 }
 
 /// Reasons for a report. Resolves to the reason or null.
-Future<FeedReportReason?> showFeedReportReasons(BuildContext context) =>
-    showFeedActionsSheet<FeedReportReason>(
-      context,
-      items: [
-        for (final r in FeedReportReason.values)
-          FeedSheetItem(r, r.label, icon: Icons.flag_outlined),
-      ],
-    );
+Future<FeedReportReason?> showFeedReportReasons(
+  BuildContext context,
+  FeedReportTarget target,
+) => showFeedActionsSheet<FeedReportReason>(
+  context,
+  items: [
+    for (final r in FeedReportReason.forTarget(target))
+      FeedSheetItem(r, r.label, icon: Icons.flag_outlined),
+  ],
+);
 
 /// "Are you sure?" for destructive actions. True when confirmed.
 Future<bool> confirmFeedAction(
@@ -267,7 +269,10 @@ Future<void> showFeedPostMenu(
       );
       if (ok) handlers.onBlock?.call();
     case FeedPostAction.report:
-      final reason = await showFeedReportReasons(context);
+      final reason = await showFeedReportReasons(
+        context,
+        FeedReportTarget.post,
+      );
       if (reason != null) handlers.onReport?.call(reason);
   }
 }

@@ -187,6 +187,9 @@ final List<RouteBase> appRoutes = [
   GoRoute(
     path: RoutePaths.feedPostPattern,
     builder: (_, state) => PostDetailPage(
+      // Keyed by id: a second link to another post must not reuse the first
+      // post's state.
+      key: ValueKey(state.pathParameters['postId']),
       postId: state.pathParameters['postId']!,
       initial: state.extra is FeedPost ? state.extra! as FeedPost : null,
     ),
@@ -205,10 +208,30 @@ final List<RouteBase> appRoutes = [
     ),
   ),
   GoRoute(
+    path: RoutePaths.feedMe,
+    builder: (_, _) => const OwnProfilePage(),
+  ),
+  GoRoute(
+    path: RoutePaths.feedMemberLinkPattern,
+    redirect: (_, state) =>
+        RoutePaths.feedProfilePath(state.pathParameters['userId']!),
+  ),
+  GoRoute(
     path: RoutePaths.feedProfilePattern,
-    builder: (_, state) => ProfilePage(
+    builder: (context, state) => ProfilePage(
+      key: ValueKey(state.pathParameters['userId']),
       userId: state.pathParameters['userId']!,
       author: state.extra is FeedAuthor ? state.extra! as FeedAuthor : null,
+      // Feed can't import chat: the router builds the peer.
+      onOpenChat: (author, {matchId}) => context.push<void>(
+        RoutePaths.chatRoom,
+        extra: ChatPeer(
+          id: author.userId,
+          name: author.name,
+          photoUrl: author.photoUrl,
+          matchId: matchId,
+        ),
+      ),
     ),
   ),
   GoRoute(

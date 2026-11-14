@@ -15,6 +15,7 @@ class FeedRepositoryImpl implements FeedRepository {
   final Guard _guard;
   final FeedMapper _map;
   final FeedMarriageMapper _marriage;
+  final _complimented = <String>{};
 
   @override
   Future<Either<Failure, FeedAuthor>> fetchMe() =>
@@ -215,6 +216,17 @@ class FeedRepositoryImpl implements FeedRepository {
     await _remote.setMuted(userId, muted: muted);
     return unit;
   });
+
+  @override
+  Future<Either<Failure, Unit>> sendCompliment(String userId, String text) =>
+      _guard(() async {
+        await _remote.sendCompliment(userId, text);
+        _complimented.add(userId);
+        return unit;
+      });
+
+  @override
+  bool hasSentCompliment(String userId) => _complimented.contains(userId);
 
   @override
   Future<Either<Failure, Unit>> blockMember(String userId) => _guard(() async {

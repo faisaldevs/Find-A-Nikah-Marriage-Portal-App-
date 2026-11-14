@@ -120,7 +120,7 @@ class _CommentTile extends StatelessWidget {
                 child: Row(
                   children: [
                     FeedPortrait(
-                      url: author.photoUrl,
+                      url: author.avatarUrl,
                       size: isReply ? 36 : 40,
                       countryCode: author.countryCode,
                     ),

@@ -6,8 +6,10 @@ import 'package:find_a_nikah/features/feed/presentation/bloc/feed_list_state.dar
 import 'package:find_a_nikah/features/feed/presentation/bloc/post_page_result.dart';
 import 'package:find_a_nikah/features/feed/presentation/bloc/profile_bloc.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_circle_button.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_compliment_page.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_icon.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_marriage_preview.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_navigation.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_notice.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_portrait.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_actions_sheet.dart';
@@ -25,10 +27,19 @@ import 'package:go_router/go_router.dart';
 /// an author row, a link or a search result; the tapped [author] (if any)
 /// draws the header until the profile arrives.
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({required this.userId, this.author, super.key});
+  const ProfilePage({
+    required this.userId,
+    this.author,
+    this.onOpenChat,
+    super.key,
+  });
 
   final String userId;
   final FeedAuthor? author;
+
+  /// Opens the existing chat with this member. Supplied by the router,
+  /// because Feed can't import the chat feature.
+  final void Function(FeedAuthor author, {String? matchId})? onOpenChat;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +47,15 @@ class ProfilePage extends StatelessWidget {
       create: (_) =>
           getIt<ProfileBloc>(param1: userId, param2: author)
             ..add(const ProfileStarted()),
-      child: const _ProfileView(),
+      child: _ProfileView(onOpenChat: onOpenChat),
     );
   }
 }
 
 class _ProfileView extends StatefulWidget {
-  const _ProfileView();
+  const _ProfileView({this.onOpenChat});
+
+  final void Function(FeedAuthor author, {String? matchId})? onOpenChat;
 
   @override
   State<_ProfileView> createState() => _ProfileViewState();
@@ -93,7 +106,10 @@ class _ProfileViewState extends State<_ProfileView> {
         );
         if (ok) bloc.add(const ProfileBlocked());
       case _ProfileMenu.report:
-        final reason = await showFeedReportReasons(context);
+        final reason = await showFeedReportReasons(
+          context,
+          FeedReportTarget.feedUser,
+        );
         if (reason != null) {
           bloc.add(
             ProfileReported(
@@ -106,6 +122,45 @@ class _ProfileViewState extends State<_ProfileView> {
           );
         }
     }
+  }
+
+  /// Message: write a compliment (as on Marriage); it is sent as a like with
+  /// a first message and opens in Messages when they reply.
+  Future<void> _message(ProfileBloc bloc, ProfileState state) async {
+    final author = state.shownAuthor;
+    switch (state.profile?.messageAction ?? FeedMessageAction.compliment) {
+      case FeedMessageAction.chat:
+        if (author != null && widget.onOpenChat != null) {
+          widget.onOpenChat!(author, matchId: state.profile?.matchId);
+        } else {
+          await _compliment(bloc, state);
+        }
+      case FeedMessageAction.compliment:
+        await _compliment(bloc, state);
+      case FeedMessageAction.upgrade:
+        if (mounted) {
+          CustomToast.showInfo(
+            context,
+            'Messaging this member needs a paid plan — coming soon',
+          );
+        }
+      case FeedMessageAction.none:
+        return;
+    }
+  }
+
+  Future<void> _compliment(ProfileBloc bloc, ProfileState state) async {
+    if (state.complimentSent) {
+      CustomToast.showInfo(context, 'You already sent a compliment');
+      return;
+    }
+    final name = state.shownAuthor?.name ?? 'member';
+    final text = await showFeedComplimentPage(
+      context,
+      name: name,
+      initialText: state.complimentDraft,
+    );
+    if (text != null) bloc.add(ProfileComplimentSent(text));
   }
 
   Future<void> _openPost(FeedPost post) async {
@@ -140,31 +195,39 @@ class _ProfileViewState extends State<_ProfileView> {
         ),
         BlocListener<ProfileBloc, ProfileState>(
           listenWhen: (a, b) => !a.exit && b.exit,
-          listener: (c, s) => c.pop(),
+          listener: (c, s) => feedGoBack(c),
         ),
       ],
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _TopBar(
-                onSearch: author == null
-                    ? null
-                    : () => context
-                          .push<void>(
-                            RoutePaths.feedProfileSearchPath(state.userId),
-                            extra: author,
-                          )
-                          .ignore(),
-                onShare: () => shareFeedLink(feedMemberLink(state.userId)),
-                onMore: state.isMe || author == null
-                    ? null
-                    : () => _menu(state),
-              ),
-              Expanded(child: _content(context, state)),
-            ],
+      // Opened from a shared link there is nothing to pop to: Back goes to
+      // the Feed tab instead of closing the app.
+      child: PopScope(
+        canPop: context.canPop(),
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) feedGoBack(context);
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _TopBar(
+                  onSearch: author == null
+                      ? null
+                      : () => context
+                            .push<void>(
+                              RoutePaths.feedProfileSearchPath(state.userId),
+                              extra: author,
+                            )
+                            .ignore(),
+                  onShare: () => shareFeedLink(feedMemberLink(state.userId)),
+                  onMore: state.isMe || author == null
+                      ? null
+                      : () => _menu(state),
+                ),
+                Expanded(child: _content(context, state)),
+              ],
+            ),
           ),
         ),
       ),
@@ -196,10 +259,9 @@ class _ProfileViewState extends State<_ProfileView> {
               isMe: state.isMe,
               following: state.following,
               followBusy: state.followBusy,
-              onMessage: () => CustomToast.showInfo(
-                context,
-                'Messages from Feed — coming soon',
-              ),
+              showMessage:
+                  state.profile?.messageAction != FeedMessageAction.none,
+              onMessage: () => _message(bloc, state),
               onFollow: () => bloc.add(const ProfileFollowToggled()),
             ),
           ),
@@ -433,7 +495,7 @@ class _TopBar extends StatelessWidget {
             iconSize: 24,
             iconColor: kFeedGrey900,
             tooltip: 'Back',
-            onTap: () => context.pop(),
+            onTap: () => feedGoBack(context),
           ),
           const Spacer(),
           if (onSearch != null) ...[
@@ -474,6 +536,7 @@ class _Header extends StatelessWidget {
     required this.isMe,
     required this.following,
     required this.followBusy,
+    required this.showMessage,
     required this.onMessage,
     required this.onFollow,
   });
@@ -483,6 +546,7 @@ class _Header extends StatelessWidget {
   final bool isMe;
   final bool following;
   final bool followBusy;
+  final bool showMessage;
   final VoidCallback onMessage;
   final VoidCallback onFollow;
 
@@ -505,7 +569,7 @@ class _Header extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FeedPortrait(url: author.photoUrl, size: 64),
+              FeedPortrait(url: author.avatarUrl, size: 64),
               SizedBox(width: 14.w),
               Expanded(
                 child: Padding(
@@ -575,14 +639,16 @@ class _Header extends StatelessWidget {
             SizedBox(height: 18.w),
             Row(
               children: [
-                FeedPillButton(
-                  label: 'Message',
-                  color: kFeedNavy,
-                  height: 36,
-                  width: 104,
-                  onTap: onMessage,
-                ),
-                SizedBox(width: 10.w),
+                if (showMessage) ...[
+                  FeedPillButton(
+                    label: 'Message',
+                    color: kFeedNavy,
+                    height: 36,
+                    width: 104,
+                    onTap: onMessage,
+                  ),
+                  SizedBox(width: 10.w),
+                ],
                 FeedPillButton(
                   label: following ? 'Following' : 'Follow',
                   color: following ? kFeedGrey500 : AppColors.primaryColor,

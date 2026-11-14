@@ -198,6 +198,14 @@ class _ProfileHeader extends StatelessWidget {
                       onTap: () =>
                           context.push<void>(RoutePaths.editProfile).ignore(),
                     ),
+                    SizedBox(width: 8.w),
+                    // My posts, comments and likes on the Feed.
+                    _HeaderChip(
+                      label: 'My posts',
+                      icon: Assets.icons.feedComment,
+                      onTap: () =>
+                          context.push<void>(RoutePaths.feedMe).ignore(),
+                    ),
                   ],
                 ),
               ],

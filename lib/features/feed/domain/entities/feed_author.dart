@@ -9,9 +9,11 @@ class FeedAuthor extends Equatable {
     required this.name,
     required this.handle,
     required this.photoUrl,
+    this.photoThumbUrl = '',
     this.countryCode,
     this.isVerified = false,
     this.isMe = false,
+    this.isFollowing = false,
   });
 
   /// The member's identity everywhere (routes, follow, report). [handle] is
@@ -27,6 +29,12 @@ class FeedAuthor extends Equatable {
   /// Absolute URL, or empty when the member has no photo.
   final String photoUrl;
 
+  /// Small variant (128 px) for avatars; empty when the server gave none.
+  final String photoThumbUrl;
+
+  /// What to draw in an avatar: the thumbnail, else the full photo.
+  String get avatarUrl => photoThumbUrl.isNotEmpty ? photoThumbUrl : photoUrl;
+
   /// ISO 3166-1 alpha-2, lower-case ("bd") — picks the flag badge on the
   /// photo. Null or unknown codes show no badge.
   final String? countryCode;
@@ -36,25 +44,32 @@ class FeedAuthor extends Equatable {
   /// The signed-in member — never offer Follow / Message / Report on them.
   final bool isMe;
 
+  /// Set on people-search and followers / following rows only.
+  final bool isFollowing;
+
   FeedAuthor copyWith({
     String? userId,
     String? name,
     String? handle,
     String? photoUrl,
+    String? photoThumbUrl,
     Object? countryCode = unchanged,
     bool? isVerified,
     bool? isMe,
+    bool? isFollowing,
   }) {
     return FeedAuthor(
       userId: userId ?? this.userId,
       name: name ?? this.name,
       handle: handle ?? this.handle,
       photoUrl: photoUrl ?? this.photoUrl,
+      photoThumbUrl: photoThumbUrl ?? this.photoThumbUrl,
       countryCode: identical(countryCode, unchanged)
           ? this.countryCode
           : countryCode as String?,
       isVerified: isVerified ?? this.isVerified,
       isMe: isMe ?? this.isMe,
+      isFollowing: isFollowing ?? this.isFollowing,
     );
   }
 
@@ -64,8 +79,10 @@ class FeedAuthor extends Equatable {
     name,
     handle,
     photoUrl,
+    photoThumbUrl,
     countryCode,
     isVerified,
     isMe,
+    isFollowing,
   ];
 }

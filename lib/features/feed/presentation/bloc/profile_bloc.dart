@@ -39,6 +39,12 @@ final class ProfileMuteToggled extends ProfileEvent {
   const ProfileMuteToggled();
 }
 
+final class ProfileComplimentSent extends ProfileEvent {
+  const ProfileComplimentSent(this.text);
+
+  final String text;
+}
+
 final class ProfileBlocked extends ProfileEvent {
   const ProfileBlocked();
 }
@@ -117,6 +123,8 @@ class ProfileState extends Equatable {
     this.muted = false,
     this.following = false,
     this.followBusy = false,
+    this.complimentSent = false,
+    this.complimentDraft,
     this.failure,
     this.notice,
     this.exit = false,
@@ -138,6 +146,12 @@ class ProfileState extends Equatable {
   final bool muted;
   final bool following;
   final bool followBusy;
+
+  /// A compliment was sent from here: one per member, like on Marriage.
+  final bool complimentSent;
+
+  /// Text of a compliment that failed to send, so it is still there to retry.
+  final String? complimentDraft;
   final Failure? failure;
   final FeedNotice? notice;
 
@@ -159,6 +173,8 @@ class ProfileState extends Equatable {
     bool? muted,
     bool? following,
     bool? followBusy,
+    bool? complimentSent,
+    Object? complimentDraft = unchanged,
     Object? failure = unchanged,
     Object? notice = unchanged,
     bool? exit,
@@ -178,6 +194,10 @@ class ProfileState extends Equatable {
       muted: muted ?? this.muted,
       following: following ?? this.following,
       followBusy: followBusy ?? this.followBusy,
+      complimentSent: complimentSent ?? this.complimentSent,
+      complimentDraft: identical(complimentDraft, unchanged)
+          ? this.complimentDraft
+          : complimentDraft as String?,
       failure: identical(failure, unchanged)
           ? this.failure
           : failure as Failure?,
@@ -202,6 +222,8 @@ class ProfileState extends Equatable {
     muted,
     following,
     followBusy,
+    complimentSent,
+    complimentDraft,
     failure,
     notice,
     exit,
@@ -221,6 +243,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<ProfileMarriageRequested>(_onMarriage, transformer: droppable());
     on<ProfileFollowToggled>(_onFollow, transformer: droppable());
     on<ProfileMuteToggled>(_onMute, transformer: droppable());
+    on<ProfileComplimentSent>(_onCompliment, transformer: droppable());
     on<ProfileBlocked>(_onBlocked, transformer: droppable());
     on<ProfileReported>(_onReported);
     on<ProfilePostDeleteRequested>(_onDelete);
@@ -241,7 +264,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     ProfileStarted event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(state.copyWith(status: ProfileStatus.loading));
+    emit(
+      state.copyWith(
+        status: ProfileStatus.loading,
+        complimentSent: _repo.hasSentCompliment(state.userId),
+      ),
+    );
     final profile = await _repo.fetchProfile(state.userId);
     final posts = await _repo.fetchProfilePosts(state.userId);
     emit(
@@ -251,6 +279,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           status: ProfileStatus.ready,
           profile: p,
           following: p.isFollowing,
+          muted: p.isMuted,
+          complimentSent: state.complimentSent || p.complimentSent,
           posts: posts.fold(
             (f) => state.posts.copyWith(
               status: FeedListStatus.failure,
@@ -467,6 +497,41 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           muted: want,
           notice: _notice(
             want ? 'Muted. Their posts are hidden from your feed.' : 'Unmuted',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onCompliment(
+    ProfileComplimentSent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final text = event.text.trim();
+    if (text.isEmpty || state.isMe || state.complimentSent) return;
+    final r = await _repo.sendCompliment(state.userId, text);
+    emit(
+      r.fold(
+        (f) => f.base is ConflictFailure
+            // 409 ALREADY_LIKED: it went through before (maybe on another
+            // device) — treat as sent.
+            ? state.copyWith(
+                complimentSent: true,
+                notice: _notice('You already sent a compliment'),
+              )
+            : state.copyWith(
+                complimentDraft: text,
+                notice: _notice(
+                  // 400 NOT_ELIGIBLE / 403 BLOCKED … carry a readable reason.
+                  f is ApiResponseFailure ? f.message : f.title,
+                  isError: true,
+                ),
+              ),
+        (_) => state.copyWith(
+          complimentSent: true,
+          complimentDraft: null,
+          notice: _notice(
+            'Compliment sent. If they reply, it opens in Messages.',
           ),
         ),
       ),

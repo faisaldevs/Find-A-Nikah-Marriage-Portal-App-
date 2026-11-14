@@ -126,7 +126,7 @@ class _Author extends StatelessWidget {
     final who = Row(
       children: [
         FeedPortrait(
-          url: author.photoUrl,
+          url: author.avatarUrl,
           size: 40,
           countryCode: author.countryCode,
         ),

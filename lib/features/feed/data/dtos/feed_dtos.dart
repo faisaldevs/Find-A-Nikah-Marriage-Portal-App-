@@ -13,9 +13,11 @@ class FeedAuthorDto {
     required this.displayName,
     required this.handle,
     this.photoUrl,
+    this.photoThumbUrl,
     this.countryCode,
     this.isVerified = false,
     this.isMe = false,
+    this.isFollowing = false,
   });
 
   factory FeedAuthorDto.fromJson(Map<String, dynamic> json) =>
@@ -27,9 +29,15 @@ class FeedAuthorDto {
 
   /// Server-relative (`/public/upload/x.jpg`) or absolute; null if none.
   final String? photoUrl;
+
+  /// `${photoUrl}?w=128` — for 24–64 px avatars.
+  final String? photoThumbUrl;
   final String? countryCode;
   final bool isVerified;
   final bool isMe;
+
+  /// Only on people-search and followers / following rows.
+  final bool isFollowing;
 
   Map<String, dynamic> toJson() => _$FeedAuthorDtoToJson(this);
 }
@@ -169,6 +177,7 @@ class FeedProfileDto {
     required this.displayName,
     required this.handle,
     this.photoUrl,
+    this.photoThumbUrl,
     this.countryCode,
     this.isVerified = false,
     this.isMe = false,
@@ -181,6 +190,12 @@ class FeedProfileDto {
     this.likesCount = 0,
     this.isFollowing = false,
     this.followsMe = false,
+    this.isMuted = false,
+    this.isBlocked = false,
+    this.complimentSent = false,
+    this.messageAction,
+    this.conversationId,
+    this.matchId,
   });
 
   factory FeedProfileDto.fromJson(Map<String, dynamic> json) =>
@@ -190,6 +205,7 @@ class FeedProfileDto {
   final String displayName;
   final String handle;
   final String? photoUrl;
+  final String? photoThumbUrl;
   final String? countryCode;
   final bool isVerified;
   final bool isMe;
@@ -202,6 +218,16 @@ class FeedProfileDto {
   final int likesCount;
   final bool isFollowing;
   final bool followsMe;
+  final bool isMuted;
+  final bool isBlocked;
+
+  /// The viewer already liked / complimented this member.
+  final bool complimentSent;
+
+  /// `chat | compliment | upgrade | none`; unknown / missing = compliment.
+  final String? messageAction;
+  final String? conversationId;
+  final String? matchId;
 
   Map<String, dynamic> toJson() => _$FeedProfileDtoToJson(this);
 }

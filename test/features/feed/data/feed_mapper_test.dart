@@ -1,5 +1,6 @@
 import 'package:find_a_nikah/features/feed/data/dtos/feed_dtos.dart';
 import 'package:find_a_nikah/features/feed/data/dtos/feed_mapper.dart';
+import 'package:find_a_nikah/features/feed/domain/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Shapes copied from real responses of the dev server (2026-11-14).
@@ -180,5 +181,58 @@ void main() {
     expect(row.postId, 'p1');
     expect(row.postAuthorName, 'Chat T.');
     expect(row.comment.body, 'Test reply to comment.');
+  });
+
+  test('an author keeps the thumbnail and avatarUrl prefers it', () {
+    final a = mapper.author(
+      const FeedAuthorDto(
+        userId: 'u1',
+        displayName: 'Ayat N.',
+        handle: 'ayat',
+        photoUrl: '/public/upload/a.jpg',
+        photoThumbUrl: '/public/upload/a.jpg?w=128',
+        isFollowing: true,
+      ),
+    );
+
+    expect(a.photoThumbUrl, endsWith('/public/upload/a.jpg?w=128'));
+    expect(a.avatarUrl, a.photoThumbUrl);
+    expect(a.isFollowing, isTrue);
+  });
+
+  test('an author with no thumbnail falls back to the photo', () {
+    final a = mapper.author(
+      const FeedAuthorDto(
+        userId: 'u1',
+        displayName: 'A',
+        handle: 'a',
+        photoUrl: '/public/upload/a.jpg',
+      ),
+    );
+
+    expect(a.avatarUrl, a.photoUrl);
+  });
+
+  test('a profile maps mute, block and the Message rule', () {
+    FeedProfile map(String? action) => mapper.profile(
+      FeedProfileDto(
+        userId: 'u2',
+        displayName: 'K',
+        handle: 'k',
+        isMuted: true,
+        complimentSent: true,
+        messageAction: action,
+        conversationId: 'c1',
+      ),
+    );
+
+    expect(map('chat').messageAction, FeedMessageAction.chat);
+    expect(map('chat').conversationId, 'c1');
+    expect(map('chat').isMuted, isTrue);
+    expect(map('chat').complimentSent, isTrue);
+    expect(map('upgrade').messageAction, FeedMessageAction.upgrade);
+    expect(map('none').messageAction, FeedMessageAction.none);
+    expect(map(null).messageAction, FeedMessageAction.compliment);
+    expect(map('something-new').messageAction, FeedMessageAction.compliment);
   });
 }

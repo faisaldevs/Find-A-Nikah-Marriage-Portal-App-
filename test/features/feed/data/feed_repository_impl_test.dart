@@ -247,4 +247,38 @@ void main() {
     expect(r.isRight(), isTrue);
     verifyNever(() => remote.recordViews(any()));
   });
+
+  group('compliment memory', () {
+    test('remembers a member after a successful send only', () async {
+      when(() => remote.sendCompliment('u2', 'Hi')).thenAnswer((_) async {});
+      when(
+        () => remote.sendCompliment('u3', 'Hi'),
+      ).thenThrow(DioException(requestOptions: RequestOptions()));
+
+      expect(repo.hasSentCompliment('u2'), isFalse);
+      await repo.sendCompliment('u2', 'Hi');
+      await repo.sendCompliment('u3', 'Hi');
+
+      expect(repo.hasSentCompliment('u2'), isTrue);
+      expect(repo.hasSentCompliment('u3'), isFalse);
+    });
+  });
+
+  group('report reasons per target', () {
+    test('a post or comment gets content reasons only', () {
+      for (final t in [FeedReportTarget.post, FeedReportTarget.comment]) {
+        final r = FeedReportReason.forTarget(t);
+        expect(r, contains(FeedReportReason.inappropriateContent));
+        expect(r, isNot(contains(FeedReportReason.underage)));
+        expect(r, isNot(contains(FeedReportReason.alreadyMarried)));
+        expect(r, isNot(contains(FeedReportReason.fakeProfile)));
+      }
+    });
+
+    test('a member gets person reasons', () {
+      final r = FeedReportReason.forTarget(FeedReportTarget.feedUser);
+      expect(r, contains(FeedReportReason.fakeProfile));
+      expect(r, contains(FeedReportReason.underage));
+    });
+  });
 }

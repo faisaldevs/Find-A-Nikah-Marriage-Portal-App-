@@ -152,6 +152,12 @@ class FeedMarriagePreview extends StatelessWidget {
       ],
     );
     final gap40 = SizedBox(height: 40.h);
+    // Cards that draw nothing must not leave their gaps behind.
+    final hasIntentions =
+        _fmt(p.gettingToKnow) != null ||
+        _fmt(p.marriageTimeline) != null ||
+        _showMissing;
+    final showVerified = _VerifiedCard.hasRows(p);
 
     return ColoredBox(
       color: _pageBackground,
@@ -174,8 +180,10 @@ class FeedMarriagePreview extends StatelessWidget {
               _Section(title: 'About me', top: 30, chips: aboutMe),
               gap40,
             ],
-            _IntentionsCard(profile: p),
-            gap40,
+            if (hasIntentions) ...[
+              _IntentionsCard(profile: p),
+              gap40,
+            ],
             photo(1),
             if (faith.isNotEmpty) _Section(title: 'My Faith', chips: faith),
             if (faith.isNotEmpty) gap40,
@@ -189,15 +197,17 @@ class FeedMarriagePreview extends StatelessWidget {
               _Section(title: 'Interests', chips: interests),
             if (personality.isNotEmpty)
               _Section(title: 'Personality', chips: personality),
-            gap40,
+            if (interests.isNotEmpty || personality.isNotEmpty) gap40,
             photo(4),
             if (career.isNotEmpty)
               _Section(title: 'Education and career', chips: career),
             if (languages.isNotEmpty)
               _Section(title: 'Languages and ethnicity', chips: languages),
             _BioSection(bio: _fmt(p.bio)),
-            gap40,
-            _VerifiedCard(profile: p),
+            if (showVerified) ...[
+              gap40,
+              _VerifiedCard(profile: p),
+            ],
             SizedBox(height: 60.h),
           ],
         ),
@@ -247,6 +257,15 @@ class _Hero extends StatelessWidget {
           if (main != null)
             // AppPhoto(main)
             _Photo(main)
+          else if (!profile.access.isFull ||
+              profile.access.lockedSections.contains('photos'))
+            // Withheld by the server: a locked state, not an error.
+            ColoredBox(
+              color: Colors.grey.shade300,
+              child: Center(
+                child: Icon(Icons.lock, size: 44.r, color: Colors.black38),
+              ),
+            )
           else
             ColoredBox(
               color: Colors.grey.shade300,
@@ -848,12 +867,19 @@ class _VerifiedCard extends StatelessWidget {
 
   final FeedMarriageProfile profile;
 
+  /// The photo check only means something while the photo is visible.
+  static bool _photoVisible(FeedMarriageProfile p) =>
+      !p.access.lockedSections.contains('photos');
+
+  static bool hasRows(FeedMarriageProfile p) =>
+      (p.isVerified && _photoVisible(p)) || _showMissing;
+
   @override
   Widget build(BuildContext context) {
     final first = profile.firstName;
     final name = first.isEmpty ? 'My' : '$first’s';
     final rows = [
-      if (profile.isVerified)
+      if (profile.isVerified && _photoVisible(profile))
         _VerifiedRow(_verifiedGreen, '$name main photo has been verified.')
       else if (_showMissing)
         const _VerifiedRow(_red, 'Photo verification missing'),

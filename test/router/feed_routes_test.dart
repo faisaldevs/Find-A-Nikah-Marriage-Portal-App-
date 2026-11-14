@@ -13,6 +13,7 @@ void main() {
       expect(RoutePaths.isAppLocation('/feed/post/abc'), isTrue);
       expect(RoutePaths.isAppLocation('/feed/profile/u1'), isTrue);
       expect(RoutePaths.isAppLocation('/feed/profile/u1/search'), isTrue);
+      expect(RoutePaths.isAppLocation('/feed/u/u1'), isTrue);
       expect(RoutePaths.isAppLocation(RoutePaths.feedCompose), isTrue);
       expect(RoutePaths.isAppLocation(RoutePaths.feed), isTrue);
     });
@@ -20,6 +21,21 @@ void main() {
     test('other paths are still not app locations', () {
       expect(RoutePaths.isAppLocation('/feed-something'), isFalse);
       expect(RoutePaths.isAppLocation('/login'), isFalse);
+    });
+  });
+
+  group('shared links and own profile', () {
+    test('feed links are recognised so a cold start can keep them', () {
+      expect(RoutePaths.isFeedLink('/feed/post/abc'), isTrue);
+      expect(RoutePaths.isFeedLink('/feed/u/u1'), isTrue);
+      expect(RoutePaths.isFeedLink('/feed/profile/u1'), isTrue);
+      expect(RoutePaths.isFeedLink('/feed/profile/u1/search'), isFalse);
+      expect(RoutePaths.isFeedLink('/feed'), isFalse);
+      expect(RoutePaths.isFeedLink('/login'), isFalse);
+    });
+
+    test('the own-profile route is an app location', () {
+      expect(RoutePaths.isAppLocation(RoutePaths.feedMe), isTrue);
     });
   });
 }

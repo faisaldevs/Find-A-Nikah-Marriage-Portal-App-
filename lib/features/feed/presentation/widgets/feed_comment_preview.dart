@@ -37,7 +37,7 @@ class FeedCommentPreview extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: 3.w),
             child: FeedPortrait(
-              url: comment.author.photoUrl,
+              url: comment.author.avatarUrl,
               size: 24,
               countryCode: comment.author.countryCode,
             ),
