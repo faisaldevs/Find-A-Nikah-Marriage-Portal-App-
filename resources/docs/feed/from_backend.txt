@@ -1,0 +1,672 @@
+Key Highlights & Changes Implemented
+BE-1 (Counter Synchronization):
+Seeded matching FeedLike documents for every like counter.
+Like/unlike endpoints (PUT and DELETE /feed/posts/:id/like, /comments/:id/like) now use atomic $inc updates and return { liked: boolean, likeCount: number } in strict sync with database records.
+BE-2 (Topic Naming on Create & Edit):
+Chained .populate("topicId", "name slug") in createPost and updatePost. Both endpoints return the actual topic name (e.g., "Random"), matching GET /feed/posts reads.
+BE-3 (topComment Preview):
+Added replyCount and likedByMe to the topComment preview object in post listings.
+BE-4 (Profile Access Contract & Samples):
+Strict server-side withholding for partial and locked states.
+Provided live copy-pasted JSON payloads for full, partial (same-gender NOT_ELIGIBLE), locked (blocked BLOCKED), and locked (PREMIUM_REQUIRED).
+BE-5 (Feed Source Tracking):
+Added support for GET /api/v1/profiles/:userId?source=feed, recording profile visits with source: "feed" to distinguish them from swipe deck visits.
+BE-6 (Cascade Deletes):
+Post deletes cascade soft-delete comments/replies.
+Comment deletes cascade soft-delete child replies and decrement post.commentCount by 1 + repliesCount.
+Reply deletes decrement parentComment.replyCount and post.commentCount.
+BE-7 (Mute, Block & Member State):
+Added isMuted, isBlocked, messageAction, and conversationId to GET /feed/users/:userId.
+Added GET /api/v1/feed/mutes to list all muted members.
+BE-8 (Stable Paging & Test Data):
+Seeded 65+ posts, 25 top-level comments, and 6 nested replies via seed-feed.js.
+Cursor pagination guarantees zero skipped or duplicate posts across page boundaries.
+BE-9 (Deep Links & Web Previews):
+Added /.well-known/assetlinks.json (Android) and /.well-known/apple-app-site-association (iOS).
+Added web fallback routes for /feed/post/:id and /feed/u/:id with Open Graph tags and smart app banners.
+BE-10 (View Count Deduplication):
+POST /feed/posts/views deduplicates views per member per post within a 1-hour rolling window. Author self-views are ignored.
+BE-11 (messageAction on Feed Profile):
+Feed profiles return messageAction: "chat" | "compliment" | "upgrade" | "none" and conversationId when "chat".
+BE-12 (Verified Badge Harmonization):
+Both Feed and Marriage tab now use Boolean(user.isVerified || profile.faceVerification.isFaceVerified) so the blue tick always agrees.
+BE-13 through BE-17 (Thumbnails, Search, Lists, Rate Limits, Mentions):
+BE-13: Added photoThumbUrl (${photoUrl}?w=128).
+BE-14 & BE-15: People search and follower lists include isFollowing: boolean.
+BE-16: Comment rate limit set to 60/hour with code "RATE_LIMITED".
+BE-17: Comment creation auto-parses @([a-z0-9_]+) mentions into mention: { userId, handle }.
+
+| Scenario | Email | Password | User ID | Handle | Access Level |
+| --- | --- | --- | --- | --- | --- |
+| Viewer (Male) | `user@example.com` | `user1234` | `6af4469dac7e106dffb18fc4` | `@ayat_n4821` | Authenticated caller |
+| Matched (Female) | `user1@example.com` | `user1234` | `6af44cb2ac7e106dffb19077` | `@khalil_k2210` | `full` access |
+| Same-Gender (Male) | `user_male@example.com` | `user1234` | `6af81c84b412a16c8cad5e62` | `@tariq_m8821` | `partial` access (`NOT_ELIGIBLE`) |
+| Blocked (Female) | `user_blocked@example.com` | `user1234` | `6af81c85b412a16c8cad5e68` | `@zayd_b1234` | `locked` access (`BLOCKED`) |
+
+
+# Find A Nikah - Feed Tab Mobile Implementation Plan (Round 2 / V2)
+
+> **Audience:** Flutter / Mobile App Engineers (BLoC, DTOs, Repository, UI), Integrators  
+> **Written:** 2026-11-14 by Backend Team  
+> **Backend Status:** Live & Fully Verified (Port `5001`, `http://localhost:5001/api/v1`)  
+> **Automated Test Suite:** `src/scripts/test-feed-suite.js` (**110 Passed, 0 Failed**)  
+> **Seeding Script:** `src/scripts/seed-feed.js` (Seeds 65+ posts, 25 comments, 6 replies, matching like records, and 4 test accounts)
+
+---
+
+## 1. Executive Summary & Status of Round 2 Requests (BE-1 to BE-17)
+
+All items raised by the mobile team in **"Need from backend — Feed, round 2"** have been addressed, resolved, and verified on the live backend server.
+
+| Item | Priority | Status | Summary of Resolution |
+| :--- | :--- | :--- | :--- |
+| **BE-1** | `P0` | **Fixed & Verified** | Counter desync resolved. Seeded 65+ posts with matching `FeedLike` documents. Likes/unlikes use atomic `$inc` updates and return accurate `{ liked, likeCount }`. |
+| **BE-2** | `P0` | **Fixed & Verified** | `POST` and `PATCH` endpoints now populate `topicId` and format identically to reads, returning `{ id, name }` (e.g. "Random", never falling back to "General"). |
+| **BE-3** | `P0` | **Implemented** | Added `replyCount` (number) and `likedByMe` (boolean) to the `topComment` preview object in post listings. |
+| **BE-4** | `P0` | **Delivered** | Provided real copy-pasted responses for `full`, `partial` (same-gender `NOT_ELIGIBLE`), `locked` (blocked `BLOCKED`), and `locked` (`PREMIUM_REQUIRED`) profiles with server-side withholding. |
+| **BE-5** | `P0` | **Implemented** | `GET /api/v1/profiles/:userId?source=feed` records profile views with `source: "feed"`, enabling Explore's "Visited you" to distinguish Feed views from Swipe Deck views. |
+| **BE-6** | `P1` | **Answered & Verified** | Post deletes cascade to comments/replies. Comment deletes cascade to child replies and decrement `post.commentCount` by `1 + repliesCount`. Reply deletes decrement `parentComment.replyCount` and `post.commentCount`. |
+| **BE-7** | `P1` | **Implemented** | Added `isMuted`, `isBlocked`, `messageAction`, and `conversationId` to `GET /feed/users/:userId`. Added `GET /api/v1/feed/mutes`. Clarified safe reporting & duplicate protection. |
+| **BE-8** | `P1` | **Seeded & Verified** | Seeded 65+ posts, 25 top-level comments, and 6 nested replies. Cursor pagination is stable and guarantees no duplicate or skipped items across page boundaries. |
+| **BE-9** | `P1` | **Implemented** | Universal links & App Links supported via `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association`. Web fallback with Open Graph metadata and smart app banner live at `/feed/post/:id` and `/feed/u/:id`. |
+| **BE-10** | `P1` | **Answered & Verified** | `POST /feed/posts/views` deduplicates views per member per post within a 1-hour window. Author's own views of their own posts are excluded from `viewCount`. |
+| **BE-11** | `P1` | **Delivered** | `GET /feed/users/:userId` returns `messageAction: "chat" \| "compliment" \| "upgrade" \| "none"` and `conversationId` when `"chat"`. |
+| **BE-12** | `P1` | **Harmonized** | `isVerified` on Feed authors now checks `Boolean(user.isVerified || profile.faceVerification.isFaceVerified)`, ensuring exact agreement between Feed and Marriage blue tick badges. |
+| **BE-13** | `P2` | **Delivered** | Author objects now provide `photoThumbUrl` (`${photoUrl}?w=128`) alongside `photoUrl`. |
+| **BE-14** | `P2` | **Answered & Verified** | `GET /feed/search?type=people` requires min 2 chars, matches name/handle, filters out blocked/muted members, and includes `isFollowing`. Mobile can safely ship a "People" search tab. |
+| **BE-15** | `P2` | **Verified** | `GET /feed/users/:userId/followers` and `/following` both return `isFollowing: boolean` on each author card to drive Follow/Unfollow UI buttons. |
+| **BE-16** | `P2` | **Documented** | Comment rate limit is 60 comments/hour per user. Returns `429 Too Many Requests` with `code: "RATE_LIMITED"`. |
+| **BE-17** | `P2` | **Implemented** | Server automatically regex-parses `@([a-z0-9_]+)` in comment bodies to auto-populate `mention: { userId, handle }`, while continuing to support explicit `mentionUserId`. |
+
+---
+
+## 2. Test Accounts & Credentials
+
+Use these verified accounts to test all states on the dev server (`http://localhost:5001/api/v1`):
+
+| Role / Scenario | Email | Password | User ID | Handle | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **User A (Viewer / Male)** | `user@example.com` | `user1234` | `6af4469dac7e106dffb18fc4` | `@ayat_n4821` | Authenticated caller for all client test scenarios. |
+| **User B (Target / Female / Matched)** | `user1@example.com` | `user1234` | `6af44cb2ac7e106dffb19077` | `@khalil_k2210` | Opposite-gender matched account. Yields `access.level: "full"`, `messageAction: "chat"`. |
+| **User C (Same-Gender / Male)** | `user_male@example.com` | `user1234` | `6af81c84b412a16c8cad5e62` | `@tariq_m8821` | Same-gender account. Yields `access.level: "partial"`, `reason: "NOT_ELIGIBLE"`. |
+| **User D (Blocked / Female)** | `user_blocked@example.com` | `user1234` | `6af81c85b412a16c8cad5e68` | `@zayd_b1234` | Blocked account (blocked by User A). Yields `access.level: "locked"`, `reason: "BLOCKED"`. |
+
+---
+
+## 3. P0 — Bugs Fixed & Real Response Samples
+
+### BE-1. Seeded Counts vs Real Like Records
+
+#### Root Cause
+Initial mock seeds hardcoded `likeCount: 8` or `12` without seeding corresponding `FeedLike` documents. When users toggled likes, `likePost` performed count recalibration which reset the count to 1 or 0.
+
+#### Resolution
+1. The seeding script (`src/scripts/seed-feed.js`) now creates authentic `FeedLike` documents matching all seeded post and comment like counts.
+2. In `src/controllers/feed.controllers.js`, like and unlike operations use atomic `$inc` operations (`{ $inc: { likeCount: 1 } }` and `{ $inc: { likeCount: -1 } }`) alongside `FeedLike.findOneAndUpdate` upserts/deletes.
+3. Both `PUT` (like) and `DELETE` (unlike) return the current `likeCount` in the response envelope so the client can update its local store directly.
+
+#### Real Server Responses
+
+**1. Like a post:** `PUT /api/v1/feed/posts/6af81e7a10c2139ae2acdca0/like`
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "liked": true,
+    "likeCount": 1
+  },
+  "message": "Post liked",
+  "success": true
+}
+```
+
+**2. Unlike a post:** `DELETE /api/v1/feed/posts/6af81e7a10c2139ae2acdca0/like`
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "liked": false,
+    "likeCount": 0
+  },
+  "message": "Post unliked",
+  "success": true
+}
+```
+
+---
+
+### BE-2. Create and Edit Responses Name the Correct Topic
+
+#### Root Cause
+`createPost` and `updatePost` returned the newly created/updated document without executing `.populate("topicId", "name slug")`. Consequently, `post.topicId.name` evaluated to `undefined` and fell back to the default `"General"`.
+
+#### Resolution
+1. Both `createPost` and `updatePost` now chain `.populate("topicId", "name slug")` before returning.
+2. The response structure for create and edit is completely identical to `GET /feed/posts/:id` and items in `GET /feed/posts`, including `author`, `topic: { id, name }`, `likedByMe`, `isMine`, and counter fields.
+
+#### Real Server Responses
+
+**1. Create post in 'Random' topic:** `POST /api/v1/feed/posts`
+```json
+{
+  "statusCode": 201,
+  "data": {
+    "id": "6af81edc0d3aeadec8a2a30c",
+    "author": {
+      "userId": "6af4469dac7e106dffb18fc4",
+      "displayName": "Chat T.",
+      "handle": "ayat_n4821",
+      "photoUrl": "/public/upload/1794394766327-8aa82b57-8143-4891-b9fc-0452e4e96172.jpg",
+      "photoThumbUrl": "/public/upload/1794394766327-8aa82b57-8143-4891-b9fc-0452e4e96172.jpg?w=128",
+      "countryCode": "bd",
+      "isVerified": true,
+      "isMe": true
+    },
+    "topic": {
+      "id": "6af7ff0b46ff650a1912fab9",
+      "name": "Random"
+    },
+    "body": "Testing BE-2 topic name accuracy on create.",
+    "createdAt": "2026-11-14T08:42:04.522Z",
+    "editedAt": null,
+    "likeCount": 0,
+    "commentCount": 0,
+    "viewCount": 0,
+    "likedByMe": false,
+    "isMine": true,
+    "topComment": null
+  },
+  "message": "Post created",
+  "success": true
+}
+```
+
+**2. Edit post:** `PATCH /api/v1/feed/posts/6af81edc0d3aeadec8a2a30c`
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "id": "6af81edc0d3aeadec8a2a30c",
+    "author": {
+      "userId": "6af4469dac7e106dffb18fc4",
+      "displayName": "Chat T.",
+      "handle": "ayat_n4821",
+      "photoUrl": "/public/upload/1794394766327-8aa82b57-8143-4891-b9fc-0452e4e96172.jpg",
+      "photoThumbUrl": "/public/upload/1794394766327-8aa82b57-8143-4891-b9fc-0452e4e96172.jpg?w=128",
+      "countryCode": "bd",
+      "isVerified": true,
+      "isMe": true
+    },
+    "topic": {
+      "id": "6af7ff0b46ff650a1912fab9",
+      "name": "Random"
+    },
+    "body": "Edited body for BE-2 testing.",
+    "createdAt": "2026-11-14T08:42:04.522Z",
+    "editedAt": "2026-11-14T08:42:04.808Z",
+    "likeCount": 0,
+    "commentCount": 0,
+    "viewCount": 0,
+    "likedByMe": false,
+    "isMine": true,
+    "topComment": null
+  },
+  "message": "Post updated",
+  "success": true
+}
+```
+
+---
+
+### BE-3. `topComment` in Post Lists Includes `replyCount` and `likedByMe`
+
+In `GET /api/v1/feed/posts`, the preview `topComment` on each post now includes both `replyCount` and `likedByMe`.
+
+#### Real Server Payload
+```json
+"topComment": {
+  "id": "6af81df74eefc4720a1953e7",
+  "author": {
+    "userId": "6af81c84b412a16c8cad5e62",
+    "displayName": "Tariq M.",
+    "handle": "tariq_m8821",
+    "photoUrl": null,
+    "photoThumbUrl": null,
+    "countryCode": "bd",
+    "isVerified": true,
+    "isMe": false
+  },
+  "body": "Insightful comment #1: I completely agree with this perspective.",
+  "likeCount": 2,
+  "replyCount": 6,
+  "likedByMe": false,
+  "createdAt": "2026-11-14T08:09:15.181Z"
+}
+```
+
+---
+
+### BE-4. Real Locked / Partial `GET /profiles/:userId` Samples
+
+The backend strictly enforces the **Server-Side Data Withholding** pattern. Locked sections are set to `null` or `[]` on the server before transmitting JSON. The client never receives hidden marital intentions, partner preferences, or private photos.
+
+#### Summary of Access Levels & Reasons
+
+| Access Level | Reason Code | Trigger Scenario | Locked Sections | Unlockable |
+| :--- | :--- | :--- | :--- | :--- |
+| `"full"` | `null` | Opposite-gender active match, owner, or standard discoverable candidate | `[]` | `false` |
+| `"partial"` | `"NOT_ELIGIBLE"` | Same gender viewing (e.g. Male viewing Male from Feed) | `["photos", "marriageIntentions", "partnerPreference", "aboutYou"]` | `false` |
+| `"locked"` | `"BLOCKED"` | Caller has blocked or is blocked by target | `["photos", "aboutMe", "marriageIntentions", "partnerPreference", "aboutYou", "lifestyle", "family", "education", "profession"]` | `false` |
+| `"locked"` | `"PREMIUM_REQUIRED"` | Tier restriction / premium entitlement required | `["photos", "aboutMe", "marriageIntentions", "partnerPreference", "aboutYou", "lifestyle"]` | `true` |
+| `"locked"` | `"INCOMPLETE_PROFILE"` | Viewer's profile is incomplete | `["photos", "marriageIntentions", "aboutYou"]` | `true` |
+
+#### Exact List of Possible `lockedSections` Keys
+- `"photos"`
+- `"aboutMe"`
+- `"marriageIntentions"`
+- `"partnerPreference"`
+- `"aboutYou"`
+- `"lifestyle"`
+- `"family"`
+- `"education"`
+- `"profession"`
+
+---
+
+#### 1. Real Sample: Full Access (`GET /profiles/:userId?source=feed`)
+**Viewer:** User A (Male) | **Target:** User B (Female, Matched)
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "userId": "6af44cb2ac7e106dffb19077",
+    "fullName": "Chat Target",
+    "isVerified": true,
+    "lastActiveAt": "2026-11-14T08:42:00.000Z",
+    "profile": {
+      "_id": "6af44cb246ff650a19129482",
+      "userId": "6af44cb2ac7e106dffb19077",
+      "aboutMe": "Practicing Muslimah, teacher in London.",
+      "gender": "female",
+      "country": "United Kingdom",
+      "age": 28,
+      "marriageIntentions": {
+        "getToknowDuration": "6_months",
+        "marriageTimeline": "within_1_year",
+        "involveFamily": "Immediately"
+      },
+      "aboutYou": {
+        "relocateAbroad": true,
+        "bornMuslim": true,
+        "haveChildren": false
+      },
+      "lifestyle": {
+        "alcohol": false,
+        "halalFood": true,
+        "smoking": false
+      }
+    },
+    "photos": [
+      {
+        "id": "6af4500046ff650a19129501",
+        "url": "/public/upload/target-primary.jpg",
+        "isPrimary": true
+      }
+    ],
+    "isMatch": true,
+    "matchId": "6af5623746ff650a19129529",
+    "hasLiked": true,
+    "access": {
+      "level": "full",
+      "reason": null,
+      "unlockable": false,
+      "lockedSections": []
+    }
+  },
+  "message": "Profile",
+  "success": true
+}
+```
+
+---
+
+#### 2. Real Sample: Partial Access (`GET /profiles/:userId?source=feed`)
+**Viewer:** User A (Male) | **Target:** User C (Male, Tariq Mahmood, Same Gender)
+- **Header retains:** `fullName`, `age`, `country`, `isVerified`, `aboutMe` (high-level bio).
+- **Withheld on server:** `photos: []`, `images: []`, `primaryPhoto: null`, `marriageIntentions: null`, `partnerPreference: null`, `aboutYou: null`.
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "userId": "6af81c84b412a16c8cad5e62",
+    "fullName": "Tariq Mahmood",
+    "isVerified": true,
+    "lastActiveAt": "2026-11-14T08:42:03.254Z",
+    "profile": {
+      "_id": "6af81c8446ff650a1912fdc2",
+      "userId": "6af81c84b412a16c8cad5e62",
+      "aboutMe": "Software engineer in Dhaka, looking for a pious partner.",
+      "gender": "male",
+      "country": "Bangladesh",
+      "dateOfBirth": "1996-05-15T00:00:00.000Z",
+      "age": 30,
+      "marriageIntentions": null,
+      "partnerPreference": null,
+      "aboutYou": null,
+      "lifestyle": {
+        "alcohol": false,
+        "halalFood": true,
+        "smoking": false
+      },
+      "images": [],
+      "profileStatus": "published",
+      "isDiscoverable": true
+    },
+    "photos": [],
+    "images": [],
+    "primaryPhoto": null,
+    "marriageIntentions": null,
+    "partnerPreference": null,
+    "aboutYou": null,
+    "education": [],
+    "profession": [],
+    "family": null,
+    "isMatch": false,
+    "matchId": null,
+    "hasLiked": false,
+    "access": {
+      "level": "partial",
+      "reason": "NOT_ELIGIBLE",
+      "unlockable": false,
+      "lockedSections": [
+        "photos",
+        "marriageIntentions",
+        "partnerPreference",
+        "aboutYou"
+      ]
+    }
+  },
+  "message": "Profile",
+  "success": true
+}
+```
+
+---
+
+#### 3. Real Sample: Locked Access due to Block (`GET /profiles/:userId?source=feed`)
+**Viewer:** User A (Male) | **Target:** User D (Female, Zayd Blocked, Blocked Pair)
+- When accessed via Feed or with `?allowLocked=true`, returns `200 OK` with `access.level: "locked"` and `reason: "BLOCKED"`.
+- `fullName` is genericized to `"Member"`, `age` is `null`, `photos` is `[]`, and all detailed sub-documents are withheld.
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "userId": "6af81c85b412a16c8cad5e68",
+    "fullName": "Member",
+    "gender": "female",
+    "age": null,
+    "country": "Bangladesh",
+    "city": null,
+    "isVerified": false,
+    "primaryPhoto": null,
+    "photos": [],
+    "images": [],
+    "access": {
+      "level": "locked",
+      "reason": "BLOCKED",
+      "unlockable": false,
+      "lockedSections": [
+        "photos",
+        "aboutMe",
+        "marriageIntentions",
+        "partnerPreference",
+        "aboutYou",
+        "lifestyle",
+        "family",
+        "education",
+        "profession"
+      ]
+    },
+    "hasLiked": false,
+    "matchId": null
+  },
+  "message": "Profile locked",
+  "success": true
+}
+```
+
+---
+
+#### 4. Real Sample: Locked Access due to Premium Required (`GET /profiles/:userId?accessLevel=locked&reason=PREMIUM_REQUIRED`)
+- Demonstrates paywall lock with `unlockable: true`.
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "userId": "6af44cb2ac7e106dffb19077",
+    "fullName": "Chat Target",
+    "gender": "female",
+    "age": 28,
+    "country": "United Kingdom",
+    "isVerified": true,
+    "primaryPhoto": null,
+    "photos": [],
+    "images": [],
+    "marriageIntentions": null,
+    "partnerPreference": null,
+    "aboutYou": null,
+    "aboutMe": null,
+    "lifestyle": null,
+    "access": {
+      "level": "locked",
+      "reason": "PREMIUM_REQUIRED",
+      "unlockable": true,
+      "lockedSections": [
+        "photos",
+        "aboutMe",
+        "marriageIntentions",
+        "partnerPreference",
+        "aboutYou",
+        "lifestyle"
+      ]
+    },
+    "hasLiked": false,
+    "matchId": null
+  },
+  "message": "Profile",
+  "success": true
+}
+```
+
+---
+
+### BE-5. Visit Source Tracking (`?source=feed`)
+
+The mobile client should append `?source=feed` when opening a Marriage profile from the Feed or a Feed profile:
+```http
+GET /api/v1/profiles/:userId?source=feed
+Authorization: Bearer <token>
+```
+The server records a `ProfileView` document with `{ viewerId, profileOwnerId, source: "feed", viewedAt: new Date() }`. If omitted, `source` defaults to `"deck"`.
+
+---
+
+## 4. P1 — Unclear Behavior & Deep Dive Answers
+
+### BE-6. Cascade Deletes & Counter Behavior
+
+1. **Deleting a Post (`DELETE /api/v1/feed/posts/:id`):**
+   - The post document is soft-deleted (`isDeleted: true`, `deletedAt: new Date()`).
+   - The server triggers `FeedComment.updateMany({ postId: post._id }, { $set: { isDeleted: true } })`.
+   - Existing `FeedLike` and `Report` records are kept for audit logs, but the post immediately drops out of all feed queries (`isDeleted: false`).
+2. **Deleting a Top-Level Comment (`DELETE /api/v1/feed/comments/:id`):**
+   - The comment is soft-deleted.
+   - Child replies are cascade soft-deleted (`FeedComment.updateMany({ parentId: comment._id }, { $set: { isDeleted: true } })`).
+   - The post's total comment count is decremented by `1 + childRepliesCount`:
+     ```javascript
+     const childCount = await FeedComment.countDocuments({ parentId: comment._id });
+     await FeedPost.updateOne({ _id: comment.postId }, { $inc: { commentCount: -(1 + childCount) } });
+     ```
+3. **Deleting a Nested Reply (`DELETE /api/v1/feed/comments/:id`):**
+   - The reply is soft-deleted.
+   - The parent comment's `replyCount` is decremented by `1` (`{ $inc: { replyCount: -1 } }`).
+   - The parent post's `commentCount` is decremented by `1` (`{ $inc: { commentCount: -1 } }`).
+
+---
+
+### BE-7. Block, Mute, and Member State
+
+1. **Blocking a Member:**
+   - Call existing `POST /api/v1/blocks/:userId`.
+   - A block is mutual. The server's `getFeedBlockAndMuteIds` excludes all blocked user IDs from post lists, searches, comments, and profile queries (`authorId: { $nin: [...blockedIds, ...mutedIds] }`).
+2. **Unblocking a Member:**
+   - Call existing `DELETE /api/v1/blocks/:userId`.
+3. **Muting / Unmuting Feed Content:**
+   - To mute posts: `PUT /api/v1/feed/users/:userId/mute` (returns `{ muted: true }`).
+   - To unmute: `DELETE /api/v1/feed/users/:userId/mute` (returns `{ muted: false }`).
+   - To list all muted members: `GET /api/v1/feed/mutes` (returns `{ items: [Author] }`).
+4. **Member State on Feed Profile:**
+   - `GET /api/v1/feed/users/:userId` now includes:
+     ```json
+     {
+       "isMuted": false,
+       "isBlocked": false,
+       "messageAction": "chat",
+       "conversationId": "6af5623746ff650a1912952a"
+     }
+     ```
+5. **Safe Reporting Sandbox:**
+   - Call `POST /api/v1/reports`.
+   - For posts: `{ "targetType": "post", "postId": "<id>", "reason": "inappropriate_content", "description": "..." }`
+   - For comments: `{ "targetType": "comment", "commentId": "<id>", "reason": "harassment", "description": "..." }`
+   - For members: `{ "targetType": "feedUser", "reportedUserId": "<id>", "reason": "spam", "description": "..." }`
+   - **Sandbox Safe Target:** The seeded deleted post (`ID: 6af81df64eefc4720a1953e0`) is a safe target for integration testing. If a user submits duplicate reports on the same target, the server safely responds with `409` and does not crash or corrupt data.
+
+---
+
+### BE-8. "For you" Paging & Cursor Mechanics
+
+- **Seeded Data:** The dev server has been seeded with **65+ active posts**, **25 top-level comments**, and **6 nested replies**.
+- **Paging Stability:**
+  - `For you` ranking sorts by `{ likeCount: -1, commentCount: -1, _id: -1 }`.
+  - Paging uses an opaque cursor encoding the seek offsets. The server executes cursor-based `$lt` queries.
+  - When reaching the end of the feed, `hasMore` is `false` and `nextCursor` is `null`.
+  - Automated tests confirm zero item overlap or item skipping across consecutive pages.
+
+---
+
+### BE-9. Universal & App Links Support
+
+1. **Android App Links:** Hosted at `GET /.well-known/assetlinks.json`.
+2. **iOS Universal Links:** Hosted at `GET /.well-known/apple-app-site-association`.
+3. **Web Preview Fallback:**
+   - Navigating to `https://findanikah.app/feed/post/:id` or `/feed/u/:id` in a web browser serves a responsive HTML page with:
+     - Open Graph metadata (`og:title`, `og:description`, `og:image`, `og:url`).
+     - App banner directing the user to launch the mobile app or install from the App Store / Play Store.
+
+---
+
+### BE-10. View Count Deduplication
+
+1. **Batching:** Send `POST /api/v1/feed/posts/views` with `{ "postIds": ["..."] }`.
+2. **Deduplication Window:** Views are deduplicated per user per post within a **1-hour rolling window**. If an impression was recorded at 10:00 AM, a subsequent open at 10:20 AM will not increment the counter.
+3. **Self-Views Excluded:** When an author views or opens their own post, the server ignores the view request (`viewed: 0`).
+
+---
+
+### BE-11. Messaging from Feed Profile (`messageAction`)
+
+`GET /api/v1/feed/users/:userId` evaluates member entitlements and match status, returning a definitive directive:
+
+```json
+{
+  "messageAction": "chat",
+  "conversationId": "6af5623746ff650a1912952a",
+  "isMatch": true,
+  "matchId": "6af5623746ff650a19129529"
+}
+```
+
+| `messageAction` Value | Condition | Mobile UI Action |
+| :--- | :--- | :--- |
+| `"chat"` | Active match exists OR user has premium pre-match messaging entitlement | Open chat directly using `conversationId`. |
+| `"compliment"` | Unmatched free user | Open the compliment / first-message bottom sheet. |
+| `"upgrade"` | Out of compliments or premium messaging required | Open premium subscription paywall sheet. |
+| `"none"` | Blocked or self | Hide or disable the Message button. |
+
+---
+
+### BE-12. Verified Badge Harmonization
+
+The Feed author serializer (`src/services/feed.service.js`) now uses the exact same verification rule as the Marriage tab:
+```javascript
+isVerified: Boolean(user.isVerified || profile?.faceVerification?.isFaceVerified)
+```
+If an account has completed face verification or has been verified by an admin, the blue tick appears consistently across both the Feed and Marriage cards.
+
+---
+
+## 5. P2 — Nice to Have & Enhancements
+
+### BE-13. Thumbnail Variant (`photoThumbUrl`)
+
+Author objects in all Feed endpoints (`/me`, `/posts`, `/comments`, `/search`) include:
+- `photoUrl`: Full-resolution upload URL.
+- `photoThumbUrl`: Thumbnail variant (`${photoUrl}?w=128`), optimized for 24–64 px avatars in feed rows.
+
+---
+
+### BE-14. People Search Tab
+
+- **Endpoint:** `GET /api/v1/feed/search?type=people&q=<query>`
+- **Minimum Query Length:** 2 characters.
+- **Search Logic:** Case-insensitive substring matching against `fullName` and `handle`. Excludes blocked and muted accounts.
+- **Payload:** Returns `{ items: [Author] }` where each author includes `isFollowing: boolean`.
+- **Recommendation:** The mobile team can proceed with adding the *People* tab in Feed search.
+
+---
+
+### BE-15. Followers and Following Lists
+
+- `GET /api/v1/feed/users/:userId/followers`
+- `GET /api/v1/feed/users/:userId/following`
+- Both endpoints return author objects decorated with `isFollowing: boolean` to drive dynamic Follow / Unfollow buttons.
+
+---
+
+### BE-16. Comment Rate Limits
+
+- **Rate Limit:** 60 comments / replies per hour per user.
+- **Error Response:** `429 Too Many Requests`
+```json
+{
+  "statusCode": 429,
+  "code": "RATE_LIMITED",
+  "message": "You are posting comments too quickly. Please wait before commenting again.",
+  "success": false
+}
+```
+
+---
+
+### BE-17. Mentions Auto-Parsing from `@handle`
+
+The comment creation endpoint (`POST /api/v1/feed/posts/:id/comments`) parses the comment body with the regex `@([a-z0-9_]+)`.
+- If a handle is detected (e.g. `@khalil_k2210`), the server automatically looks up the user and populates `mention: { userId, handle }`.
+- If `mentionUserId` is passed explicitly in the JSON request body, it takes precedence.
+
+---
+
+## 6. Verification and Regression Test Commands
+
+All changes are covered by automated integration test suites.
+
+```bash
+# 1. Re-seed test database with 65+ posts, comments, replies, and test users
+node src/scripts/seed-feed.js
+
+# 2. Run the unified Feed verification suite (110 assertions)
+node src/scripts/test-feed-suite.js
+```
+
+

@@ -647,7 +647,18 @@ device checks C).
 **Added:** 2026-11-14 · **Status:** built + unit-tested; core flows verified on a phone
 
 All Feed docs: `resources/docs/feed/` (start at `README.md`; `PROGRESS.md` is the tracker).
-- [ ] Review + send `resources/docs/feed/NEED_FROM_BACKEND_FEED_V2.md` (BE-1…BE-17: seeded counts, wrong topic in create response, locked-profile sample, messaging field, deep links).
-- [ ] Finish the on-device checks marked ❌ in `07_VERIFICATION_LOG.md` (needs a locked/partial test viewer + seed data).
-- [ ] Shared `profile_view` to replace the Preview copy in the Feed.
-- [ ] Message button (needs BE-11), universal/app links (BE-9), followers/following lists, people search.
+- [x] Backend v2 reply received and applied (`resources/docs/feed/08_V2_BACKEND_REPLY_STATUS.md`).
+- [ ] Followers / following lists (tappable counts) — backend ready (BE-15).
+- [ ] People tab in Feed search — backend ready (BE-14).
+- [ ] Muted-members list screen (`GET /feed/mutes`).
+- [ ] Shared `profile_view` to replace the Preview copy in the Feed (decided: not now, 2026-11-14).
+- [ ] iOS associated-domains entitlement for share links; return to the link after login on a signed-out cold start.
+- [ ] Show `replyCount` in the card's top-comment preview; friendlier text for the 429 `RATE_LIMITED` comment limit.
+- [ ] Page-1 cache + offline banner + shimmer loading.
+- [ ] Widget tests for the Feed.
+- [ ] Remove the "force chosen topic" override in `CreatePostBloc` (backend fixed BE-2).
+- [ ] Feed device-test report `09_DEVICE_TEST_REPORT.md`: A1–A5 fixed (A6 partly); still open: polish A7–A13, measure offline timing, free-text report description (needs BE-20). Backend: B1 compliment to ineligible/duplicate, B2 blocked-profile 403 vs locked.
+- [x] Backend answered round 3 (BE-18…23), applied in the app.
+- [ ] Send `resources/docs/feed/REPLY_TO_BACKEND_V3.md`: needs the release + Play-signing SHA-256 fingerprints and the Apple Team ID from the product owner, then the iOS associated-domains entitlement in Xcode.
+- [ ] Report: free-text description box (max 1000) and, later, load reasons from `GET /reports/reasons`.
+- [ ] **Pre-release checklist:** see `resources/docs/remaining/` (one file per feature; start with `00_release_blockers.md`).

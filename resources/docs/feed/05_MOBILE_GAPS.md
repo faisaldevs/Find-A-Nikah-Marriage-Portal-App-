@@ -30,18 +30,18 @@ locked-profile treatment, remove Groups tab, edit post, views batching.
 
 | # | Item | Notes |
 |---|---|---|
-| M1 | **Locked-profile UI not seen on a device** | needs BE-4 sample + a test viewer |
-| M2 | Message button | "coming soon" until BE-11; then route to chat / compliment via the router, not a feature import |
-| M3 | Universal / app links + deep-link routing from a cold start | needs BE-9 + Android/iOS config |
+| M1 | **Locked-profile UI not seen on a device** | BE-4 samples + test accounts received (`from_backend.txt`); mapper tested on the real payloads; open Tariq (`6af81c84…`) from Feed as the main user to see `partial`. A blocked member's Feed profile is 403 `BLOCKED` → failure page, never the locked UI |
+| M2 | Message button | ✅ opens the Compliment page (copy of Marriage's), sends `POST /profiles/swipe` `complement`; reply lands in Messages. Not yet seen on a device. BE-11 may add `messageAction` rules |
+| M3 | Universal / app links | ✅ Android intent filter (autoVerify) + `/feed/u/:id` → profile redirect. ☐ iOS associated-domains entitlement (Xcode); ☐ signed-out cold start doesn't return to the link after login; not tested on a device |
 | M4 | Shared `profile_view` (replace the Preview copy) | see `04_PROFILE_DESIGN.md` |
-| M5 | Followers / following lists; people search | counts are not tappable yet (BE-14, BE-15) |
+| M5 | Followers / following lists; people search | backend ready (BE-14/15): `isFollowing` is already parsed on authors; **screens not built** |
 | M6 | Page-1 cache + offline banner + shimmer | spinner only today |
-| M7 | Show muted state (`isMuted`) | BE-7 |
+| M7 | Show muted state (`isMuted`) | ✅ profile menu reads it; muted-members list (`GET /feed/mutes`) has no screen |
 | M8 | Default profile side by entry point | Feed → Feed activity (done); other entry points don't open this page yet |
 | M9 | Dev-only: images over ngrok | fine; production URLs differ |
 | M10 | Comment / profile / search flows tapped through on a device | see verification log |
 | M11 | Localisation | strings inline, like the rest of the app |
-| M12 | Thumbnails for avatars | BE-13 |
+| M12 | Thumbnails for avatars | ✅ `FeedAuthor.avatarUrl` uses `photoThumbUrl` |
 
 ## Tests
 
