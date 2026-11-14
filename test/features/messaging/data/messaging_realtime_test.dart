@@ -662,31 +662,37 @@ void main() {
     expect(thread.map((m) => m.id), ['m1']);
   });
 
-  test('delete for everyone calls the scoped API and drops the message', () async {
-    when(() => chat.deleteMessageForEveryone('m1')).thenAnswer((_) async {});
-    await openThread();
-    final res = await repo.deleteMessageForEveryone(
-      conversationId: 'c1',
-      messageId: 'm1',
-    );
-    expect(res.isRight(), isTrue);
-    await settle();
-    expect(thread.map((m) => m.id), ['m22']);
-    verify(() => chat.deleteMessageForEveryone('m1')).called(1);
-  });
+  test(
+    'delete for everyone calls the scoped API and drops the message',
+    () async {
+      when(() => chat.deleteMessageForEveryone('m1')).thenAnswer((_) async {});
+      await openThread();
+      final res = await repo.deleteMessageForEveryone(
+        conversationId: 'c1',
+        messageId: 'm1',
+      );
+      expect(res.isRight(), isTrue);
+      await settle();
+      expect(thread.map((m) => m.id), ['m22']);
+      verify(() => chat.deleteMessageForEveryone('m1')).called(1);
+    },
+  );
 
-  test('a delete-for-everyone that is too late fails with the message', () async {
-    when(() => chat.deleteMessageForEveryone('m1')).thenThrow(
-      const ForbiddenException('Too late to delete for everyone'),
-    );
-    await openThread();
-    final res = await repo.deleteMessageForEveryone(
-      conversationId: 'c1',
-      messageId: 'm1',
-    );
-    expect(res.isLeft(), isTrue);
-    expect(thread.map((m) => m.id), contains('m1'));
-  });
+  test(
+    'a delete-for-everyone that is too late fails with the message',
+    () async {
+      when(() => chat.deleteMessageForEveryone('m1')).thenThrow(
+        const ForbiddenException('Too late to delete for everyone'),
+      );
+      await openThread();
+      final res = await repo.deleteMessageForEveryone(
+        conversationId: 'c1',
+        messageId: 'm1',
+      );
+      expect(res.isLeft(), isTrue);
+      expect(thread.map((m) => m.id), contains('m1'));
+    },
+  );
 
   test('chatSlots.limit sets the slot limit (Gold = 10)', () async {
     expect(repo.slotLimit, 5);
@@ -806,20 +812,21 @@ void main() {
         'lastMessageAt': '2026-11-11T08:00:00.000Z',
         ...extra,
       };
-      void serve(Map<String, dynamic> extra) => when(
-        () => chat.fetchConversations(
-          page: any(named: 'page'),
-          limit: any(named: 'limit'),
-          archived: any(named: 'archived'),
-        ),
-      ).thenAnswer(
-        (_) async => ConversationsResponseDto.fromJson({
-          'data': {
-            'conversations': [row(extra)],
-            'pagination': {'hasNext': false},
-          },
-        }),
-      );
+      void serve(Map<String, dynamic> extra) =>
+          when(
+            () => chat.fetchConversations(
+              page: any(named: 'page'),
+              limit: any(named: 'limit'),
+              archived: any(named: 'archived'),
+            ),
+          ).thenAnswer(
+            (_) async => ConversationsResponseDto.fromJson({
+              'data': {
+                'conversations': [row(extra)],
+                'pagination': {'hasNext': false},
+              },
+            }),
+          );
 
       serve({'canMessage': false, 'blockedBy': 'them'});
       socket.conversationUpdatedC.add(
@@ -874,30 +881,31 @@ void main() {
   });
 
   group('closed chats', () {
-    void rowsAre(Map<String, dynamic> extra) => when(
-      () => chat.fetchConversations(
-        page: any(named: 'page'),
-        limit: any(named: 'limit'),
-        archived: any(named: 'archived'),
-      ),
-    ).thenAnswer(
-      (_) async => ConversationsResponseDto.fromJson({
-        'data': {
-          'conversations': [
-            {
-              '_id': 'c1',
-              'matchId': 'match1',
-              'partner': {'_id': 'peer', 'fullName': 'Amina'},
-              'lastMessagePreview': 'old',
-              'lastMessageSender': 'peer',
-              'lastMessageAt': '2026-11-11T08:00:00.000Z',
-              ...extra,
+    void rowsAre(Map<String, dynamic> extra) =>
+        when(
+          () => chat.fetchConversations(
+            page: any(named: 'page'),
+            limit: any(named: 'limit'),
+            archived: any(named: 'archived'),
+          ),
+        ).thenAnswer(
+          (_) async => ConversationsResponseDto.fromJson({
+            'data': {
+              'conversations': [
+                {
+                  '_id': 'c1',
+                  'matchId': 'match1',
+                  'partner': {'_id': 'peer', 'fullName': 'Amina'},
+                  'lastMessagePreview': 'old',
+                  'lastMessageSender': 'peer',
+                  'lastMessageAt': '2026-11-11T08:00:00.000Z',
+                  ...extra,
+                },
+              ],
+              'pagination': {'hasNext': false},
             },
-          ],
-          'pagination': {'hasNext': false},
-        },
-      }),
-    );
+          }),
+        );
 
     test('an open chat has no closure', () async {
       await openThread();

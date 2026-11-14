@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/feed/domain/domain.dart';
 import 'package:find_a_nikah/features/feed/presentation/bloc/feed_bloc.dart';
+import 'package:find_a_nikah/features/feed/presentation/bloc/post_page_result.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_compose_button.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_filter_chips.dart';
+import 'package:find_a_nikah/features/feed/presentation/widgets/feed_notice.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_actions_sheet.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_post_card.dart';
 import 'package:find_a_nikah/features/feed/presentation/widgets/feed_style.dart';
@@ -51,10 +55,14 @@ class _FeedViewState extends State<_FeedView> {
     setState(() => _searching = false);
   }
 
+  Future<void> _compose() async {
+    final bloc = context.read<FeedBloc>();
+    final post = await context.push<FeedPost>(RoutePaths.feedCompose);
+    if (post != null) bloc.add(FeedPostAdded(post));
+  }
+
   @override
   Widget build(BuildContext context) {
-    void comingSoon(String what) =>
-        CustomToast.showInfo(context, '$what — coming soon');
     final state = context.watch<FeedBloc>().state;
     // White header (status bar, title row, chips; Figma: 173pt tall), grey
     // page below it. Back closes search before leaving the tab.
@@ -63,54 +71,53 @@ class _FeedViewState extends State<_FeedView> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _closeSearch();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              FeedTopBar(
-                searching: _searching,
-                searchController: _search,
-                onSearch: () => setState(() => _searching = true),
-                onCloseSearch: _closeSearch,
-                onQueryChanged: (q) =>
-                    context.read<FeedBloc>().add(FeedQueryChanged(q)),
-                onNotifications: () => comingSoon('Notifications'),
-              ),
-              SizedBox(height: 14.w),
-              FeedFilterChips(
-                topics: state.topics,
-                selected: state.filter,
-                onSelected: (f) =>
-                    context.read<FeedBloc>().add(FeedFilterSelected(f)),
-              ),
-              SizedBox(height: 13.4.w),
-              Expanded(
-                child: ColoredBox(
-                  color: kFeedPageBackground,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(child: _Posts(onComingSoon: comingSoon)),
-                      if (!_searching)
-                        Positioned(
-                          right: 22.w,
-                          bottom: 48.5.w,
-                          child: FeedComposeButton(
-                            onTap: () async {
-                              final bloc = context.read<FeedBloc>();
-                              final post = await context.push<FeedPost>(
-                                RoutePaths.feedCompose,
-                              );
-                              if (post != null) bloc.add(FeedPostAdded(post));
-                            },
-                          ),
-                        ),
-                    ],
+      child: BlocListener<FeedBloc, FeedState>(
+        listenWhen: (a, b) => a.notice != b.notice,
+        listener: (context, state) => showFeedNotice(context, state.notice),
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                FeedTopBar(
+                  searching: _searching,
+                  searchController: _search,
+                  onSearch: () => setState(() => _searching = true),
+                  onCloseSearch: _closeSearch,
+                  onQueryChanged: (q) =>
+                      context.read<FeedBloc>().add(FeedQueryChanged(q)),
+                  onNotifications: () => CustomToast.showInfo(
+                    context,
+                    'Notifications — coming soon',
                   ),
                 ),
-              ),
-            ],
+                SizedBox(height: 14.w),
+                FeedFilterChips(
+                  topics: state.topics,
+                  selected: state.filter,
+                  onSelected: (f) =>
+                      context.read<FeedBloc>().add(FeedFilterSelected(f)),
+                ),
+                SizedBox(height: 13.4.w),
+                Expanded(
+                  child: ColoredBox(
+                    color: kFeedPageBackground,
+                    child: Stack(
+                      children: [
+                        const Positioned.fill(child: _Posts()),
+                        if (!_searching)
+                          Positioned(
+                            right: 22.w,
+                            bottom: 48.5.w,
+                            child: FeedComposeButton(onTap: _compose),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -118,63 +125,158 @@ class _FeedViewState extends State<_FeedView> {
   }
 }
 
-class _Posts extends StatelessWidget {
-  const _Posts({required this.onComingSoon});
+class _Posts extends StatefulWidget {
+  const _Posts();
 
-  final void Function(String what) onComingSoon;
+  @override
+  State<_Posts> createState() => _PostsState();
+}
+
+class _PostsState extends State<_Posts> {
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(() {
+      // Ask for the next page a screen before the end.
+      if (_scroll.position.extentAfter < 600) {
+        context.read<FeedBloc>().add(const FeedLoadMore());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() {
+    final done = Completer<void>();
+    context.read<FeedBloc>().add(FeedRefreshed(done));
+    return done.future;
+  }
+
+  Future<void> _open(FeedPost post) async {
+    final bloc = context.read<FeedBloc>();
+    final result = await context.push<PostPageResult>(
+      RoutePaths.feedPostPath(post.id),
+      extra: post,
+    );
+    if (result == null) return;
+    if (result.removedPostId case final id?) bloc.add(FeedPostRemoved(id));
+    if (result.hiddenUserId case final id?) bloc.add(FeedAuthorRemoved(id));
+    if (result.post case final p?) bloc.add(FeedPostChanged(p));
+  }
+
+  Future<void> _edit(FeedPost post) async {
+    final bloc = context.read<FeedBloc>();
+    final edited = await context.push<FeedPost>(
+      RoutePaths.feedCompose,
+      extra: post,
+    );
+    if (edited != null) bloc.add(FeedPostChanged(edited));
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FeedBloc>().state;
-    return switch (state.status) {
-      FeedStatus.initial || FeedStatus.loading => const AppLoadingView(),
-      FeedStatus.failure => AppErrorView(
-        title: state.failure!.title,
-        message: state.failure!.message,
+    final list = state.shown;
+    if (list.isIdle || list.isLoading) return const AppLoadingView();
+    if (list.hasFailed && list.items.isEmpty) {
+      return AppErrorView(
+        title: list.failure!.title,
+        message: list.failure!.message,
         retryLabel: 'Try again',
-        onRetry: () => context.read<FeedBloc>().add(const FeedSubscribed()),
-      ),
-      FeedStatus.ready when state.visiblePosts.isEmpty =>
-        state.query.trim().isEmpty
-            ? const AppMessageView(
-                title: 'No posts yet',
-                message: 'Posts in this topic will show up here.',
-              )
-            : AppMessageView(
+        onRetry: () => context.read<FeedBloc>().add(
+          state.searching
+              ? FeedQueryChanged(state.query)
+              : const FeedSubscribed(),
+        ),
+      );
+    }
+    if (list.items.isEmpty) {
+      // Still scrollable, so pull-to-refresh works on an empty feed.
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: 80.w),
+            if (state.searching)
+              AppMessageView(
                 title: 'No posts found',
                 message: 'Nothing matches “${state.query.trim()}”.',
+              )
+            else
+              const AppMessageView(
+                title: 'No posts yet',
+                message: 'Be the first to post in this topic.',
               ),
-      FeedStatus.ready => ListView.separated(
+          ],
+        ),
+      );
+    }
+    final bloc = context.read<FeedBloc>();
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView.separated(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
         // Figma: first card 16pt under the header, 16pt between cards; the
         // bottom clears the compose button.
         padding: EdgeInsets.fromLTRB(kFeedGutter, 16.w, kFeedGutter, 112.w),
-        itemCount: state.visiblePosts.length,
+        itemCount: list.items.length + (list.loadingMore ? 1 : 0),
         separatorBuilder: (_, _) => SizedBox(height: 16.w),
         itemBuilder: (context, i) {
-          final post = state.visiblePosts[i];
-          void open() =>
-              context.push<void>(RoutePaths.feedPost, extra: post).ignore();
+          if (i >= list.items.length) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.w),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          final post = list.items[i];
+          bloc.add(FeedPostSeen(post.id));
           return FeedPostCard(
             post: post,
             maxBodyLines: 4,
-            onTap: open,
-            onAuthorTap: () => context
-                .push<void>(RoutePaths.feedProfile, extra: post.author)
-                .ignore(),
-            onMore: () async {
-              final action = await showFeedPostActions(
-                context,
-                authorName: post.author.name,
-                canSave: true,
-              );
-              if (action != null) onComingSoon(action.name);
-            },
-            onLike: () => onComingSoon('Likes'),
-            onComment: open,
-            onShare: () => onComingSoon('Share'),
+            onTap: () => _open(post),
+            onAuthorTap: post.author.isMe
+                ? null
+                : () => context
+                      .push<void>(
+                        RoutePaths.feedProfilePath(post.author.userId),
+                        extra: post.author,
+                      )
+                      .ignore(),
+            onMore: () => showFeedPostMenu(
+              context,
+              post,
+              FeedPostHandlers(
+                onEdit: () => _edit(post),
+                onDelete: () => bloc.add(FeedPostDeleteRequested(post.id)),
+                onMute: () =>
+                    bloc.add(FeedAuthorMuteRequested(post.author.userId)),
+                onBlock: () =>
+                    bloc.add(FeedAuthorBlockRequested(post.author.userId)),
+                onReport: (reason) => bloc.add(
+                  FeedReportRequested(
+                    FeedReport(
+                      target: FeedReportTarget.post,
+                      reason: reason,
+                      postId: post.id,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            onLike: () => bloc.add(FeedPostLikeToggled(post.id)),
+            onComment: () => _open(post),
+            onShare: () => shareFeedLink(feedPostLink(post.id)),
           );
         },
       ),
-    };
+    );
   }
 }

@@ -53,7 +53,7 @@ String? appRedirect({
               isPhoneVerified: session.isPhoneVerified,
             ),
     Authenticated() =>
-      RoutePaths.app.contains(location) ? null : RoutePaths.marriage,
+      RoutePaths.isAppLocation(location) ? null : RoutePaths.marriage,
   };
   if (target != null) return target;
 

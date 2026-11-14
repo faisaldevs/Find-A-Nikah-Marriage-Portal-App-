@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'chat_api_dtos.g.dart';
 
-/// Wire formats of the chat REST API (`resources/docs/MESSAGING_API.md`).
+/// Wire formats of the chat REST API (`resources/docs/outdated/MESSAGING_API.md`).
 /// Every response is `{statusCode, data, message}`. These are the raw
 /// server shapes; `ConversationDto` / `ChatMessageDto` stay the dummy
 /// source's format.

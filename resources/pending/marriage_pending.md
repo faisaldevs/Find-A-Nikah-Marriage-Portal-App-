@@ -2,7 +2,7 @@
 
 **Feature:** `lib/features/marriage/` (first bottom-nav tab, the swipe deck)
 **Created:** 2026-11-12, from a full review of the feature
-**Backend asks (full detail, written for the backend team):** `resources/docs/NEED_FROM_BACKEND_MARRIAGE.md`
+**Backend asks (full detail, written for the backend team):** `resources/docs/outdated/NEED_FROM_BACKEND_MARRIAGE.md`
 **Older notes:** `resources/docs/PENDING.md` ("Marriage tab" sections), `resources/docs/MARRIAGE_SCREEN_PROGRESS.md`
 
 ## Backend reply received 2026-11-12

@@ -102,7 +102,7 @@ Ended → "Call ended" for 2s → back to chat, which gets a call line.
 **Added:** 2026-10-24 · **Status:** UI done on `DummyMessagingDataSource`
 (`assets/dummy/messaging.json`); waiting on backend
 
-Contract: `resources/docs/MESSAGING_API.md`.
+Contract: `resources/docs/outdated/MESSAGING_API.md`.
 
 Chat tab → Marriage lists active conversations over the free slots; empty
 slot → Matches panel → pick a match → it takes a slot on the list
@@ -215,7 +215,7 @@ It also returns `conversationId` / `messageId`, unused until Chat is real.
 **Added:** 2026-10-18 · **Status (2026-11-12): wired.** `di.dart` uses
 `MarriageCardsRepositoryImpl` (`/v1/profiles/cards`, swipe, undo,
 compliment, block, report); details load lazily. What's left waits on
-backend: `resources/docs/NEED_FROM_BACKEND_MARRIAGE.md`. The text below is
+backend: `resources/docs/outdated/NEED_FROM_BACKEND_MARRIAGE.md`. The text below is
 the original plan, kept for history.
 
 The Marriage tab still runs on `DummyMarriageDataSource` in dev
@@ -408,7 +408,7 @@ Built pixel-matched from Figma (`menu`, `menu_invite`, `menu_help`,
 - [x] **Edit mode (2026-10-31)** — Muzz-style: each row opens its own
       field page, Update enabled once something changes, saved with
       `PATCH /v1/profiles/me`. Plan, decisions and what's left:
-      `resources/docs/EDIT_PROFILE_PLAN.md`.
+      `resources/docs/outdated/EDIT_PROFILE_PLAN.md`.
 - [ ] **Still "coming soon" in Edit:** Current location (how to set it
       after onboarding is unconfirmed), adding / replacing photos (no
       upload endpoint confirmed). Use-as-main and delete work.
@@ -642,11 +642,12 @@ device checks C).
 
 ---
 
-## Feed — backend requirements + phased integration (planning)
+## Feed — integrated on the live API; follow-ups
 
-**Added:** 2026-11-14 · **Status:** planning only, 4 decisions open
+**Added:** 2026-11-14 · **Status:** built + unit-tested; core flows verified on a phone
 
-Full notes, phases, mobile gaps and open questions: `resources/docs/FEED_PLAN_NOTES.md`.
-- [ ] Answer open decisions (profile gate, @handle, name on posts, segmented switch).
-- [ ] Write `NEED_FROM_BACKEND_FEED.md` + `FEED_PROGRESS.md`.
-- [ ] Schedule `profile_view` before Feed Phase 4.
+All Feed docs: `resources/docs/feed/` (start at `README.md`; `PROGRESS.md` is the tracker).
+- [ ] Review + send `resources/docs/feed/NEED_FROM_BACKEND_FEED_V2.md` (BE-1…BE-17: seeded counts, wrong topic in create response, locked-profile sample, messaging field, deep links).
+- [ ] Finish the on-device checks marked ❌ in `07_VERIFICATION_LOG.md` (needs a locked/partial test viewer + seed data).
+- [ ] Shared `profile_view` to replace the Preview copy in the Feed.
+- [ ] Message button (needs BE-11), universal/app links (BE-9), followers/following lists, people search.

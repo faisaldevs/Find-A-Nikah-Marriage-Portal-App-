@@ -185,19 +185,39 @@ final List<RouteBase> appRoutes = [
 
   // Feed flow pages, over the bottom nav.
   GoRoute(
-    path: RoutePaths.feedPost,
-    builder: (_, state) => PostDetailPage(post: state.extra! as FeedPost),
+    path: RoutePaths.feedPostPattern,
+    builder: (_, state) => PostDetailPage(
+      postId: state.pathParameters['postId']!,
+      initial: state.extra is FeedPost ? state.extra! as FeedPost : null,
+    ),
+  ),
+  // More specific than the profile pattern, so listed first.
+  GoRoute(
+    path: RoutePaths.feedProfileSearchPattern,
+    builder: (_, state) => ProfileSearchPage(
+      userId: state.pathParameters['userId']!,
+      name: state.extra is FeedAuthor
+          ? (state.extra! as FeedAuthor).name
+          : null,
+      handle: state.extra is FeedAuthor
+          ? (state.extra! as FeedAuthor).handle
+          : null,
+    ),
   ),
   GoRoute(
-    path: RoutePaths.feedProfile,
-    builder: (_, state) => ProfilePage(author: state.extra! as FeedAuthor),
+    path: RoutePaths.feedProfilePattern,
+    builder: (_, state) => ProfilePage(
+      userId: state.pathParameters['userId']!,
+      author: state.extra is FeedAuthor ? state.extra! as FeedAuthor : null,
+    ),
   ),
   GoRoute(
-    path: RoutePaths.feedProfileSearch,
-    builder: (_, state) =>
-        ProfileSearchPage(author: state.extra! as FeedAuthor),
+    path: RoutePaths.feedCompose,
+    // `extra` is a post when editing, nothing when writing a new one.
+    builder: (_, state) => CreatePostPage(
+      editing: state.extra is FeedPost ? state.extra! as FeedPost : null,
+    ),
   ),
-  _page(RoutePaths.feedCompose, const CreatePostPage()),
 
   // Menu flow pages over the bottom nav (Figma: no nav bar on these).
   GoRoute(

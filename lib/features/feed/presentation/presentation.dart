@@ -1,5 +1,6 @@
 export 'bloc/create_post_bloc.dart';
 export 'bloc/feed_bloc.dart';
+export 'bloc/member_search_bloc.dart';
 export 'bloc/post_detail_bloc.dart';
 export 'bloc/profile_bloc.dart';
 export 'view/create_post_page.dart';
