@@ -70,6 +70,24 @@ abstract interface class MessagingRepository {
     required String messageId,
   });
 
+  /// Sends the recorded voice note at [path] ([duration] long, 1–120 s).
+  Future<Either<Failure, Unit>> sendAudio({
+    required String conversationId,
+    required String path,
+    required Duration duration,
+  });
+
+  /// Delete for everyone (sender only, within an hour): gone for both.
+  /// Fails with the server's message once the window has passed.
+  Future<Either<Failure, Unit>> deleteMessageForEveryone({
+    required String conversationId,
+    required String messageId,
+  });
+
+  /// Active-chat slots this user has (5 free, 10 Gold); the server's
+  /// `chatSlots.limit` once known.
+  int get slotLimit;
+
   /// Total unread messages across chats — the Chat tab's badge.
   Stream<int> watchUnreadCount();
 

@@ -23,7 +23,7 @@ enum _ChatTab { marriage, friends }
 
 /// Free plan's active-conversation slots (Figma "Active conversations
 /// (0/5)").
-const _slotCount = 5;
+// const _slotCount = 5; // now `ConversationsState.slotLimit` (server: 5 / 10)
 
 /// Fourth bottom-nav tab, "Your Chats" (Figma "chat_marriage" /
 /// "chat_friends empty state"). Marriage lists the active conversations
@@ -113,8 +113,18 @@ class _ChatViewState extends State<_ChatView> {
       listener: (context, state) {
         final failure = state.failure!;
         // 403 on opening a chat: no match yet and no paid entitlement.
-        if (failure is ForbiddenFailure) {
+        if (failure.base is ForbiddenFailure) {
           showChatGoldSheet(context).ignore();
+        } else if (failure.base is ConflictFailure) {
+          // 409: the active-chat limit is reached. Use the server's wording
+          // when it gave one.
+          CustomToast.showInfo(
+            context,
+            failure is ApiResponseFailure
+                ? failure.message
+                : 'You’ve reached your limit of active chats. Archive one '
+                      'to start another.',
+          );
         } else {
           showFailureToast(context, failure);
         }
@@ -360,6 +370,7 @@ class _MarriageTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<ConversationsBloc>().state;
     final conversations = state.conversations;
+    final slotCount = state.slotLimit;
     // final freeSlots =
     //     (_slotCount - conversations.length).clamp(0, _slotCount);
     final bySlot = {for (final c in conversations) c.slot: c};
@@ -422,14 +433,14 @@ class _MarriageTab extends StatelessWidget {
                       Text(
                         // 'Active conversations (0/$_slotCount)',
                         'Active conversations '
-                        '(${conversations.length}/$_slotCount)',
+                        '(${conversations.length}/$slotCount)',
                         style: figmaText(16, 22, weight: FontWeight.w700),
                       ),
                       SizedBox(height: 8.4.w),
                       Text(
                         'Your matches are added to your conversations when '
                         'you’ve both sent each other a message. You can only '
-                        'talk to $_slotCount people at a time.',
+                        'talk to $slotCount people at a time.',
                         style: figmaText(14, 20, color: kChatGrey500),
                       ),
                     ],
@@ -461,7 +472,7 @@ class _MarriageTab extends StatelessWidget {
                   // ],
                   // Rows are 72pt (56pt + 8pt padding) + 14pt gap = Figma's
                   // 86pt slot pitch.
-                  for (var i = 0; i < _slotCount; i++) ...[
+                  for (var i = 0; i < slotCount; i++) ...[
                     if (i > 0) SizedBox(height: 14.w),
                     if (bySlot[i] case final c?)
                       ConversationTile(

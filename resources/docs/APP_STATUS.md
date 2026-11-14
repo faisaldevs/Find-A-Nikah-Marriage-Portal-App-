@@ -38,8 +38,8 @@ live in `PENDING.md` — this file is the overview.
 | 7 | Marriage tab (swipe deck) | `features/marriage` | Live API | 🟡 ~65% |
 | 8 | Explore tab + My history | `features/explore` | Mixed live + dummy | 🟡 ~70% |
 | 9 | Feed tab (community posts) | `features/feed` | Dummy only | 🟡 ~35% (UI only) |
-| 10 | Chat tab (conversation list) | `features/chat` | Dummy only | 🟡 ~40% (UI only) |
-| 11 | Chat room (messaging) | `features/messaging` | Dummy only | 🟡 ~40% (UI only) |
+| 10 | Chat tab (conversation list) | `features/chat` | Live (REST + socket) | 🟢 ~85% |
+| 11 | Chat room (messaging) | `features/messaging` | Live (REST + socket) | 🟢 ~85% |
 | 12 | Voice calls | `features/calling` | Dummy only | 🟡 ~30% (UI only) |
 | 13 | Menu, Settings, Edit profile, Help | `features/menu` | Status API + dummy | 🟡 ~40% |
 | 14 | Remote config / force update | `features/remote_config` | Fake in dev | 🟡 ~60% |
@@ -198,30 +198,35 @@ Three progress sections, each a `ShellRoute` with header + progress bar.
 | Message an author | — | 🟠 | Coming soon |
 | Notifications bell | — | 🟠 | Coming soon |
 
-## 10. Chat tab — `features/chat` 🟡 (all dummy)
+## 10. Chat tab — `features/chat` 🟢 (live; updated 2026-11-14)
 
 | Page / function | Route | Status | What's left |
 |---|---|---|---|
-| Conversation list with 5 slots | `/chat` | 🟡 | Needs conversations API; 5-slot limit must be enforced server-side |
-| Matches sheet (start chat from a match) | (sheet) | 🟡 | Live list from `GET /v1/matches/my-matches` (2026-11-02); the chat it opens is still dummy |
-| Gold upsell sheet | (sheet) | 🟠 | Coming soon |
-| Unmatched profiles | `/chat/unmatched` | 🟡 | Empty state only; needs API |
-| Archived chats | `/chat/archived` | 🟡 | Empty state only; needs API |
-| Friends tab chats, conversation search, list "•••" menu | — | 🔴 | Not built |
+| Conversation list with 5 slots | `/chat` | 🟢 | Limit comes from `chatSlots.limit` (5 / 10); 409 shows the server message |
+| Matches sheet (start chat from a match) | (sheet) | 🟢 | `GET /v1/matches/my-matches` |
+| Gold upsell sheet | (sheet) | 🟡 | Shown on 403 when opening a chat; pricing/purchase "coming soon" |
+| Unmatched profiles | `/chat/unmatched` | 🟢 | Uses `GET /matches?status=unmatched` |
+| Archived chats | `/chat/archived` | 🟢 | |
+| Unread badge, refetch on resume | — | 🟢 | |
+| Friends tab chats | — | 🔴 | Empty state; backend decision (round 3 §8) |
+| Conversation search, list "•••" menu | — | 🔴 | Not built |
 
-## 11. Chat room — `features/messaging` 🟡 (all dummy)
+## 11. Chat room — `features/messaging` 🟢 (live; updated 2026-11-14)
 
 | Function | Status | What's left |
 |---|---|---|
-| Message list, send text, statuses (sending → seen) | 🟡 | Faked by `DummyMessagingDataSource` |
-| Typing indicator | 🟡 | Faked; needs socket |
-| Older messages on scroll-up (paging) | 🔴 | Needs cursor API |
-| Mark read | 🟡 | Faked |
-| `myId` from auth session | 🟡 | Uses fixture `meId` |
-| Offline message cache | 🔴 | Currently in-memory |
-| Attachments (+) / voice messages (mic) | 🟠 | Coming soon |
-| ⋮ menu: View profile, Mute, Clear chat, Unmatch, Block, Report | 🟠 | Coming soon |
-| Long-press: copy / delete / report / block | 🔴 | Not built |
+| Message list, send text, ticks (sending → sent → delivered → seen) | 🟢 | REST + socket |
+| Typing, presence / last seen | 🟢 | Presence flicker is a backend bug (round 2 §2) |
+| Older messages on scroll-up | 🟢 | Cursor `before` |
+| Replies (quote) | 🟢 | |
+| Image messages | 🟢 | |
+| Delete for me, copy, delete for everyone | 🟢 | Delete for everyone built 2026-11-14 (≤ 1 h, own messages) |
+| ⋮ menu: View profile, Mute, Clear chat, Archive, Unmatch, Block, Report | 🟢 | |
+| Composer closed on ended match / blocked | 🟢 | From a 403 on send, `my-matches` `canMessage:false`, or row `canMessage` / `blockedBy` (round 3 §1) |
+| `message:deleted`, `conversation:updated` socket events | 🟢 | Open room updates live |
+| Voice messages (record, send, play) | 🟢 | Built 2026-11-14; not yet verified on a device |
+| Offline message cache | 🔴 | Drift, app-side |
+| Push (FCM) | 🔴 | Needs backend answers (round 3 §6) |
 
 ## 12. Voice calls — `features/calling` 🟡 (all dummy)
 

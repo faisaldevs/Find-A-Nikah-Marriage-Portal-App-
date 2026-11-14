@@ -8,6 +8,8 @@
          capture (the old single-selfie path uses image_picker, which
          delegates to the system camera app and needs no entry here). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- features/messaging: voice messages (record). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="Find A Nikah"
         android:name="${applicationName}"

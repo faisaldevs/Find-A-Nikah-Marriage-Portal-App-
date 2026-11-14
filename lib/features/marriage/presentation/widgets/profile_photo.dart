@@ -10,6 +10,8 @@ class ProfilePhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A member with no photos: the placeholder, not a crash.
+    if (url.isEmpty) return const _PhotoPlaceholder();
     return Image.network(
       url,
       fit: BoxFit.cover,

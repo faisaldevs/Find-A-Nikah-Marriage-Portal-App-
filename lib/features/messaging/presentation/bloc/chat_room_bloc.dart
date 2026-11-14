@@ -51,11 +51,20 @@ final class ChatRoomImageSelected extends ChatRoomEvent {
   final String path;
 }
 
-/// Delete for me.
+/// A voice note was recorded (an AAC file) to send.
+final class ChatRoomVoiceRecorded extends ChatRoomEvent {
+  const ChatRoomVoiceRecorded(this.path, this.duration);
+
+  final String path;
+  final Duration duration;
+}
+
+/// Delete for me, or for everyone when [forEveryone].
 final class ChatRoomMessageDeleted extends ChatRoomEvent {
-  const ChatRoomMessageDeleted(this.message);
+  const ChatRoomMessageDeleted(this.message, {this.forEveryone = false});
 
   final ChatMessage message;
+  final bool forEveryone;
 }
 
 /// Resend a message that failed.
@@ -209,6 +218,7 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
       transformer: sequential(),
     );
     on<ChatRoomImageSelected>(_onImage, transformer: sequential());
+    on<ChatRoomVoiceRecorded>(_onVoice, transformer: sequential());
     on<ChatRoomMessageDeleted>(_onDeleted, transformer: sequential());
     on<ChatRoomRetryRequested>(_onRetry, transformer: sequential());
     on<ChatRoomBlockRequested>(_onBlock, transformer: droppable());
@@ -289,7 +299,7 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
   ) async {
     final text = event.text.trim();
     final id = state.conversationId;
-    if (text.isEmpty || id == null) return;
+    if (text.isEmpty || id == null || state.peer.closure != null) return;
     final quoted = state.replyingTo;
     emit(state.copyWith(replyingTo: null, failure: null));
     final sent = await _repo.sendMessage(
@@ -305,8 +315,22 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
     Emitter<ChatRoomState> emit,
   ) async {
     final id = state.conversationId;
-    if (id == null) return;
+    if (id == null || state.peer.closure != null) return;
     final sent = await _repo.sendImage(conversationId: id, path: event.path);
+    sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
+  }
+
+  Future<void> _onVoice(
+    ChatRoomVoiceRecorded event,
+    Emitter<ChatRoomState> emit,
+  ) async {
+    final id = state.conversationId;
+    if (id == null || state.peer.closure != null) return;
+    final sent = await _repo.sendAudio(
+      conversationId: id,
+      path: event.path,
+      duration: event.duration,
+    );
     sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
   }
 
@@ -316,10 +340,15 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
   ) async {
     final id = state.conversationId;
     if (id == null) return;
-    final done = await _repo.deleteMessage(
-      conversationId: id,
-      messageId: event.message.id,
-    );
+    final done = event.forEveryone
+        ? await _repo.deleteMessageForEveryone(
+            conversationId: id,
+            messageId: event.message.id,
+          )
+        : await _repo.deleteMessage(
+            conversationId: id,
+            messageId: event.message.id,
+          );
     done.match((f) => emit(state.copyWith(failure: f)), (_) {});
   }
 
@@ -334,8 +363,15 @@ class ChatRoomBloc extends Bloc<ChatRoomEvent, ChatRoomState> {
     if (id == null || m.status != MessageStatus.failed) return;
     await _repo.deleteMessage(conversationId: id, messageId: m.id);
     final imageUrl = m.imageUrl;
+    final audioUrl = m.audioUrl;
     final sent = imageUrl != null
         ? await _repo.sendImage(conversationId: id, path: imageUrl)
+        : audioUrl != null
+        ? await _repo.sendAudio(
+            conversationId: id,
+            path: audioUrl,
+            duration: m.audioDuration ?? const Duration(seconds: 1),
+          )
         : await _repo.sendMessage(conversationId: id, text: m.text);
     sent.match((f) => emit(state.copyWith(failure: f)), (_) {});
   }

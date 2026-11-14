@@ -33,6 +33,7 @@ class ConversationsState extends Equatable {
     this.status = ConversationsStatus.loading,
     this.conversations = const <Conversation>[],
     this.matches = const <ChatPeer>[],
+    this.slotLimit = 5,
     this.failure,
   });
 
@@ -44,6 +45,9 @@ class ConversationsState extends Equatable {
   /// Matches with no conversation yet — the Matches panel.
   final List<ChatPeer> matches;
 
+  /// Active-chat slots: 5 free, 10 Gold (the server's `chatSlots.limit`).
+  final int slotLimit;
+
   /// Set when starting a conversation fails; shown once by the listener.
   final Failure? failure;
 
@@ -51,12 +55,14 @@ class ConversationsState extends Equatable {
     ConversationsStatus? status,
     List<Conversation>? conversations,
     List<ChatPeer>? matches,
+    int? slotLimit,
     Object? failure = unchanged,
   }) {
     return ConversationsState(
       status: status ?? this.status,
       conversations: conversations ?? this.conversations,
       matches: matches ?? this.matches,
+      slotLimit: slotLimit ?? this.slotLimit,
       failure: identical(failure, unchanged)
           ? this.failure
           : failure as Failure?,
@@ -68,6 +74,7 @@ class ConversationsState extends Equatable {
     status,
     conversations,
     matches,
+    slotLimit,
     failure,
   ];
 }
@@ -99,6 +106,7 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
         onData: (c) => state.copyWith(
           status: ConversationsStatus.ready,
           conversations: c,
+          slotLimit: _repo.slotLimit,
         ),
         onError: (e, st) {
           addError(e, st);

@@ -38,6 +38,30 @@ class SocketPresence {
   final DateTime? lastActiveAt;
 }
 
+/// `message:deleted { conversationId, messageId }` — delete for everyone.
+class SocketDeleted {
+  const SocketDeleted({required this.conversationId, required this.messageId});
+
+  final String conversationId;
+  final String messageId;
+}
+
+/// `conversation:updated { conversationId, canMessage, blockedBy }` — an
+/// unmatch, block or unblock.
+class SocketConversationUpdated {
+  const SocketConversationUpdated({
+    required this.conversationId,
+    required this.canMessage,
+    this.blockedBy,
+  });
+
+  final String conversationId;
+  final bool canMessage;
+
+  /// `them` | `me` | null.
+  final String? blockedBy;
+}
+
 class SocketTyping {
   const SocketTyping({
     required this.conversationId,
@@ -64,6 +88,8 @@ abstract interface class ChatSocket {
   Stream<SocketReceipt> get seen;
   Stream<SocketTyping> get typing;
   Stream<SocketPresence> get presence;
+  Stream<SocketDeleted> get deleted;
+  Stream<SocketConversationUpdated> get conversationUpdated;
 
   /// True on every (re)connect, false on drop — a reconnect means events
   /// may have been missed, so the repository resyncs over REST.
@@ -113,6 +139,9 @@ class SocketIoChatSocket implements ChatSocket {
   final _seen = StreamController<SocketReceipt>.broadcast();
   final _typing = StreamController<SocketTyping>.broadcast();
   final _presence = StreamController<SocketPresence>.broadcast();
+  final _deleted = StreamController<SocketDeleted>.broadcast();
+  final _conversationUpdated =
+      StreamController<SocketConversationUpdated>.broadcast();
   final _connection = StreamController<bool>.broadcast();
 
   @override
@@ -125,6 +154,11 @@ class SocketIoChatSocket implements ChatSocket {
   Stream<SocketTyping> get typing => _typing.stream;
   @override
   Stream<SocketPresence> get presence => _presence.stream;
+  @override
+  Stream<SocketDeleted> get deleted => _deleted.stream;
+  @override
+  Stream<SocketConversationUpdated> get conversationUpdated =>
+      _conversationUpdated.stream;
   @override
   Stream<bool> get connection => _connection.stream;
 
@@ -172,7 +206,9 @@ class SocketIoChatSocket implements ChatSocket {
       ..on('message:read', (d) => _onReceipt(d, _seen))
       ..on('typing', (d) => _onTyping(d, typing: true))
       ..on('stop_typing', (d) => _onTyping(d, typing: false))
-      ..on('presence', _onPresence);
+      ..on('presence', _onPresence)
+      ..on('message:deleted', _onDeleted)
+      ..on('conversation:updated', _onConversationUpdated);
   }
 
   /// The handshake was refused (usually an expired JWT): refresh it, wait a
@@ -242,6 +278,33 @@ class SocketIoChatSocket implements ChatSocket {
         online: map['online'] == true,
         lastActiveAt: DateTime.tryParse('${map['lastActiveAt'] ?? ''}'),
       ),
+    );
+  }
+
+  void _onConversationUpdated(dynamic data) {
+    final map = _asMap(data);
+    final conversationId = map?['conversationId'];
+    final canMessage = map?['canMessage'];
+    if (conversationId is! String || canMessage is! bool) return;
+    final blockedBy = map?['blockedBy'];
+    _add(
+      _conversationUpdated,
+      SocketConversationUpdated(
+        conversationId: conversationId,
+        canMessage: canMessage,
+        blockedBy: blockedBy is String ? blockedBy : null,
+      ),
+    );
+  }
+
+  void _onDeleted(dynamic data) {
+    final map = _asMap(data);
+    final conversationId = map?['conversationId'];
+    final messageId = map?['messageId'];
+    if (conversationId is! String || messageId is! String) return;
+    _add(
+      _deleted,
+      SocketDeleted(conversationId: conversationId, messageId: messageId),
     );
   }
 
@@ -329,6 +392,8 @@ class SocketIoChatSocket implements ChatSocket {
       _seen.close(),
       _typing.close(),
       _presence.close(),
+      _deleted.close(),
+      _conversationUpdated.close(),
       _connection.close(),
     ]);
   }

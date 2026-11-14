@@ -57,6 +57,19 @@ final class MarriageComplimentSubmitted extends MarriageFeedEvent {
   final String text;
 }
 
+/// Footer "Block": blocks the current profile, then shows the next one.
+final class MarriageProfileBlocked extends MarriageFeedEvent {
+  const MarriageProfileBlocked();
+}
+
+/// Footer "Report": reports the current profile for [reason] (a code from
+/// [kReportReasons]). Stays on the profile.
+final class MarriageProfileReported extends MarriageFeedEvent {
+  const MarriageProfileReported(this.reason);
+
+  final String reason;
+}
+
 enum MarriageFeedStatus { initial, loading, ready, failure }
 
 enum ComplimentStatus { sending, sent }
@@ -80,8 +93,18 @@ enum MarriageFeedNotice {
   /// Undo on a profile that was liked.
   undoUnavailable,
 
-  /// A swipe/undo call failed — see [MarriageFeedState.actionFailure].
+  /// A swipe/undo/block/report call failed — see
+  /// [MarriageFeedState.actionFailure].
   actionFailed,
+
+  /// The current profile was blocked and is gone from the deck.
+  blocked,
+
+  /// The report was already filed earlier (the API answers 409).
+  alreadyReported,
+
+  /// A report went through.
+  reported,
 }
 
 class MarriageFeedState extends Equatable {
@@ -95,9 +118,12 @@ class MarriageFeedState extends Equatable {
     this.failure,
     this.swiped = const <String, SwipeAction>{},
     this.compliments = const <String, SentCompliment>{},
+    this.complimentDrafts = const <String, String>{},
     this.notice,
     this.actionFailure,
     this.matchedName,
+    this.matchedPhotoUrl,
+    this.matchedConversationId,
   });
 
   final MarriageFeedStatus status;
@@ -115,6 +141,10 @@ class MarriageFeedState extends Equatable {
   /// userId → the compliment sent to them (sending, then sent).
   final Map<String, SentCompliment> compliments;
 
+  /// userId → a compliment that failed to send, so the text is still there
+  /// to retry.
+  final Map<String, String> complimentDrafts;
+
   final MarriageFeedNotice? notice;
 
   /// With [MarriageFeedNotice.actionFailed].
@@ -123,10 +153,18 @@ class MarriageFeedState extends Equatable {
   /// Name of the profile behind [MarriageFeedNotice.matched].
   final String? matchedName;
 
+  /// Their photo and the chat the match opened (both may be null).
+  final String? matchedPhotoUrl;
+  final String? matchedConversationId;
+
   MarriageProfile? get current =>
       profiles.isEmpty ? null : profiles[index.clamp(0, profiles.length - 1)];
 
   bool get canGoBack => index > 0;
+
+  /// Whether a compliment already went out to [userId] (sending or sent):
+  /// the server counted it as a like, so there is nothing more to send.
+  bool isComplimented(String userId) => compliments.containsKey(userId);
 
   bool get reachedEnd => nextCursor == null;
 
@@ -140,9 +178,12 @@ class MarriageFeedState extends Equatable {
     Object? failure = unchanged,
     Map<String, SwipeAction>? swiped,
     Map<String, SentCompliment>? compliments,
+    Map<String, String>? complimentDrafts,
     Object? notice = unchanged,
     Object? actionFailure = unchanged,
     Object? matchedName = unchanged,
+    Object? matchedPhotoUrl = unchanged,
+    Object? matchedConversationId = unchanged,
   }) {
     return MarriageFeedState(
       status: status ?? this.status,
@@ -158,6 +199,7 @@ class MarriageFeedState extends Equatable {
           : failure as Failure?,
       swiped: swiped ?? this.swiped,
       compliments: compliments ?? this.compliments,
+      complimentDrafts: complimentDrafts ?? this.complimentDrafts,
       notice: identical(notice, unchanged)
           ? this.notice
           : notice as MarriageFeedNotice?,
@@ -167,6 +209,12 @@ class MarriageFeedState extends Equatable {
       matchedName: identical(matchedName, unchanged)
           ? this.matchedName
           : matchedName as String?,
+      matchedPhotoUrl: identical(matchedPhotoUrl, unchanged)
+          ? this.matchedPhotoUrl
+          : matchedPhotoUrl as String?,
+      matchedConversationId: identical(matchedConversationId, unchanged)
+          ? this.matchedConversationId
+          : matchedConversationId as String?,
     );
   }
 
@@ -181,9 +229,12 @@ class MarriageFeedState extends Equatable {
     failure,
     swiped,
     compliments,
+    complimentDrafts,
     notice,
     actionFailure,
     matchedName,
+    matchedPhotoUrl,
+    matchedConversationId,
   ];
 }
 
@@ -215,13 +266,16 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
       transformer: droppable(),
     );
     on<MarriageMoreRequested>(_onMore, transformer: droppable());
+    on<MarriageProfileBlocked>(_onBlocked, transformer: droppable());
+    on<MarriageProfileReported>(_onReported, transformer: droppable());
   }
 
   final MarriageRepository _feed;
   final DiscoveryFiltersRepository _filters;
 
-  /// Prefetch when this many profiles are left.
-  static const prefetchThreshold = 1;
+  /// Prefetch the next page when this many profiles are left (the server
+  /// cursor makes it cheap, so do it early enough to never show a spinner).
+  static const prefetchThreshold = 3;
 
   Future<void> _onSubscribed(
     MarriageFeedSubscribed event,
@@ -291,24 +345,94 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
   ) async {
     final profile = state.current;
     if (profile == null || state.status != MarriageFeedStatus.ready) return;
+    // Complimented already: the server counted it as a like and the profile
+    // has left the deck, so ✕/✓ only move on (a second swipe would be a
+    // duplicate).
+    if (state.swiped[profile.id] == SwipeAction.complement) {
+      _onAdvanced(const MarriageProfileAdvanced(), emit);
+      return;
+    }
     emit(state.copyWith(swiped: {...state.swiped, profile.id: action}));
     // On the last card the advance reloads the deck — wait for the swipe
     // to land first, or the reload would still include this profile.
     final last = state.reachedEnd && state.index >= state.profiles.length - 1;
     if (!last) _onAdvanced(const MarriageProfileAdvanced(), emit);
     final result = await _feed.swipe(action, targetUserId: profile.id);
-    if (last) _onAdvanced(const MarriageProfileAdvanced(), emit);
     result.fold(
-      (f) => _notify(
-        emit,
-        MarriageFeedNotice.actionFailed,
-        failure: f,
-      ),
+      (f) {
+        // Not recorded: bring the card back and forget the swipe, so
+        // undo doesn't rewind some other profile.
+        final i = state.profiles.indexWhere((p) => p.id == profile.id);
+        emit(
+          state.copyWith(
+            index: i < 0 ? state.index : i,
+            swiped: {...state.swiped}..remove(profile.id),
+          ),
+        );
+        _notify(emit, MarriageFeedNotice.actionFailed, failure: f);
+      },
       (outcome) {
+        if (last) _onAdvanced(const MarriageProfileAdvanced(), emit);
         if (outcome.isMatch) {
-          _notify(emit, MarriageFeedNotice.matched, name: profile.name);
+          _notify(
+            emit,
+            MarriageFeedNotice.matched,
+            match: outcome,
+            fallbackName: profile.name,
+          );
         }
       },
+    );
+  }
+
+  Future<void> _onBlocked(
+    MarriageProfileBlocked event,
+    Emitter<MarriageFeedState> emit,
+  ) async {
+    final profile = state.current;
+    if (profile == null || state.status != MarriageFeedStatus.ready) return;
+    final result = await _feed.block(profile.id);
+    result.fold(
+      (f) => _notify(emit, MarriageFeedNotice.actionFailed, failure: f),
+      (_) {
+        final wasLast = state.index >= state.profiles.length - 1;
+        final profiles = [...state.profiles]
+          ..removeWhere((p) => p.id == profile.id);
+        emit(
+          state.copyWith(
+            profiles: profiles,
+            index: profiles.isEmpty
+                ? 0
+                : state.index.clamp(0, profiles.length - 1),
+          ),
+        );
+        _notify(emit, MarriageFeedNotice.blocked);
+        if (wasLast || profiles.isEmpty) {
+          add(
+            state.reachedEnd
+                ? const MarriageDeckReloadRequested()
+                : const MarriageMoreRequested(),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _onReported(
+    MarriageProfileReported event,
+    Emitter<MarriageFeedState> emit,
+  ) async {
+    final profile = state.current;
+    if (profile == null || state.status != MarriageFeedStatus.ready) return;
+    final result = await _feed.report(profile.id, reason: event.reason);
+    result.fold(
+      (f) =>
+          f is ConflictFailure ||
+              (f is ApiResponseFailure && f.fallback is ConflictFailure)
+          // 409: reported before — say so instead of showing an error.
+          ? _notify(emit, MarriageFeedNotice.alreadyReported)
+          : _notify(emit, MarriageFeedNotice.actionFailed, failure: f),
+      (_) => _notify(emit, MarriageFeedNotice.reported),
     );
   }
 
@@ -320,11 +444,18 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
     final text = event.text.trim();
     if (profile == null || text.isEmpty) return;
     if (state.status != MarriageFeedStatus.ready) return;
+    // One compliment per profile: it already counts as a like.
+    if (state.isComplimented(profile.id)) return;
     void setCompliment(SentCompliment? c) => emit(
       state.copyWith(
         compliments: {...state.compliments}
           ..remove(profile.id)
           ..addAll({profile.id: ?c}),
+      ),
+    );
+    emit(
+      state.copyWith(
+        complimentDrafts: {...state.complimentDrafts}..remove(profile.id),
       ),
     );
     setCompliment(SentCompliment(text, ComplimentStatus.sending));
@@ -336,6 +467,12 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
     result.fold(
       (f) {
         setCompliment(null);
+        // Keep what was typed, so it is still there to send again.
+        emit(
+          state.copyWith(
+            complimentDrafts: {...state.complimentDrafts, profile.id: text},
+          ),
+        );
         _notify(emit, MarriageFeedNotice.actionFailed, failure: f);
       },
       (outcome) {
@@ -347,7 +484,12 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
         );
         setCompliment(SentCompliment(text, ComplimentStatus.sent));
         if (outcome.isMatch) {
-          _notify(emit, MarriageFeedNotice.matched, name: profile.name);
+          _notify(
+            emit,
+            MarriageFeedNotice.matched,
+            match: outcome,
+            fallbackName: profile.name,
+          );
         }
       },
     );
@@ -372,13 +514,16 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
     final result = await _feed.swipe(SwipeAction.undo);
     result.fold(
       (f) => _notify(emit, MarriageFeedNotice.actionFailed, failure: f),
-      (_) {
-        final i = state.profiles.indexWhere((p) => p.id == previous.id);
+      (outcome) {
+        // The server says which profile it brought back; fall back to the
+        // one we expect.
+        final id = outcome.rewoundUserId ?? previous.id;
+        final i = state.profiles.indexWhere((p) => p.id == id);
         if (i < 0) return;
         emit(
           state.copyWith(
             index: i,
-            swiped: {...state.swiped}..remove(previous.id),
+            swiped: {...state.swiped}..remove(id),
           ),
         );
       },
@@ -391,13 +536,26 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
     Emitter<MarriageFeedState> emit,
     MarriageFeedNotice notice, {
     Failure? failure,
-    String? name,
+    SwipeOutcome? match,
+    String? fallbackName,
   }) {
     emit(
-      state.copyWith(notice: notice, actionFailure: failure, matchedName: name),
+      state.copyWith(
+        notice: notice,
+        actionFailure: failure,
+        matchedName: match?.matchedName ?? fallbackName,
+        matchedPhotoUrl: match?.matchedPhotoUrl,
+        matchedConversationId: match?.conversationId,
+      ),
     );
     emit(
-      state.copyWith(notice: null, actionFailure: null, matchedName: null),
+      state.copyWith(
+        notice: null,
+        actionFailure: null,
+        matchedName: null,
+        matchedPhotoUrl: null,
+        matchedConversationId: null,
+      ),
     );
   }
 
@@ -419,7 +577,13 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
         // Keep what's loaded; the next advance retries.
         (_) => state.copyWith(loadingMore: false),
         (page) => state.copyWith(
-          profiles: [...state.profiles, ...page.items],
+          profiles: [
+            ...state.profiles,
+            // A cursor page can repeat a card that is still in the deck.
+            ...page.items.where(
+              (n) => !state.profiles.any((p) => p.id == n.id),
+            ),
+          ],
           nextCursor: page.nextCursor,
           loadingMore: false,
         ),

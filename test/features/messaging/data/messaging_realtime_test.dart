@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:dio/dio.dart' show MultipartFile;
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/network/api_exception.dart';
 import 'package:find_a_nikah/features/messaging/data/data.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/blocks_dto.dart';
 import 'package:find_a_nikah/features/messaging/data/dtos/chat_api_dtos.dart';
@@ -93,6 +96,9 @@ class _FakeSocket implements ChatSocket {
   final seenC = StreamController<SocketReceipt>.broadcast();
   final typingC = StreamController<SocketTyping>.broadcast();
   final presenceC = StreamController<SocketPresence>.broadcast();
+  final deletedC = StreamController<SocketDeleted>.broadcast();
+  final conversationUpdatedC =
+      StreamController<SocketConversationUpdated>.broadcast();
   final connectionC = StreamController<bool>.broadcast();
 
   final emitted = <String>[];
@@ -109,6 +115,11 @@ class _FakeSocket implements ChatSocket {
   Stream<SocketTyping> get typing => typingC.stream;
   @override
   Stream<SocketPresence> get presence => presenceC.stream;
+  @override
+  Stream<SocketDeleted> get deleted => deletedC.stream;
+  @override
+  Stream<SocketConversationUpdated> get conversationUpdated =>
+      conversationUpdatedC.stream;
   @override
   Stream<bool> get connection => connectionC.stream;
   @override
@@ -177,6 +188,7 @@ void main() {
     registerFallbackValue(const ArchiveBodyDto(archived: true));
     registerFallbackValue(const MuteBodyDto(muted: true));
     registerFallbackValue(const SendMessageBodyDto(text: ''));
+    registerFallbackValue(MultipartFile.fromBytes(const [0]));
   });
 
   setUp(() {
@@ -638,6 +650,311 @@ void main() {
     await settle();
     expect(thread.map((m) => m.id), ['m1']);
     verify(() => chat.deleteMessage('m22')).called(1);
+  });
+
+  test('a message:deleted event removes it from the thread', () async {
+    await openThread();
+    expect(thread.map((m) => m.id), contains('m22'));
+    socket.deletedC.add(
+      const SocketDeleted(conversationId: 'c1', messageId: 'm22'),
+    );
+    await settle();
+    expect(thread.map((m) => m.id), ['m1']);
+  });
+
+  test('delete for everyone calls the scoped API and drops the message', () async {
+    when(() => chat.deleteMessageForEveryone('m1')).thenAnswer((_) async {});
+    await openThread();
+    final res = await repo.deleteMessageForEveryone(
+      conversationId: 'c1',
+      messageId: 'm1',
+    );
+    expect(res.isRight(), isTrue);
+    await settle();
+    expect(thread.map((m) => m.id), ['m22']);
+    verify(() => chat.deleteMessageForEveryone('m1')).called(1);
+  });
+
+  test('a delete-for-everyone that is too late fails with the message', () async {
+    when(() => chat.deleteMessageForEveryone('m1')).thenThrow(
+      const ForbiddenException('Too late to delete for everyone'),
+    );
+    await openThread();
+    final res = await repo.deleteMessageForEveryone(
+      conversationId: 'c1',
+      messageId: 'm1',
+    );
+    expect(res.isLeft(), isTrue);
+    expect(thread.map((m) => m.id), contains('m1'));
+  });
+
+  test('chatSlots.limit sets the slot limit (Gold = 10)', () async {
+    expect(repo.slotLimit, 5);
+    when(
+      () => chat.fetchConversations(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        archived: any(named: 'archived'),
+      ),
+    ).thenAnswer(
+      (_) async => ConversationsResponseDto.fromJson({
+        'data': {
+          'conversations': <Map<String, dynamic>>[],
+          'pagination': {'hasNext': false},
+          'chatSlots': {'limit': 10, 'used': 3},
+        },
+      }),
+    );
+    await repo.refresh();
+    expect(repo.slotLimit, 10);
+  });
+
+  test('media rows get a readable preview from lastMessageType', () async {
+    when(
+      () => chat.fetchConversations(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        archived: any(named: 'archived'),
+      ),
+    ).thenAnswer(
+      (_) async => ConversationsResponseDto.fromJson({
+        'data': {
+          'conversations': [
+            {
+              '_id': 'c1',
+              'partner': {'_id': 'peer', 'fullName': 'Amina'},
+              'lastMessagePreview': 'http://x/voice.m4a',
+              'lastMessageType': 'audio',
+              'lastMessageSender': 'peer',
+              'lastMessageAt': '2026-11-11T08:00:00.000Z',
+            },
+          ],
+          'pagination': {'hasNext': false},
+        },
+      }),
+    );
+    await openThread();
+    expect(list.single.lastMessage!.text, 'Voice message');
+  });
+
+  test('audio messages map to a playable url and duration', () async {
+    when(
+      () => chat.fetchMessages(
+        any(),
+        limit: any(named: 'limit'),
+        before: any(named: 'before'),
+      ),
+    ).thenAnswer(
+      (_) async => MessagesResponseDto.fromJson({
+        'data': {
+          'messages': [
+            {
+              ..._msg('m5', from: 'peer', text: ''),
+              'messageType': 'audio',
+              'attachmentUrl': '/public/upload/v.m4a',
+              'durationSeconds': 45,
+            },
+          ],
+          'hasMore': false,
+        },
+      }),
+    );
+    await openThread();
+    final m = byId('m5');
+    expect(m.isAudio, isTrue);
+    expect(m.audioUrl, 'https://api.test/public/upload/v.m4a');
+    expect(m.audioDuration, const Duration(seconds: 45));
+  });
+
+  test('sending a voice note uploads it and shows it once', () async {
+    final file = File('${Directory.systemTemp.path}/voice_test.m4a')
+      ..writeAsBytesSync([1, 2, 3]);
+    addTearDown(file.deleteSync);
+    when(() => chat.sendAudio(any(), any(), any())).thenAnswer(
+      (_) async => SendMessageResponseDto.fromJson({
+        'data': {
+          ..._msg('m9', from: 'me', text: ''),
+          'messageType': 'audio',
+          'attachmentUrl': '/public/upload/v.m4a',
+          'durationSeconds': 7,
+        },
+      }),
+    );
+    await openThread();
+    final res = await repo.sendAudio(
+      conversationId: 'c1',
+      path: file.path,
+      duration: const Duration(seconds: 7),
+    );
+    expect(res.isRight(), isTrue);
+    await settle();
+    verify(() => chat.sendAudio('c1', any(), '7')).called(1);
+    expect(thread.where((m) => m.isAudio), hasLength(1));
+    expect(byId('m9').audioDuration, const Duration(seconds: 7));
+  });
+
+  group('conversation:updated', () {
+    test('closes an open chat at once and reopens it', () async {
+      await openThread();
+      expect(list.single.peer.closure, isNull);
+
+      Map<String, dynamic> row(Map<String, dynamic> extra) => {
+        '_id': 'c1',
+        'partner': {'_id': 'peer', 'fullName': 'Amina'},
+        'lastMessagePreview': 'old',
+        'lastMessageSender': 'peer',
+        'lastMessageAt': '2026-11-11T08:00:00.000Z',
+        ...extra,
+      };
+      void serve(Map<String, dynamic> extra) => when(
+        () => chat.fetchConversations(
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+          archived: any(named: 'archived'),
+        ),
+      ).thenAnswer(
+        (_) async => ConversationsResponseDto.fromJson({
+          'data': {
+            'conversations': [row(extra)],
+            'pagination': {'hasNext': false},
+          },
+        }),
+      );
+
+      serve({'canMessage': false, 'blockedBy': 'them'});
+      socket.conversationUpdatedC.add(
+        const SocketConversationUpdated(
+          conversationId: 'c1',
+          canMessage: false,
+          blockedBy: 'them',
+        ),
+      );
+      await settle();
+      expect(list.single.peer.closure, ChatClosure.blocked);
+
+      serve({'canMessage': true});
+      socket.conversationUpdatedC.add(
+        const SocketConversationUpdated(
+          conversationId: 'c1',
+          canMessage: true,
+        ),
+      );
+      await settle();
+      expect(list.single.peer.closure, isNull);
+    });
+
+    test('blocked by me maps to its own closure', () async {
+      when(
+        () => chat.fetchConversations(
+          page: any(named: 'page'),
+          limit: any(named: 'limit'),
+          archived: any(named: 'archived'),
+        ),
+      ).thenAnswer(
+        (_) async => ConversationsResponseDto.fromJson({
+          'data': {
+            'conversations': [
+              {
+                '_id': 'c1',
+                'partner': {'_id': 'peer', 'fullName': 'Amina'},
+                'lastMessagePreview': 'old',
+                'lastMessageSender': 'peer',
+                'lastMessageAt': '2026-11-11T08:00:00.000Z',
+                'canMessage': false,
+                'blockedBy': 'me',
+              },
+            ],
+            'pagination': {'hasNext': false},
+          },
+        }),
+      );
+      await openThread();
+      expect(list.single.peer.closure, ChatClosure.blockedByMe);
+    });
+  });
+
+  group('closed chats', () {
+    void rowsAre(Map<String, dynamic> extra) => when(
+      () => chat.fetchConversations(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        archived: any(named: 'archived'),
+      ),
+    ).thenAnswer(
+      (_) async => ConversationsResponseDto.fromJson({
+        'data': {
+          'conversations': [
+            {
+              '_id': 'c1',
+              'matchId': 'match1',
+              'partner': {'_id': 'peer', 'fullName': 'Amina'},
+              'lastMessagePreview': 'old',
+              'lastMessageSender': 'peer',
+              'lastMessageAt': '2026-11-11T08:00:00.000Z',
+              ...extra,
+            },
+          ],
+          'pagination': {'hasNext': false},
+        },
+      }),
+    );
+
+    test('an open chat has no closure', () async {
+      await openThread();
+      expect(list.single.peer.closure, isNull);
+    });
+
+    test('canMessage:false + blockedBy them → blocked', () async {
+      rowsAre({'canMessage': false, 'blockedBy': 'them'});
+      await openThread();
+      expect(list.single.peer.closure, ChatClosure.blocked);
+    });
+
+    test('canMessage:false alone → unmatched', () async {
+      rowsAre({'canMessage': false});
+      await openThread();
+      expect(list.single.peer.closure, ChatClosure.unmatched);
+    });
+
+    test('an ended match in my-matches closes the chat', () async {
+      await repo.dispose();
+      repo = _repoWith([_match('peer', canMessage: false)]);
+      await openThread();
+      expect(list.single.peer.closure, ChatClosure.unmatched);
+    });
+
+    test('a 403 on send closes the chat; re-entering retries', () async {
+      when(() => chat.sendMessage(any(), any())).thenThrow(
+        const ForbiddenException('You cannot message this member'),
+      );
+      await openThread();
+      final res = await repo.sendMessage(conversationId: 'c1', text: 'hi');
+      expect(res.isLeft(), isTrue);
+      await settle();
+      expect(list.single.peer.closure, ChatClosure.unavailable);
+      // The row says nothing either way: the mark survives a refresh.
+      await repo.refresh();
+      await settle();
+      expect(list.single.peer.closure, ChatClosure.unavailable);
+
+      repo.enterConversation('c1');
+      await settle();
+      expect(list.single.peer.closure, isNull);
+    });
+
+    test('an explicit canMessage:true clears an earlier 403', () async {
+      when(() => chat.sendMessage(any(), any())).thenThrow(
+        const ForbiddenException(),
+      );
+      await openThread();
+      await repo.sendMessage(conversationId: 'c1', text: 'hi');
+      await settle();
+      expect(list.single.peer.closure, ChatClosure.unavailable);
+      rowsAre({'canMessage': true});
+      await repo.refresh();
+      await settle();
+      expect(list.single.peer.closure, isNull);
+    });
   });
 
   test('archiving frees the slot; fetchArchived asks for archived', () async {

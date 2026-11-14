@@ -85,3 +85,12 @@ final class DeviceFailure extends Failure {
 final class UnknownFailure extends Failure {
   const UnknownFailure();
 }
+
+extension FailureBase on Failure {
+  /// The category behind an [ApiResponseFailure]: the server's message wraps
+  /// a [ForbiddenFailure] / [ConflictFailure], so `is` checks go through here.
+  Failure get base => switch (this) {
+    ApiResponseFailure(:final fallback) => fallback.base,
+    _ => this,
+  };
+}

@@ -1,17 +1,19 @@
 import 'package:find_a_nikah/core/core.dart';
+import 'package:find_a_nikah/core/utils/profile_mapping.dart';
 import 'package:find_a_nikah/features/discovery/domain/domain.dart';
 import 'package:find_a_nikah/features/marriage/data/datasources/marriage_cards_remote_data_source.dart';
 import 'package:find_a_nikah/features/marriage/data/dtos/profile_card_dto.dart';
 import 'package:find_a_nikah/features/marriage/data/dtos/profile_card_mapper.dart';
 import 'package:find_a_nikah/features/marriage/domain/domain.dart';
 
-/// Marriage feed on the real API: one `GET /v1/profiles/cards`, then each
-/// card's full profile (`GET /v1/profiles/{userId}`, in parallel) for the
-/// sections the card leaves out. A failed detail call keeps the card with
-/// what it has rather than dropping it.
+/// Marriage feed on the real API: `GET /v1/profiles/cards`, cursor-paged.
+/// Each card already carries every profile section (intentions, languages,
+/// verification flags, …), so there is no per-card `GET /profiles/{userId}`
+/// any more (it was 1 + N requests per deck; the lazy-loading stop-gap that
+/// followed is gone too).
 class MarriageCardsRepositoryImpl implements MarriageRepository {
   /// [_imageBaseUrl]: server root that `/public/upload/...` paths hang off.
-  const MarriageCardsRepositoryImpl(
+  MarriageCardsRepositoryImpl(
     this._remote,
     this._guard,
     this._imageBaseUrl,
@@ -21,11 +23,6 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
   final Guard _guard;
   final String _imageBaseUrl;
 
-  /// The API has no paging parameter (page/offset/skip are ignored), so the
-  /// whole deck is fetched in one go and `nextCursor` is
-  /// always null — the bloc then loops at the end.
-  // TODO(api): page properly once the backend supports it (or once swipes
-  // remove seen cards from the deck, refetch on `hasMore`).
   static const deckSize = 20;
 
   @override
@@ -33,16 +30,16 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
     required DiscoveryFilters filters,
     String? cursor,
   }) => _guard(() async {
-    final cards = (await _remote.fetchCards(filtersToQuery(filters))).data;
-    final details = await Future.wait<ProfileDetailDto?>(
-      cards.cards.map(_detailOrNull),
-    );
+    final data = (await _remote.fetchCards(
+      filtersToQuery(filters, cursor: cursor),
+    )).data;
     return (
       items: [
-        for (final (i, card) in cards.cards.indexed)
-          card.toEntity(imageBaseUrl: _imageBaseUrl, detail: details[i]),
+        for (final card in data.cards)
+          card.toEntity(imageBaseUrl: _imageBaseUrl),
       ],
-      nextCursor: null,
+      // The last page has no cursor (or `hasMore: false`).
+      nextCursor: data.hasMore ? data.nextCursor : null,
     );
   });
 
@@ -59,22 +56,50 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
         text: text,
       ).toJson(),
     );
-    return (isMatch: res.data?.isMatch ?? false);
+    final d = res.data;
+    return SwipeOutcome(
+      isMatch: d?.isMatch ?? false,
+      matchedName: d?.matchedUser?.fullName,
+      matchedPhotoUrl: switch (d?.matchedUser?.photoUrl) {
+        final String url when url.isNotEmpty => resolveImageUrl(
+          _imageBaseUrl,
+          url,
+        ),
+        _ => null,
+      },
+      conversationId: d?.conversationId,
+      rewoundUserId: d?.rewoundUserId,
+    );
   });
 
-  Future<ProfileDetailDto?> _detailOrNull(ProfileCardDto card) async {
-    try {
-      return (await _remote.fetchProfile(card.userId)).data.profile;
-    } on Object {
-      return null;
-    }
-  }
+  @override
+  Future<Either<Failure, Unit>> block(String userId) => _guard(() async {
+    await _remote.block(userId);
+    return unit;
+  });
 
-  /// Confirmed against the API: `limit`, `minAge`/`maxAge`, and `country`
-  /// as a country *name*. Distance and ethnicity filters aren't applied
-  /// server-side yet (no location stored; `ethnicity` param unconfirmed),
-  /// so they're not sent.
-  static Map<String, dynamic> filtersToQuery(DiscoveryFilters f) {
+  @override
+  Future<Either<Failure, Unit>> report(
+    String userId, {
+    required String reason,
+    String? description,
+  }) => _guard(() async {
+    await _remote.report({
+      'reportedUserId': userId,
+      'reason': reason,
+      'description': ?description,
+    });
+    return unit;
+  });
+
+  /// `limit`, `cursor`, `minAge`/`maxAge`, `country` (a country *name*) and
+  /// `maxDistanceMiles` (the server converts it). The ethnicity filter is
+  /// not sent yet: the backend example uses names like "Bengali" while the
+  /// app stores country codes — waiting on the real value set.
+  static Map<String, dynamic> filtersToQuery(
+    DiscoveryFilters f, {
+    String? cursor,
+  }) {
     final countryCode = switch (f.locationMode) {
       LocationFilterMode.country => f.countryCode,
       LocationFilterMode.distance when f.limitToHomeCountry => kHomeCountryCode,
@@ -82,6 +107,9 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
     };
     return {
       'limit': deckSize,
+      'cursor': ?cursor,
+      if (f.locationMode == LocationFilterMode.distance && !f.isEverywhere)
+        'maxDistanceMiles': f.distanceMiles.round(),
       if (!f.isAnyAge) ...{'minAge': f.minAge, 'maxAge': f.maxAge},
       if (countryCode != null) 'country': _countryName(countryCode),
     };

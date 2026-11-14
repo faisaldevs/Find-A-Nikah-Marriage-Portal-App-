@@ -186,6 +186,22 @@ class DummyMessagingRepositoryImpl implements MessagingRepository {
   }) async => right(unit);
 
   @override
+  Future<Either<Failure, Unit>> sendAudio({
+    required String conversationId,
+    required String path,
+    required Duration duration,
+  }) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> deleteMessageForEveryone({
+    required String conversationId,
+    required String messageId,
+  }) async => right(unit);
+
+  @override
+  int get slotLimit => 5;
+
+  @override
   Stream<int> watchUnreadCount() => Stream<int>.value(0);
 
   @override

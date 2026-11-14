@@ -29,7 +29,7 @@ class ProfileHero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ProfilePhoto(url: profile.photoUrls.first),
+          ProfilePhoto(url: profile.photoUrls.firstOrNull ?? ''),
           // Keeps the white text readable on any photo.
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -173,7 +173,10 @@ class _ProfileSummary extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                '${profile.name}, ${profile.age}',
+                // No age from the API → just the name, never ", 0".
+                profile.age > 0
+                    ? '${profile.name}, ${profile.age}'
+                    : profile.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 // Explicit line heights throughout: Satoshi's 0.1em line

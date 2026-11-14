@@ -33,6 +33,7 @@ class ConversationsDataDto {
   const ConversationsDataDto({
     this.conversations = const [],
     this.pagination = const ApiPaginationDto(),
+    this.chatSlots,
   });
 
   factory ConversationsDataDto.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +41,21 @@ class ConversationsDataDto {
 
   final List<ConversationRowDto> conversations;
   final ApiPaginationDto pagination;
+
+  /// Active-chat limit and use; null on an older server.
+  final ChatSlotsDto? chatSlots;
+}
+
+/// `chatSlots: { limit, used }`.
+@JsonSerializable(createToJson: false)
+class ChatSlotsDto {
+  const ChatSlotsDto({this.limit = 5, this.used = 0});
+
+  factory ChatSlotsDto.fromJson(Map<String, dynamic> json) =>
+      _$ChatSlotsDtoFromJson(json);
+
+  final int limit;
+  final int used;
 }
 
 /// A list row: the raw conversation plus `partner` and `unreadCount`.
@@ -54,6 +70,9 @@ class ConversationRowDto {
     this.lastMessageSender,
     this.unreadCount = 0,
     this.isMuted = false,
+    this.canMessage,
+    this.blockedBy,
+    this.lastMessageType,
   });
 
   factory ConversationRowDto.fromJson(Map<String, dynamic> json) =>
@@ -76,6 +95,16 @@ class ConversationRowDto {
 
   /// The caller muted this thread.
   final bool isMuted;
+
+  /// Null when the server doesn't say (older API): treated as open. False
+  /// once the match ended or either side blocked.
+  final bool? canMessage;
+
+  /// `"them"` when the peer blocked the caller, `"me"` for the reverse.
+  final String? blockedBy;
+
+  /// `text` | `image` | `audio`; null on an older server.
+  final String? lastMessageType;
 }
 
 @JsonSerializable(createToJson: false)
@@ -181,6 +210,8 @@ class MessageDto {
     this.deliveredAt,
     this.seenAt,
     this.deletedForMe = false,
+    this.deletedForEveryone = false,
+    this.durationSeconds,
     this.replyToId,
     this.replyTo,
   });
@@ -195,7 +226,7 @@ class MessageDto {
   final String? receiverId;
   final String text;
 
-  /// `text` or `image`.
+  /// `text`, `image` or `audio`.
   final String messageType;
 
   /// Server-relative (`/public/upload/...`) for an image message.
@@ -208,6 +239,12 @@ class MessageDto {
 
   /// The caller deleted it (for themselves); hide it.
   final bool deletedForMe;
+
+  /// The sender deleted it for both sides (not shipped yet; hide it).
+  final bool deletedForEveryone;
+
+  /// Length of a voice message (1–120).
+  final int? durationSeconds;
   final DateTime createdAt;
 
   /// The quoted message, populated by the server on every read.
@@ -226,6 +263,7 @@ class ReplyToDto {
     this.messageType = 'text',
     this.text = '',
     this.deletedForMe = false,
+    this.deletedForEveryone = false,
   });
 
   factory ReplyToDto.fromJson(Map<String, dynamic> json) =>
@@ -237,6 +275,7 @@ class ReplyToDto {
   final String messageType;
   final String text;
   final bool deletedForMe;
+  final bool deletedForEveryone;
 }
 
 /// `PATCH .../delivered|seen` and `GET /messages/unread-count`.

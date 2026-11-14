@@ -82,6 +82,21 @@ class PeerProfile extends Equatable {
   ];
 }
 
+/// Why a conversation no longer takes new messages.
+enum ChatClosure {
+  /// The match ended (either side unmatched).
+  unmatched,
+
+  /// The peer blocked this user.
+  blocked,
+
+  /// This user blocked the peer.
+  blockedByMe,
+
+  /// The server refused a send (403) without saying why.
+  unavailable,
+}
+
 /// The other person in a conversation (or a match not chatted with yet) —
 /// enough to draw the avatar row and the chat header.
 class ChatPeer extends Equatable {
@@ -93,6 +108,7 @@ class ChatPeer extends Equatable {
     this.lastSeenAt,
     this.matchId,
     this.profile,
+    this.closure,
   });
 
   final String id;
@@ -110,6 +126,9 @@ class ChatPeer extends Equatable {
   /// Null when the source had no profile (e.g. a chat opened before a match).
   final PeerProfile? profile;
 
+  /// Null while the chat is open for new messages.
+  final ChatClosure? closure;
+
   ChatPeer copyWith({
     String? id,
     String? name,
@@ -118,6 +137,7 @@ class ChatPeer extends Equatable {
     Object? lastSeenAt = unchanged,
     Object? matchId = unchanged,
     Object? profile = unchanged,
+    Object? closure = unchanged,
   }) {
     return ChatPeer(
       id: id ?? this.id,
@@ -133,6 +153,9 @@ class ChatPeer extends Equatable {
       profile: identical(profile, unchanged)
           ? this.profile
           : profile as PeerProfile?,
+      closure: identical(closure, unchanged)
+          ? this.closure
+          : closure as ChatClosure?,
     );
   }
 
@@ -145,6 +168,7 @@ class ChatPeer extends Equatable {
     lastSeenAt,
     matchId,
     profile,
+    closure,
   ];
 }
 

@@ -1,0 +1,1472 @@
+<USER_REQUEST>
+# Chat — remaining backend requests (round 3)
+
+**Audience:** the engineer / AI who owns the Find A Nikah backend (Node / Express / Socket.IO / MongoDB).
+**Written:** 2026-11-14 by the mobile (Flutter) side, after auditing the chat code against rounds 1 and 2.
+**Basis:** `NEED_FROM_BACKEND.md` (round 1), `NEED_FROM_BACKEND_CHAT_ROUND2.md` (round 2) and what the app does today. Items already shipped and verified are not repeated.
+
+Format: **Today** (what the app sees), **Need**, **App**. `P0` = a visible bug, `P1` = needed to finish a feature, `P2` = later.
+
+Test accounts as before: `user@example.com` (id `6af4469dac7e106dffb18fc4`), `user1@example.com` (id `6af44cb2ac7e106dffb19077`), password `user1234`.
+
+---
+
+## 0. Still open from round 2 (please confirm status)
+
+The app has **not** re-tested these since round 2. Reply with "fixed" or "won't fix" per item.
+
+| R2 § | Item | Why the app cares |
+|---|---|---|
+| 1 | `GET /matches/unmatched` returns ACTIVE matches | App uses `?status=unmatched`; both routes must agree. |
+| 2 | Presence goes offline when one of two sockets drops | Header flickers Online / Last seen. |
+| 3 | Blocked user still sees blocker's presence and thread | See §1 below, which replaces it. |
+| 4 | `GET .../messages` returns deleted-for-me rows | After "Clear chat" a 50-row page can be mostly blank, so paging is wasted. **Please exclude them.** |
+| 5 | Spec: `POST /reports` key, `GET /messages/unread-count` | Docs only. |
+
+---
+
+## 1. Tell the client when a chat can no longer take messages — **P0**
+
+- **Today:** after an unmatch or a block the app only finds out when a send fails with `403 "You cannot message this member"`. The app now closes the composer after that first 403 and also when `my-matches` says `canMessage:false`, but for a **block** the blocked user has no other signal (`my-matches` is unaffected), and an unmatch is only seen after the next list poll (30 s).
+- **Need:** on every conversation row (`GET /conversations`, `GET /conversations/:id`, and the `POST /conversations/:userId` response):
+  ```json
+  { "canMessage": false, "blockedBy": "them" }   // them | me | null
+  ```
+  - `canMessage:false` when the match ended **or** either side blocked.
+  - `blockedBy:"them"` when the peer blocked the caller, `"me"` for the reverse, absent otherwise.
+  - Keep the row in the list (the app disables the composer and shows "You can't message X").
+  - For `blockedBy:"them"`: also return `isOnline:false` and `lastActiveAt:null` for that partner, and do not emit their `presence` events to the blocked user (R2 §3, ISS-019).
+- **Realtime (P1):** emit `conversation:updated { conversationId, canMessage, blockedBy }` to both participants when an unmatch / block / unblock happens, so an open room closes or reopens at once.
+- **App:** already reads `canMessage` (nullable; missing = open) and `blockedBy`. No release needed on our side when this ships.
+
+## 2. Unmatch / block / unblock behaviour to confirm — **P1**
+
+Round 1 §6 asked for these and they have not been confirmed. Please answer in writing or add tests:
+
+| Case | What the app assumes |
+|---|---|
+| Unmatch (`DELETE /matches/:id`) | Both sides get `403 "This match has ended"` on send; `my-matches` row has `canMessage:false`; shows in `GET /matches?status=unmatched` for **both** users. |
+| Block | Blocker's list drops the conversation (current behaviour is fine); blocked user's row stays with `canMessage:false` (§1); sends return `403`. |
+| Unblock | Sending works again with history intact; if the match is still active, `canMessage:true` returns. |
+| Re-match after unmatch | Same conversation is reused (history kept) or a new one is created — please say which. |
+
+## 3. Delete for everyone — **P1**
+
+(R2 §6, restated with the client contract. The app has the socket listener and DTO ready; the long-press option stays hidden until this ships.)
+
+- `DELETE /messages/:id?scope=everyone` — sender only, within 1 hour (return `403 "Too late to delete for everyone"` after that). Without `scope`, behaviour stays "delete for me".
+- Sets `deletedForEveryone:true`, blanks `text` and `attachmentUrl`.
+- Socket `message:deleted { conversationId, messageId }` to **both** users.
+- Return `deletedForEveryone:true` on the message in `GET .../messages` (the app hides it) and `replyTo.deletedForEveryone:true` on quotes of it.
+- Update `lastMessagePreview` of the conversation if the deleted message was the last one.
+
+## 4. Active-chat limit — **P1**
+
+- **Today:** the 5-chat limit is enforced only by the app. A second device or a modified client can open more.
+- **Need:** `POST /conversations/:userId` returns **`409`** with a human-readable `message` when the caller already has the maximum active (non-archived) chats, e.g. `"You can have 5 active chats. Archive one to start another."` Include `{ "code": "CHAT_LIMIT", "limit": 5 }` in the body. Gold users get 10 (the Gold sheet in the app already says so).
+- Expose the limit: `GET /me` (or `GET /conversations` response) returns `chatSlots: { limit, used }` so the app stops hard-coding 5.
+- **App:** a 409 shows the server's `message` as a toast; a 403 still opens the Gold sheet.
+
+## 5. Voice messages — **P2**
+
+(R2 §7 restated.) `POST /conversations/:id/messages` multipart: field `audio` + `durationSeconds`; `messageType:"audio"`, `attachmentUrl`, `durationSeconds` on the message and in `replyTo`. Allowed MIME `audio/aac`, `audio/mpeg`, `audio/mp4`, `audio/ogg`; max ~2 MB / 120 s; `400` with a clear message otherwise. The app mic button is a placeholder until then.
+
+## 6. Push notifications — **P1** (largest item)
+
+The app has **no Firebase config yet**. To start we need, from the backend side:
+
+1. The **Firebase project** (or confirmation that we create one) and the dev `google-services.json` / `GoogleService-Info.plist`, plus the APNs key uploaded for iOS.
+2. Confirmed payload for a new message (data keys are used for deep links):
+   ```json
+   { "notification": { "title": "Amina", "body": "Salaam…" },
+     "data": { "type": "message", "conversationId": "…", "senderId": "…" } }
+   ```
+   For a photo, body = `"Photo"`. No message text if the user turned off "message preview" (see §8).
+3. Muted conversations (`isMuted:true`): **no push**, unread count still increments.
+4. No push to a user who currently has the conversation open on a connected socket in that room.
+5. `POST /devices { token, platform }` / `DELETE /devices/:token` already work — confirm that a token moving to a different user (logout / login on one phone) is reassigned, not duplicated.
+6. Push types we will also need later (same `data.type` scheme): `match`, `compliment`, `feed_comment`. Please list the ones that will exist.
+
+## 7. Friends conversations — **P2** (decision needed)
+
+(R2 §8.) Decide: `conversation.type:"friend"` on the same endpoints (preferred) with `GET /conversations?type=marriage|friend`, or a separate API. Tell us how a friendship is created (feed follow? request/accept?) so the tab can show "Requests". Until decided the tab stays an empty state. Friend chats must **not** count toward the marriage chat limit (§4).
+
+## 8. Chat settings the app already shows but cannot save — **P2**
+
+The Menu → Settings screen has toggles that live in memory only. Need `GET/PATCH /me/settings` with at least:
+`messageNotifications: boolean`, `messagePreview: boolean`, `readReceipts: boolean`, `showOnlineStatus: boolean`, `allowMessagesFrom: "matches" | "everyone"`.
+- `readReceipts:false` → the server must not broadcast `seen` to the sender (and the user also does not see theirs).
+- `showOnlineStatus:false` → `isOnline:false` / `lastActiveAt:null` for everyone else, no `presence` events.
+
+## 9. Message rows and list: small contract additions — **P2**
+
+1. Message rows: add `status: "sent" | "delivered" | "seen"` next to `isDelivered` / `isSeen` (R2 §10). The app derives it today; both can stay.
+2. `GET /conversations` rows: add `lastMessageType: "text" | "image" | "audio"` so the list can show a photo / mic icon instead of parsing the preview text (today the app writes `"Photo"` itself only for its own sends).
+3. `lastMessageSender` should always be a user id string (it is today); please keep it stable.
+4. `GET /conversations/:id` should accept being called right after `POST /conversations/:userId` for a brand-new, empty conversation without a `404`.
+
+## 10. Searching chats — **P2**
+
+For the conversation search box (not built yet): `GET /conversations?q=<text>` matching partner name, plus optional `GET /conversations/:id/messages?q=<text>` for in-thread search. If search is not wanted on the server, say so and the app will filter the loaded list locally by name only.
+
+## 11. Socket contract: document what we rely on — **P1**
+
+Please publish (in `MESSAGE_AND_CHAT_API_SPEC.md`) the exact payloads for: `presence`, `typing` / `stop_typing`, `message:delivered` / `message:seen` (`messageIds`, `by`, `at`), `message:new`, `message:sent`, `message:deleted` (§3), `conversation:updated` (§1), `notification:new`, `compliment:new`. Also:
+- Handshake with an expired JWT → `connect_error` with a recognisable `data.code` such as `TOKEN_EXPIRED` (the app currently refreshes on **any** connect error).
+- Rate limits: messages per minute (error code and `Retry-After`), image size / MIME cap, text length (the app enforces 5000).
+- After a reconnect, `GET .../messages` and `GET /messages/unread-count` must include everything sent while the client was offline.
+
+---
+
+## Suggested order
+
+1. §1 `canMessage` / `blockedBy` on conversation rows and R2 §4 (deleted-for-me rows) — small, fixes visible bugs.
+2. §2 confirmations, §11 socket docs.
+3. §4 chat limit (409).
+4. §3 delete for everyone.
+5. §6 push (unblocks the whole notifications feature).
+6. §8 settings, §9 contract additions.
+7. §5 voice, §7 friends, §10 search.
+
+## What the app changed in this round (FYI, nothing for you to do)
+
+- The composer is replaced by a "can't message" bar when the match ended or the peer blocked the user (from `canMessage` / `blockedBy`, an ended match in `my-matches`, or a `403` on send; re-opening the room retries).
+- `ForbiddenFailure` / `ConflictFailure` are now detected even when the server wraps them with a message (the Gold sheet previously only opened for a bare 403).
+- 409 on opening a chat shows a toast with the server's message.
+- `message:deleted` socket event and `deletedForEveryone` are parsed and hide the message.
+
+
+Backend requirements
+NEED_FROM_BACKEND_CHAT_ROUND3.md, in the same format as the earlier files. The most important items:
+
+P0: canMessage and blockedBy on conversation rows, hiding a blocker's presence from the blocked user, and excluding deleted-for-me rows from the message list.
+P1:
+confirmation of unmatch, block and unblock behaviour;
+delete for everyone;
+a 409 for the active-chat limit, plus exposing the limit;
+push notifications, including the Firebase config and payload shape;
+published socket payloads, including a recognisable code for an expired token.
+P2: voice messages, Friends conversations, saving chat settings, status and lastMessageType fields, and conversation search.
+It also lists which round 2 bugs I couldn't re-verify, so the backend can reply "fixed" or "won't fix" per item.
+Gaps
+Blocked by the peer: until the backend sends canMessage, the only signal is the first 403. That first send still shows "Not sent" before the bar appears.
+Delete for everyone: I did not add the long-press option. Without backend support the call would silently do delete-for-me, which is misleading.
+Still unbuilt: offline cache, conversation search and the list "•••" menu. They need no backend; say if you want them next.
+
+
+mobile dev give this, please check and give me implement plan.
+
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-14T10:28:24+06:00.
+
+The user's current state is as follows:
+Active Document: c:\project\find_a_nikah_backend\src\models\message.model.js (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 65
+Other open documents:
+- c:\project\find_a_nikah_backend\.env (LANGUAGE_UNSPECIFIED)
+- c:\project\find_a_nikah_backend\MARRIAGE_MOBILE_IMPLEMENTATION_PLAN.md (LANGUAGE_UNSPECIFIED)
+- c:\project\find_a_nikah_backend\CHAT_FRONTEND_INTEGRATION_RESPONSE.md (LANGUAGE_UNSPECIFIED)
+- c:\project\find_a_nikah_backend\MESSAGE_AND_CHAT_API_SPEC.md (LANGUAGE_UNSPECIFIED)
+- c:\project\find_a_nikah_backend\src\controllers\discovery.controllers.js (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>
+# Find A Nikah - Chat Backend Round 3 Implementation & Mobile Guide
+
+> **Audience:** Mobile (Flutter) App Team, Frontend Engineers, Integrators  
+> **Date:** 2026-11-14  
+> **Backend Status:** Live & Fully Verified (Port `5001`, `http://localhost:5001/api/v1`)  
+> **Verification Suite:** `src/scripts/test-round3-chat.js` (37/37 passing), `src/scripts/test-message-suite.js` (33/33 passing), `src/scripts/test-marriage-tab.js` (55/55 passing).
+
+---
+
+## 0. Confirmation of Round 2 Open Items
+
+All items raised from Round 2 have been verified and resolved:
+
+| R2 § | Item | Status | Live Behaviour |
+| :--- | :--- | :--- | :--- |
+| **§1** | `GET /matches/unmatched` vs `?status=unmatched` | **FIXED** | Both routes return identical filtered rows with `status: "unmatched"`. |
+| **§2** | Multi-socket presence flickering | **FIXED** | When a user disconnects one socket (e.g. phone while emulator remains), `isUserOnline(userId)` checks remaining sockets before emitting `presence` offline. Header will no longer flicker. |
+| **§3** | Blocked user seeing blocker presence | **FIXED** | If User A blocks User B, User B receives `partner.isOnline: false` and `partner.lastActiveAt: null`. User A's `presence` events are never routed to User B. |
+| **§4** | Exclude deleted-for-me rows from message list | **FIXED** | `GET /conversations/:id/messages` queries `deletedBy: { $ne: req.user._id }`. Deleted-for-me rows are completely excluded from database pagination. |
+| **§5** | `POST /reports` key & `GET /messages/unread-count` | **FIXED** | Documented in `MESSAGE_AND_CHAT_API_SPEC.md` and verified in test suites. |
+
+---
+
+## 1. Chat State & Blocking Contract (`canMessage` & `blockedBy`) — P0
+
+Every conversation object returned by:
+- `GET /api/v1/conversations` (list)
+- `GET /api/v1/conversations/:id` (details)
+- `POST /api/v1/conversations/:userId` (open thread)
+
+now includes:
+
+```json
+{
+  "canMessage": false,
+  "blockedBy": "them"
+}
+```
+
+### Fields Definition
+1. `canMessage` (`boolean`):
+   - `true`: Conversation is active, unblocked, and eligible for messaging.
+   - `false`: Either participant blocked the other, OR the match has ended (`status !== "active"`).
+2. `blockedBy` (`"them" | "me" | null`):
+   - `"them"`: The other member blocked the authenticated user.
+   - `"me"`: The authenticated user blocked the other member.
+   - `null`: Neither member blocked the other (e.g. normal chat or unmatch only).
+3. **Presence suppression for `"them"`:**
+   - When `blockedBy === "them"`, the `partner` object returns `isOnline: false` and `lastActiveAt: null`.
+   - Real-time `presence` socket broadcasts from the blocker are suppressed and never delivered to the blocked user.
+
+### Realtime Socket Event (`conversation:updated`)
+When an **unmatch**, **block**, or **unblock** occurs, the backend immediately emits `conversation:updated` to both participants:
+
+```javascript
+socket.on("conversation:updated", ({ conversationId, canMessage, blockedBy }) => {
+  // Mobile app: If current room == conversationId, instantly show or remove the "can't message" bar
+  console.log("Conversation state changed:", { conversationId, canMessage, blockedBy });
+});
+```
+
+---
+
+## 2. Unmatch / Block / Unblock Behaviour Confirmations — P1
+
+| Scenario | Server Behaviour & Contract |
+| :--- | :--- |
+| **Unmatch** (`DELETE /matches/:id`) | - Message sending immediately returns `403 "This match has ended"`.<br>- Conversation row updates to `canMessage: false, blockedBy: null`.<br>- Appears in `GET /matches/unmatched` and `GET /matches?status=unmatched` for both users.<br>- Emits `conversation:updated` to both participants. |
+| **Block** (`POST /blocks/:userId`) | - Blocker's inbox list drops the conversation from `GET /conversations`.<br>- Blocked user retains the conversation in `GET /conversations` with `canMessage: false, blockedBy: "them"`.<br>- Blocker's `isOnline` is forced to `false` and `lastActiveAt` to `null`.<br>- Sends return `403 "You cannot message this member"`.<br>- Emits `conversation:updated` to both participants. |
+| **Unblock** (`DELETE /blocks/:userId`) | - If the match is active, conversation restores `canMessage: true, blockedBy: null`.<br>- Message sending works again with chat history intact.<br>- Emits `conversation:updated` to both participants. |
+| **Re-match after unmatch** | **Same conversation is reused (history kept).**<br>When reciprocal likes occur again, `ensureMatch` re-activates the existing match (`status: "active"`) and links to the existing `conversationId`. Previous chat history is preserved. |
+
+---
+
+## 3. Delete For Everyone — P1
+
+The client can delete a message for both users within a 1-hour window:
+
+### Endpoint
+`DELETE /api/v1/messages/:id?scope=everyone` (or body `{ "scope": "everyone" }`)
+
+### Rules & Responses
+1. **Sender Only:** If a receiver attempts to delete for everyone, returns `403 "Only the sender can delete for everyone"`.
+2. **1-Hour Window:** If `Date.now() - createdAt > 1 hour`, returns:
+   ```json
+   {
+     "statusCode": 403,
+     "success": false,
+     "message": "Too late to delete for everyone",
+     "code": "DELETE_WINDOW_EXPIRED"
+   }
+   ```
+3. **Database Changes:** Sets `deletedForEveryone: true`, blanks `text: ""`, `attachmentUrl: null`.
+4. **Conversation Preview:** If the deleted message was the latest message in the conversation, `lastMessagePreview` is automatically recalculated from the previous non-deleted message.
+5. **Real-time Socket Event:** Emitted to **both** participants:
+   ```javascript
+   socket.on("message:deleted", ({ conversationId, messageId }) => {
+     // Local store marks message as deleted or removes it from view
+   });
+   ```
+6. **Payload in `GET .../messages`:** Message object contains `"deletedForEveryone": true`, `"text": ""` and populated `replyTo.deletedForEveryone: true`.
+
+---
+
+## 4. Active-Chat Limit & Slot Counters — P1
+
+- **Limit Enforcement:**
+  - Free users: Maximum **5** active (non-archived) chats.
+  - Subscribed / Gold users: Maximum **10** active chats.
+- When opening a new conversation (`POST /api/v1/conversations/:userId`) and the user has reached their limit, the backend returns **HTTP `409 Conflict`**:
+  ```json
+  {
+    "statusCode": 409,
+    "success": false,
+    "message": "You can have 5 active chats. Archive one to start another.",
+    "code": "CHAT_LIMIT",
+    "limit": 5
+  }
+  ```
+- **Exposing Chat Slots:** Both `GET /api/v1/me` and `GET /api/v1/conversations` return:
+  ```json
+  {
+    "chatSlots": {
+      "limit": 5,
+      "used": 3
+    }
+  }
+  ```
+  *(Used reflects active, non-archived conversations)*.
+
+---
+
+## 5. Voice Messages — P2
+
+Voice / Audio messages are fully supported via multipart upload or base fields:
+
+### Endpoint
+`POST /api/v1/conversations/:id/messages`
+
+- **Content-Type:** `multipart/form-data`
+- **Fields:**
+  - `audio` (file): Audio recording file.
+  - `durationSeconds`: Number (1 to 120 seconds).
+  - `replyToId`: (Optional) Quoted message ID.
+- **Constraints:**
+  - Allowed MIME: `audio/aac`, `audio/mpeg`, `audio/mp4`, `audio/ogg`.
+  - Max Size: 2 MB. Max Duration: 120 seconds.
+  - Violations return `400 Bad Request`.
+- **Response & Message Shape:**
+  ```json
+  {
+    "messageType": "audio",
+    "attachmentUrl": "http://localhost:5001/uploads/...",
+    "durationSeconds": 45,
+    "status": "sent"
+  }
+  ```
+- **Conversation list:** Row receives `lastMessageType: "audio"`, allowing the mobile app to display a microphone icon.
+
+---
+
+## 6. Push Notifications Specification — P1
+
+### 1. Firebase Cloud Messaging (FCM) Payload
+```json
+{
+  "notification": {
+    "title": "Amina",
+    "body": "Salaam! Are you free to talk?"
+  },
+  "data": {
+    "type": "message",
+    "conversationId": "6af5623746ff650a1912952a",
+    "senderId": "6af4469dac7e106dffb18fc4"
+  }
+}
+```
+
+### 2. Message Preview & Media Handling
+- For images: `body: "Photo"`
+- For audio: `body: "Voice message"`
+- If receiver has turned off message preview (`settings.messagePreview === false`):
+  `notification.body: "New message"` (sender's name remains in `notification.title`).
+
+### 3. Suppression Conditions (No Push Sent)
+- The conversation is muted (`isMuted: true`).
+- The receiver disabled notifications (`settings.messageNotifications === false`).
+- The receiver is currently active in the Socket.IO room for this conversation.
+
+### 4. Device Token Reassignment
+When a user logs in and registers a device token via `POST /api/v1/devices`:
+- The backend automatically removes that device token from any previous user account on that phone (`Device.deleteMany({ token, userId: { $ne: req.user._id } })`), preventing multi-account notification leakage.
+
+### 5. Future Push Types
+The `data.type` field will support:
+- `"message"`: Incoming chat message.
+- `"match"`: New match made.
+- `"compliment"`: Compliment received on deck.
+- `"feed_comment"`: Comment on user's feed post.
+
+---
+
+## 7. Friends Conversations Architecture — P2
+
+- **Recommended Design:** Unified endpoints with `conversation.type`.
+- In `GET /api/v1/conversations?type=marriage|friend`:
+  - Default: `"marriage"`.
+  - Passing `?type=friend` queries friendship conversations.
+- **Slot Limits:** Friend chats do **NOT** count against the 5/10 Marriage chat limit.
+
+---
+
+## 8. Chat Settings API — P2
+
+User settings are persisted in MongoDB on the `User.settings` subdocument:
+
+### Endpoints
+- `GET /api/v1/me/settings`
+- `PATCH /api/v1/me/settings`
+
+### Payload
+```json
+{
+  "messageNotifications": true,
+  "messagePreview": true,
+  "readReceipts": true,
+  "showOnlineStatus": true,
+  "allowMessagesFrom": "matches"
+}
+```
+
+### Server Enforcement
+1. `readReceipts: false`:
+   - The server suppresses broadcasting `message:seen` to the message sender.
+2. `showOnlineStatus: false`:
+   - Other users receive `isOnline: false` and `lastActiveAt: null` in `partner`.
+   - Real-time `presence` socket broadcasts are suppressed.
+
+---
+
+## 9. Contract Additions — P2
+
+1. **Unified Status Field:** Every message in `listMessages`, `getMessageById`, and `sendMessage` includes:
+   ```json
+   { "status": "sent" | "delivered" | "seen" }
+   ```
+   alongside `isDelivered` and `isSeen`.
+2. **`lastMessageType`:** Every conversation row includes:
+   ```json
+   { "lastMessageType": "text" | "image" | "audio" }
+   ```
+3. **`lastMessageSender`:** Consistently formatted as a String ObjectId.
+4. **Partner ID Flexible Lookup:**
+   `GET /api/v1/conversations/:id` accepts either the `conversationId` OR the partner's `userId`. If called immediately after `POST /conversations/:userId` with an empty thread, it succeeds with `200 OK` (no `404`).
+
+---
+
+## 10. In-Inbox & In-Thread Search — P2
+
+1. **Inbox Search:**
+   `GET /api/v1/conversations?q=amina`
+   Performs case-insensitive regex search against matched partners' full names.
+2. **In-Thread Message Search:**
+   `GET /api/v1/conversations/:id/messages?q=meeting`
+   Filters message text within the thread using regex.
+
+---
+
+## 11. Socket.IO Complete Event Protocol & Errors — P1
+
+### Handshake & Token Expiry
+When connecting to `http://localhost:5001`:
+```javascript
+const socket = io("http://localhost:5001", {
+  auth: { token: accessToken },
+  transports: ["websocket"]
+});
+
+socket.on("connect_error", (err) => {
+  if (err.data?.code === "TOKEN_EXPIRED") {
+    // Trigger token refresh flow and reconnect
+  }
+});
+```
+
+### Event Payload Dictionary
+
+| Event Name | Direction | Payload Structure |
+| :--- | :--- | :--- |
+| `conversation:join` | Client &rarr; Server | `{ conversationId: string }` |
+| `conversation:leave` | Client &rarr; Server | `{ conversationId: string }` |
+| `message:send` | Client &rarr; Server | `{ conversationId: string, text?: string, replyToId?: string }` |
+| `message:new` | Server &rarr; Recipient | Full `IMessage` object |
+| `message:sent` | Server &rarr; Sender Sessions | Full `IMessage` object for multi-device sync |
+| `message:delivered` | Server &rarr; Sender | `{ conversationId: string, messageIds: string[], messageId: string, by: string, at: string }` |
+| `message:seen` | Server &rarr; Sender | `{ conversationId: string, messageIds: string[], messageId: string, by: string, at: string }` |
+| `message:deleted` | Server &rarr; Both | `{ conversationId: string, messageId: string }` |
+| `conversation:updated`| Server &rarr; Both | `{ conversationId: string, canMessage: boolean, blockedBy: "them" \| "me" \| null }` |
+| `typing` | Bidirectional | `{ conversationId: string, from: string }` |
+| `stop_typing` | Bidirectional | `{ conversationId: string, from: string }` |
+| `presence` | Server &rarr; Client | `{ userId: string, online: boolean, lastActiveAt: string \| null }` |
+
+---
+
+## 12. Verification & Automated Test Suites
+
+All functionality is guarded by automated test scripts:
+- `node src/scripts/test-round3-chat.js`: **37 Passed, 0 Failed**
+- `node src/scripts/test-message-suite.js`: **33 Passed, 0 Failed**
+- `node src/scripts/test-marriage-tab.js`: **55 Passed, 0 Failed**
+# Find A Nikah - Message & Chat API Implementation Specification
+
+> **Target Audience:** Frontend Developers, Mobile App Engineers (React Native / Flutter / Web), Backend Agents, and Integrators.  
+> **Status:** Fully Tested & Verified in Production Backend (Port `5001`).  
+> **Test Suite:** `src/scripts/test-message-suite.js` (43/43 tests passing).
+
+---
+
+## 1. System Overview & Architecture
+
+The chat system is built on **Node.js/Express** and **Socket.IO** with **MongoDB/Mongoose**. It supports:
+- Direct 1-on-1 conversations between matched/entitled profiles.
+- Message status lifecycle: **Sent &rarr; Delivered &rarr; Seen/Read**.
+- Per-user conversation archiving (archiving an inbox thread on User A's side does not hide it for User B).
+- Sender/Receiver side message deletion (deleting for myself blanks text for me without deleting for the recipient).
+- Real-time instant messaging, typing indicators, room management, and push notification triggers.
+
+### Base URLs
+- **REST API Base URL:** `http://localhost:5001/api/v1` *(or production host `/api/v1`)*
+- **Socket.IO URL:** `http://localhost:5001` *(transports: `["websocket"]`)*
+
+### Authentication
+Every HTTP request and Socket.IO connection must provide a valid JWT access token:
+- **HTTP Header:** `Authorization: Bearer <access_token>`
+- **Socket.IO Handshake:** `auth: { token: "<access_token>" }`
+
+---
+
+## 2. Data Models & Status Definitions
+
+### Message Lifecycle States
+
+| State | DB Properties | UI Indicator Example | Description |
+| :--- | :--- | :--- | :--- |
+| **Sent** | `isDelivered: false`, `isSeen: false`, `isRead: false` | Single grey tick (✓) | Message is saved in DB; recipient has not yet received it. |
+| **Delivered** | `isDelivered: true`, `deliveredAt: <Date>` | Double grey ticks (✓✓) | Message reached recipient's device/client (or receiver is online). |
+| **Seen / Read** | `isSeen: true`, `isRead: true`, `seenAt: <Date>`, `readAt: <Date>` | Double blue ticks (✓✓) | Recipient opened the thread or viewed the message. |
+
+> **Auto-Delivery Feature:** If the message receiver is currently online on Socket.IO when a message is sent, `isDelivered` is automatically initialized to `true` with `deliveredAt: new Date()`.
+
+### Message Schema Attributes
+```typescript
+interface IMessage {
+  _id: string;                      // ObjectId
+  conversationId: string;           // ObjectId reference to Conversation
+  senderId: string;                 // ObjectId of sender
+  receiverId: string;               // ObjectId of recipient
+  messageType: "text" | "image" | "audio" | "system"; // Type of message
+  text?: string;                    // Max 5000 chars (empty if deleted for current user or everyone)
+  attachmentUrl?: string;           // File URL if image/audio message
+  attachmentStorageKey?: string;    // Local disk filename
+  durationSeconds?: number | null;  // For audio messages (1 to 120 seconds)
+  replyToId?: string;               // ObjectId of message being quoted/replied to
+  replyTo?: {                       // Populated quoted message summary
+    _id: string;
+    senderId: string;
+    messageType: "text" | "image" | "audio";
+    text?: string;
+    attachmentUrl?: string | null;
+    durationSeconds?: number | null;
+    deletedForMe?: boolean;
+    deletedForEveryone?: boolean;
+  } | null;
+  status: "sent" | "delivered" | "seen"; // Unified delivery status enum
+  isDelivered: boolean;             // Delivery state
+  deliveredAt?: string | null;      // ISO Date
+  isRead: boolean;                  // Read state
+  readAt?: string | null;           // ISO Date
+  isSeen: boolean;                  // Seen state (synced with isRead)
+  seenAt?: string | null;           // ISO Date (synced with readAt)
+  deletedBy?: string[];             // Array of UserIds who deleted for themselves
+  deletedForMe?: boolean;           // True if caller deleted this message
+  deletedForEveryone?: boolean;     // True if sender recalled/deleted for everyone within 1 hour
+  createdAt: string;                // ISO Date
+  updatedAt: string;                // ISO Date
+}
+```
+
+### Conversation Schema Attributes
+```typescript
+interface IConversation {
+  _id: string;                      // ObjectId
+  participants: IUser[];            // [UserA, UserB] populated with fullName, isVerified, gender, photoUrl
+  matchId?: string;                 // ObjectId reference to Match
+  lastMessageAt: string;            // ISO Date of latest message
+  lastMessagePreview: string;       // Short preview text (max 120 chars)
+  lastMessageSender: string;        // ObjectId of sender of last message
+  lastMessageType: "text" | "image" | "audio"; // For chat list icons
+  canMessage: boolean;              // False if match ended or either user blocked the other
+  blockedBy: "them" | "me" | null;  // Block direction: "them" = peer blocked caller, "me" = caller blocked peer, null = unblocked
+  unread: Record<string, number>;   // Map of unread count per userId { "<userId>": 2 }
+  unreadCount?: number;             // Unread count calculated for current authenticated user
+  archivedBy: string[];             // Array of UserIds who archived this thread
+  isArchived?: boolean;             // True if authenticated user archived this conversation
+  mutedBy?: {                       // Array of users who muted this thread
+    userId: string;
+    until?: string | null;
+  }[];
+  isMuted?: boolean;                // True if authenticated user muted this conversation
+  partner?: {                       // Enriched partner summary
+    _id: string;
+    fullName: string;
+    isVerified: boolean;
+    gender: string;
+    photoUrl?: string | null;
+    isOnline?: boolean;             // Real-time online status (hidden as false if partner blocked caller or hid status)
+    lastActiveAt?: string | null;   // Timestamp of last activity (hidden as null if partner blocked caller or hid status)
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+---
+
+## 3. Complete REST API Specification
+
+### 3.1. Send Message
+
+Send a message in a conversation. Accepts text or image (file upload).
+
+#### Method 1: Using Conversation Path
+- **Method:** `POST`
+- **URL:** `/api/v1/conversations/:id/messages`
+- **Headers:**
+  - `Authorization: Bearer <token>`
+  - `Content-Type: application/json` (or `multipart/form-data` if uploading file `image`)
+- **Body (JSON):**
+```json
+{
+  "text": "Salam Alaikum! How are you?",
+  "replyToId": "6af42f615b5425f72fb3a7e0" // Optional: ID of message to quote/reply to
+}
+```
+
+#### Method 2: Direct Messages Endpoint
+- **Method:** `POST`
+- **URL:** `/api/v1/messages`
+- **Body (JSON):**
+```json
+{
+  "conversationId": "6af42f605b5425f72fb3a7dd",
+  "text": "Salam Alaikum! How are you?",
+  "replyToId": "6af42f615b5425f72fb3a7e0" // Optional
+}
+```
+
+#### Success Response `(201 Created)`:
+```json
+{
+  "statusCode": 201,
+  "data": {
+    "_id": "6af42f615b5425f72fb3a7e5",
+    "conversationId": "6af42f605b5425f72fb3a7dd",
+    "senderId": "6ae82b0a8356caef2b1a0d37",
+    "receiverId": "6ae82ae28356caef2b1a0d0e",
+    "messageType": "text",
+    "text": "Salam Alaikum! How are you?",
+    "replyToId": "6af42f615b5425f72fb3a7e0",
+    "replyTo": {
+      "_id": "6af42f615b5425f72fb3a7e0",
+      "senderId": "6ae82ae28356caef2b1a0d0e",
+      "messageType": "text",
+      "text": "Hello there",
+      "attachmentUrl": null,
+      "deletedForMe": false
+    },
+    "isDelivered": false,
+    "deliveredAt": null,
+    "isRead": false,
+    "readAt": null,
+    "isSeen": false,
+    "seenAt": null,
+    "deletedBy": [],
+    "createdAt": "2026-11-11T09:03:07.412Z",
+    "updatedAt": "2026-11-11T09:03:07.412Z"
+  },
+  "message": "Sent",
+  "success": true
+}
+```
+
+---
+
+### 3.2. Get Messages (with Cursor Pagination)
+
+Fetch messages for a conversation, ordered descending (newest first).
+
+- **Method:** `GET`
+- **URL:** `/api/v1/conversations/:id/messages`  
+  *(Alternative query: `/api/v1/messages?conversationId=:id`)*
+- **Query Parameters:**
+  - `limit` *(optional, default 30, max 100)*: Number of messages to return.
+  - `before` *(optional, ObjectId)*: Message ID cursor for scrolling up / loading earlier history.
+- **Example Request:**
+  `GET /api/v1/conversations/6af42f605b5425f72fb3a7dd/messages?limit=20&before=6af42f615b5425f72fb3a7e5`
+
+#### Success Response `(200 OK)`:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "messages": [
+      {
+        "_id": "6af42f615b5425f72fb3a7e5",
+        "conversationId": "6af42f605b5425f72fb3a7dd",
+        "senderId": "6ae82b0a8356caef2b1a0d37",
+        "receiverId": "6ae82ae28356caef2b1a0d0e",
+        "messageType": "text",
+        "text": "Salam Alaikum! How are you?",
+        "isDelivered": true,
+        "deliveredAt": "2026-11-11T09:03:07.500Z",
+        "isRead": true,
+        "readAt": "2026-11-11T09:03:07.600Z",
+        "isSeen": true,
+        "seenAt": "2026-11-11T09:03:07.600Z",
+        "deletedForMe": false,
+        "createdAt": "2026-11-11T09:03:07.412Z"
+      }
+    ],
+    "hasMore": false,
+    "nextCursor": null
+  },
+  "message": "Messages",
+  "success": true
+}
+```
+
+---
+
+### 3.3. Get Single Message Details
+
+Retrieve an individual message by its ID.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/messages/:id`
+- **Headers:** `Authorization: Bearer <token>`
+
+#### Success Response `(200 OK)`:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "6af42f615b5425f72fb3a7e5",
+    "conversationId": "6af42f605b5425f72fb3a7dd",
+    "senderId": "6ae82b0a8356caef2b1a0d37",
+    "receiverId": "6ae82ae28356caef2b1a0d0e",
+    "messageType": "text",
+    "text": "Salam Alaikum! How are you?",
+    "isDelivered": true,
+    "deliveredAt": "2026-11-11T09:03:07.500Z",
+    "isRead": true,
+    "readAt": "2026-11-11T09:03:07.600Z",
+    "isSeen": true,
+    "seenAt": "2026-11-11T09:03:07.600Z",
+    "deletedForMe": false,
+    "createdAt": "2026-11-11T09:03:07.412Z"
+  },
+  "message": "Message details",
+  "success": true
+}
+```
+
+---
+
+### 3.4. Mark as Delivered
+
+Called by recipient client upon receiving or syncing messages.
+
+#### Option A: Conversation-Level Delivery
+Marks all received messages in the thread as delivered.
+- **Method:** `PATCH`
+- **URL:** `/api/v1/conversations/:id/delivered`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "marked": 2,
+    "deliveredAt": "2026-11-11T09:03:07.500Z"
+  },
+  "message": "Marked as delivered",
+  "success": true
+}
+```
+
+#### Option B: Single Message Delivery
+Marks a specific message as delivered.
+- **Method:** `PATCH`
+- **URL:** `/api/v1/messages/:id/delivered`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "messageId": "6af42f615b5425f72fb3a7e5",
+    "isDelivered": true,
+    "deliveredAt": "2026-11-11T09:03:07.500Z"
+  },
+  "message": "Message marked as delivered",
+  "success": true
+}
+```
+
+---
+
+### 3.5. Mark as Seen / Read
+
+Marks received message(s) as seen/read, sets `isRead: true`, `isSeen: true`, updates timestamps, and clears conversation unread counter for current user.
+
+#### Option A: Conversation-Level Seen/Read
+- **Method:** `PATCH`
+- **URL:** `/api/v1/conversations/:id/seen`  
+  *(Alias `/api/v1/conversations/:id/read` is also supported)*
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "marked": 2,
+    "readAt": "2026-11-11T09:03:07.600Z",
+    "seenAt": "2026-11-11T09:03:07.600Z"
+  },
+  "message": "Marked as read/seen",
+  "success": true
+}
+```
+
+#### Option B: Single Message Seen/Read
+- **Method:** `PATCH`
+- **URL:** `/api/v1/messages/:id/seen`  
+  *(Alias `/api/v1/messages/:id/read` is also supported)*
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "messageId": "6af42f615b5425f72fb3a7e5",
+    "isRead": true,
+    "isSeen": true,
+    "readAt": "2026-11-11T09:03:07.600Z",
+    "seenAt": "2026-11-11T09:03:07.600Z"
+  },
+  "message": "Message marked as read/seen",
+  "success": true
+}
+```
+
+---
+
+### 3.6. Archive & Unarchive Conversation
+
+Archiving is individual per user (affecting only the caller's inbox).
+
+- **Method:** `PATCH`
+- **URL:** `/api/v1/conversations/:id/archive`
+- **To Archive:**
+  ```json
+  { "archived": true }
+  ```
+  **Response `(200 OK)`:**
+  ```json
+  {
+    "statusCode": 200,
+    "data": null,
+    "message": "Archived",
+    "success": true
+  }
+  ```
+- **To Restore / Unarchive:**
+  ```json
+  { "archived": false }
+  ```
+  **Response `(200 OK)`:**
+  ```json
+  {
+    "statusCode": 200,
+    "data": null,
+    "message": "Restored",
+    "success": true
+  }
+  ```
+
+> **Automatic Unarchive on New Message:** When a new message arrives in an archived thread, the thread is automatically unarchived for the recipient so they never miss new activity.
+
+---
+
+### 3.7. List Conversations (Active & Archived)
+
+Retrieve user's conversation threads with enriched partner profile details and unread badges.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/conversations`
+- **Query Parameters:**
+  - `archived`: Set `archived=true` to retrieve archived threads. Omit (or `archived=false`) for active inbox.
+  - `page`: Page number (default: 1).
+  - `limit`: Items per page (default: 20).
+- **Example Request:**
+  `GET /api/v1/conversations?archived=false&page=1&limit=20`
+
+#### Success Response `(200 OK)`:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "conversations": [
+      {
+        "_id": "6af42f605b5425f72fb3a7dd",
+        "lastMessageAt": "2026-11-11T09:03:07.412Z",
+        "lastMessagePreview": "Salam Alaikum! How are you?",
+        "lastMessageSender": "6ae82b0a8356caef2b1a0d37",
+        "unreadCount": 0,
+        "isArchived": false,
+        "partner": {
+          "_id": "6ae82b0a8356caef2b1a0d37",
+          "fullName": "Amina Khan",
+          "gender": "female",
+          "isVerified": true,
+          "photoUrl": "http://localhost:5001/public/upload/amina.jpg"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "totalCount": 1,
+      "totalPages": 1
+    }
+  },
+  "message": "Your conversations",
+  "success": true
+}
+```
+
+---
+
+### 3.8. Get Conversation Details
+
+Fetch full conversation info for a single conversation ID.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/conversations/:id`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "6af42f605b5425f72fb3a7dd",
+    "participants": [ ... ],
+    "unreadCount": 0,
+    "isArchived": false,
+    "partner": {
+      "_id": "6ae82b0a8356caef2b1a0d37",
+      "fullName": "Amina Khan",
+      "isVerified": true,
+      "gender": "female",
+      "photoUrl": "http://localhost:5001/public/upload/amina.jpg"
+    }
+  },
+  "message": "Conversation details",
+  "success": true
+}
+```
+
+---
+
+### 3.9. Open / Retrieve Conversation by Target User ID
+
+Opens a conversation with target user or retrieves existing thread.
+
+- **Method:** `POST`
+- **URL:** `/api/v1/conversations/:userId`
+- **URL Param:** `userId` - Target user's MongoDB `_id`.
+- **Response `(200 OK` or `201 Created)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "6af42f605b5425f72fb3a7dd",
+    "participants": [
+      "6ae82ae28356caef2b1a0d0e",
+      "6ae82b0a8356caef2b1a0d37"
+    ]
+  },
+  "message": "Conversation",
+  "success": true
+}
+```
+
+---
+
+### 3.10. Total Unread Messages Badge Count
+
+Used for bottom tab bar or app badge icon.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/messages/unread-count`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "count": 3
+  },
+  "message": "Unread messages",
+  "success": true
+}
+```
+
+---
+
+### 3.11. Delete Message (For Me)
+
+Soft-deletes a message for the calling user. The text is blanked and flagged `deletedForMe: true` in the caller's thread, while the other participant retains their copy.
+
+- **Method:** `DELETE`
+- **URL:** `/api/v1/messages/:id`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": null,
+  "message": "Removed from your view",
+  "success": true
+}
+```
+
+---
+
+### 3.12. Mute / Unmute Conversation
+
+Mutes notifications from a conversation for the authenticated user without affecting the other participant. Unread counts still increment, but push and in-app alerts are suppressed.
+
+- **Method:** `PATCH`
+- **URL:** `/api/v1/conversations/:id/mute`
+- **Body (JSON):**
+```json
+{
+  "muted": true,
+  "until": "2026-11-20T00:00:00.000Z" // Optional: temporary mute expiration. Omit for indefinite.
+}
+```
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "isMuted": true,
+    "mutedUntil": "2026-11-20T00:00:00.000Z"
+  },
+  "message": "Conversation muted",
+  "success": true
+}
+```
+*(To unmute, send `{"muted": false}`)*
+
+---
+
+### 3.13. Clear Chat (Delete All Messages For Me)
+
+Soft-deletes all messages currently in the conversation for the caller only. Partner's chat history remains intact.
+
+- **Method:** `DELETE`
+- **URL:** `/api/v1/conversations/:id/messages`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "clearedCount": 15
+  },
+  "message": "Chat history cleared",
+  "success": true
+}
+```
+
+---
+
+### 3.14. Register / Unregister Device FCM Push Token
+
+Associates an FCM push token with the logged-in user account. Tokens are unique per device.
+
+#### Register Device Token
+- **Method:** `POST`
+- **URL:** `/api/v1/devices`
+- **Body (JSON):**
+```json
+{
+  "token": "fcm_token_string_here",
+  "platform": "android" // "android" | "ios" | "web"
+}
+```
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "6af58e0a...",
+    "userId": "6ae82b0a...",
+    "token": "fcm_token_string_here",
+    "platform": "android",
+    "lastActiveAt": "2026-11-12T10:00:00.000Z"
+  },
+  "message": "Device token registered",
+  "success": true
+}
+```
+
+#### Unregister Device Token (On Logout)
+- **Method:** `DELETE`
+- **URL:** `/api/v1/devices/:token`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": null,
+  "message": "Device token removed",
+  "success": true
+}
+```
+
+---
+
+### 3.15. User Reports (Key Aliases & Supported Reasons)
+
+Submit user reports with flexible key aliases (`reportedUserId`, `targetUserId`, `userId`).
+
+- **Method:** `POST`
+- **URL:** `/api/v1/reports`
+- **Body (JSON):**
+```json
+{
+  "reportedUserId": "6ae82ae28356caef2b1a0d0e", // or "targetUserId"
+  "reason": "inappropriate_content",
+  "description": "User posted offensive content" // optional
+}
+```
+- **Supported `reason` values:**
+  - `harassment`
+  - `inappropriate_content`
+  - `inappropriate_photo`
+  - `fake_profile`
+  - `spam`
+  - `underage`
+  - `already_married`
+  - `other`
+
+---
+
+### 3.16. Blocks List Shape
+
+Returns blocked users with populated profile data.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/blocks`
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "blocks": [
+      {
+        "_id": "6af57a...",
+        "blockedUserId": {
+          "_id": "6ae82ae28356caef2b1a0d0e",
+          "fullName": "Jane Doe",
+          "gender": "female",
+          "isVerified": true,
+          "photoUrl": "http://localhost:5001/uploads/photo.jpg"
+        },
+        "blockedUser": { /* Enriched alias */ },
+        "createdAt": "2026-11-12T08:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 20,
+      "totalPages": 1,
+      "totalCount": 1,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  },
+  "message": "Blocked users",
+  "success": true
+}
+```
+
+---
+
+### 3.17. Unmatched Matches Endpoint
+
+Retrieve list of past/unmatched relationships.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/matches/unmatched` *(or `/api/v1/matches?status=unmatched`)*
+- **Response `(200 OK)`:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "matches": [],
+    "pagination": { "currentPage": 1, "totalPages": 0, "totalCount": 0, "hasNext": false, "hasPrev": false }
+  },
+  "message": "Matches fetched",
+  "success": true
+}
+```
+
+---
+
+### 3.18. Matched Partner Public Profile View
+
+Matched partners can view full profile details regardless of moderation/pending state.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/profiles/:partnerUserId`
+- **Response `(200 OK)`:** Returns public profile object.
+
+---
+
+---
+
+## 4. Real-time Socket.IO Protocol
+
+### Connection Initialization
+
+```javascript
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:5001", {
+  auth: {
+    token: userAccessToken, // JWT Access Token
+  },
+  transports: ["websocket"],
+});
+
+socket.on("connect", () => {
+  console.log("Connected to Realtime Chat Socket");
+});
+```
+
+---
+
+### Real-time Events Matrix
+
+#### 1. Join / Leave Conversation Room
+- **Join Room:**
+  ```javascript
+  socket.emit("conversation:join", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {
+    // ack: { success: true }
+  });
+  ```
+- **Leave Room:**
+  ```javascript
+  socket.emit("conversation:leave", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {
+    // ack: { success: true }
+  });
+  ```
+
+#### 2. Real-time Message Send
+- **Emit:** `message:send` *(or `send_message`)*
+  ```javascript
+  socket.emit(
+    "message:send",
+    {
+      conversationId: "6af42f605b5425f72fb3a7dd",
+      text: "Salam! Are you free to talk?",
+      replyToId: "6af42f615b5425f72fb3a7e0" // Optional quoted message ID
+    },
+    (ack) => {
+      if (ack.success) {
+        console.log("Message sent successfully:", ack.message);
+      }
+    }
+  );
+  ```
+
+#### 3. Real-time Message Receive (Receiver Only)
+- **Listen:** `message:new`
+  ```javascript
+  socket.on("message:new", (message) => {
+    console.log("New message incoming:", message);
+    // message contains: _id, text, senderId, receiverId, replyTo, createdAt, etc.
+    // 1. Append message to chat state
+    // 2. Automatically acknowledge delivery if conversation is open:
+    socket.emit("message:delivered", { messageId: message._id });
+  });
+  ```
+
+#### 4. Cross-Device Synchronization (Sender's Other Devices)
+- **Listen:** `message:sent`
+  ```javascript
+  socket.on("message:sent", (message) => {
+    // Emitted to the sender's OTHER open devices/tabs (not the one that sent it)
+    console.log("Message sent from another session:", message);
+  });
+  ```
+
+#### 5. Delivered Receipt (Sent to Sender Only)
+- **Emit (Recipient tells server):**
+  ```javascript
+  // By single message:
+  socket.emit("message:delivered", { messageId: "6af42f615b5425f72fb3a7e5" }, (ack) => {});
+  // OR by entire conversation:
+  socket.emit("message:delivered", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {});
+  ```
+- **Listen (Sender receives update):**
+  ```javascript
+  socket.on("message:delivered", (receipt) => {
+    // receipt: {
+    //   conversationId: "...",
+    //   messageIds: ["..."],
+    //   messageId: "...",
+    //   by: "<userId who received it>",
+    //   at: "<ISO timestamp>"
+    // }
+    console.log("Message(s) delivered:", receipt.messageIds);
+    // Update matching local message status to double grey ticks (✓✓)
+  });
+  ```
+
+#### 6. Seen / Read Receipt (Sent to Sender Only)
+- **Emit (Recipient viewed message):**
+  ```javascript
+  // By single message:
+  socket.emit("message:seen", { messageId: "6af42f615b5425f72fb3a7e5" }, (ack) => {});
+  // OR by conversation:
+  socket.emit("message:seen", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {});
+  ```
+- **Listen (Sender receives update):**
+  ```javascript
+  socket.on("message:seen", (receipt) => {
+    // receipt: {
+    //   conversationId: "...",
+    //   messageIds: ["..."],
+    //   messageId: "...",
+    //   by: "<userId who viewed it>",
+    //   at: "<ISO timestamp>"
+    // }
+    console.log("Message(s) seen by partner:", receipt.messageIds);
+    // Update matching local message status to double blue ticks (✓✓)
+  });
+  ```
+
+#### 7. Typing Indicators (Relayed to Partner Only)
+- **Emit Start Typing:**
+  ```javascript
+  socket.emit("typing", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {
+    // ack: { success: true }
+  });
+  ```
+- **Emit Stop Typing:**
+  ```javascript
+  socket.emit("stop_typing", { conversationId: "6af42f605b5425f72fb3a7dd" }, (ack) => {
+    // ack: { success: true }
+  });
+  ```
+- **Listen:**
+  ```javascript
+  socket.on("typing", ({ conversationId, from }) => {
+    // Show 'Typing...' indicator in header
+  });
+  socket.on("stop_typing", ({ conversationId, from }) => {
+    // Hide 'Typing...' indicator
+  });
+  ```
+
+#### 8. User Presence / Online Status
+- **Listen:** `presence`
+  ```javascript
+  socket.on("presence", ({ userId, online, lastActiveAt }) => {
+    console.log(`User ${userId} is now ${online ? "online" : "offline"}`);
+    // Update partner status indicator and lastActiveAt in UI
+  });
+  ```
+  *(Note: Presence is automatically suppressed/hidden if the partner has blocked the user or set `showOnlineStatus: false`)*
+
+#### 9. Conversation State Changes (Unmatch, Block, Unblock)
+- **Listen:** `conversation:updated`
+  ```javascript
+  socket.on("conversation:updated", ({ conversationId, canMessage, blockedBy }) => {
+    // conversationId: "6af42f605b5425f72fb3a7dd"
+    // canMessage: false
+    // blockedBy: "them" | "me" | null
+    console.log(`Conversation ${conversationId} updated: canMessage=${canMessage}, blockedBy=${blockedBy}`);
+    // Mobile client: If chat room is open, immediately swap composer with "You can't message X" bar
+  });
+  ```
+
+#### 10. Real-time Message Deleted for Everyone
+- **Listen:** `message:deleted`
+  ```javascript
+  socket.on("message:deleted", ({ conversationId, messageId }) => {
+    console.log(`Message ${messageId} in conversation ${conversationId} was deleted for everyone`);
+    // Mobile client: Instantly blank the message body or hide it in the local list
+  });
+  ```
+
+#### 11. Socket Authentication & Token Expiration Handling
+- If a client attempts to connect with an expired or invalid JWT token:
+  ```javascript
+  socket.on("connect_error", (err) => {
+    console.error("Socket connection error:", err.message);
+    if (err.data && err.data.code === "TOKEN_EXPIRED") {
+      // 1. Intercept refresh token endpoint: POST /api/v1/auth/refresh-token
+      // 2. Update socket.auth.token = newAccessToken
+      // 3. socket.connect();
+    }
+  });
+  ```
+
+---
+
+## 5. Client Implementation Best Practices
+
+### A. Message Status Icon Logic (WhatsApp-Style)
+```javascript
+export const renderMessageStatusIcon = (message, currentUserId) => {
+  // Only show status icons for messages sent by the logged-in user
+  if (message.senderId !== currentUserId) return null;
+
+  if (message.isSeen || message.isRead) {
+    return <DoubleCheckmarkIcon color="#25D366" />; // Green or Blue double check
+  }
+
+  if (message.isDelivered) {
+    return <DoubleCheckmarkIcon color="#8E8E93" />; // Grey double check
+  }
+
+  return <SingleCheckmarkIcon color="#8E8E93" />;   // Single grey check
+};
+```
+
+### B. Chat Screen Lifecycle Flow
+1. **On Screen Open:**
+   - Call `GET /api/v1/conversations/:id/messages?limit=30` to load messages.
+   - Emit `socket.emit("conversation:join", { conversationId })`.
+   - Call `PATCH /api/v1/conversations/:id/seen` to mark unread messages as read.
+   - Emit `socket.emit("message:seen", { conversationId })` for realtime update.
+2. **On New Message Incoming via Socket (`message:new`):**
+   - If the active screen is currently this conversation, immediately emit `message:seen` and `message:delivered`.
+   - If user is in another screen, immediately emit `message:delivered` (so sender gets double grey check).
+3. **On Screen Exit:**
+   - Emit `socket.emit("conversation:leave", { conversationId })`.
+
+---
+
+## 6. Verification & Automated Test Suite
+
+A complete verification test suite is provided in the repository:
+- **File:** `src/scripts/test-message-suite.js`
+- **Execution Command:**
+  ```bash
+  node src/scripts/test-message-suite.js
+  ```
+- **Tested & Verified Cases:**
+  1. `POST /api/v1/conversations/:id/messages` (Send Message)
+  2. `POST /api/v1/messages` (Direct Send Alternative)
+  3. `GET /api/v1/conversations/:id/messages` (Cursor Pagination)
+  4. `GET /api/v1/messages?conversationId=:id` (Query Message List)
+  5. `GET /api/v1/messages/:id` (Get Single Message Details)
+  6. `GET /api/v1/messages/unread-count` (Badge Counter)
+  7. `PATCH /api/v1/messages/:id/delivered` (Single Message Delivery Receipt)
+  8. `PATCH /api/v1/conversations/:id/delivered` (Conversation Delivery Receipt)
+  9. `PATCH /api/v1/messages/:id/seen` (Single Message Seen Receipt)
+  10. `PATCH /api/v1/conversations/:id/seen` (Conversation Seen Receipt)
+  11. `PATCH /api/v1/conversations/:id/archive` (Archive Conversation)
+  12. `GET /api/v1/conversations?archived=true` (List Archived Conversations)
+  13. `PATCH /api/v1/conversations/:id/archive` with `{ archived: false }` (Restore Conversation)
+  14. `GET /api/v1/conversations/:id` (Fetch Conversation with Partner Profile)
+  15. `DELETE /api/v1/messages/:id` (Soft Delete For Me)
+  16. Real-time Socket.IO (`message:send` &rarr; `message:new` &rarr; `message:delivered` &rarr; `message:seen`)
+| Section | Topic | Priority | Live Behaviour & Contract |
+| --- | --- | --- | --- |
+| §0 | Round 2 Status | Confirm | All confirmed FIXED: multi-socket disconnect flickering eliminated; blocker presence suppressed; deleted-for-me rows completely excluded from DB paging. |
+| §1 | `canMessage` & `blockedBy` | P0 | Added to `GET /conversations`, `GET /conversations/:id`, and `POST /conversations/:userId`. `canMessage: false` when match ended or blocked. `blockedBy: "them" \| "me" \| null`. Blocker's `isOnline` and `lastActiveAt` forced to `false` and `null`. Socket emits `conversation:updated`. |
+| §2 | Unmatch / Block Confirmations | P1 | Re-match after unmatch reuses the same conversation thread (history preserved). Unmatch returns 403 on send and shows in `unmatched` lists. |
+| §3 | Delete For Everyone | P1 | `DELETE /api/v1/messages/:id?scope=everyone`. Restricted to sender within 1 hour (otherwise `403 DELETE_WINDOW_EXPIRED`). Blanks text, emits `message:deleted` to both participants, recalculates thread preview. |
+| §4 | Active-Chat Limit | P1 | 5 active chats for free users, 10 for Gold/subscribed users. Returns HTTP `409` with `{ code: "CHAT_LIMIT", limit: 5 }`. `GET /me` and `GET /conversations` expose `chatSlots: { limit, used }`. |
+| §5 | Voice Messages | P2 | `POST /conversations/:id/messages` supports multipart `audio` (AAC, MP3, MP4, OGG, max 2MB, max 120s) with `durationSeconds`. Emits `messageType: "audio"`. |
+| §6 | Push Notifications | P1 | FCM format confirmed: `{ notification: { title, body }, data: { type: "message", conversationId, senderId } }`. Respects receiver `messagePreview` setting. Multi-account device token reassignment guaranteed. |
+| §7 | Friends Conversations | P2 | Unified endpoints with `conversation.type` (`marriage` vs `friend`). Friend chats do not count toward marriage slot limit. |
+| §8 | Chat Settings API | P2 | `GET /api/v1/me/settings` and `PATCH /api/v1/me/settings` live. Controls `readReceipts`, `showOnlineStatus`, `messagePreview`, `messageNotifications`, and `allowMessagesFrom`. |
+| §9 | Contract Additions | P2 | Every message row returns unified `status: "sent" \| "delivered" \| "seen"`. Conversations return `lastMessageType`. `GET /conversations/:id` supports partner `userId` lookup without `404`. |
+| §10 | Inbox & In-Thread Search | P2 | `GET /conversations?q=<text>` searches partner names; `GET /conversations/:id/messages?q=<text>` searches thread text. |
+| §11 | Socket Contract & Expiry | P1 | Expired JWT handshakes emit `connect_error` with `err.data = { code: "TOKEN_EXPIRED" }`. Full event payload matrix published in MESSAGE_AND_CHAT_API_SPEC.md. |
+
+

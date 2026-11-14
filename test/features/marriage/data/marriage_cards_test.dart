@@ -54,10 +54,25 @@ final _detailJson = <String, dynamic>{
 };
 
 class _Remote implements MarriageCardsRemoteDataSource {
-  _Remote({this.failDetails = false});
+  _Remote({
+    this.card,
+    this.nextCursor,
+    this.hasMore = false,
+  });
 
-  final bool failDetails;
+  final Map<String, dynamic>? card;
+  final String? nextCursor;
+  final bool hasMore;
+  final detailCalls = <String>[];
+  final blocked = <String>[];
+  Map<String, dynamic>? lastReport;
   Map<String, dynamic>? lastQuery;
+
+  @override
+  Future<void> block(String userId) async => blocked.add(userId);
+
+  @override
+  Future<void> report(Map<String, dynamic> body) async => lastReport = body;
 
   @override
   Future<ProfileCardsResponseDto> fetchCards(
@@ -66,20 +81,16 @@ class _Remote implements MarriageCardsRemoteDataSource {
     lastQuery = query;
     return ProfileCardsResponseDto.fromJson({
       'data': {
-        'cards': [_cardJson],
-        'hasMore': false,
+        'cards': [card ?? _cardJson],
+        'hasMore': hasMore,
+        'nextCursor': nextCursor,
       },
     });
   }
 
   @override
   Future<ProfileDetailResponseDto> fetchProfile(String userId) async {
-    if (failDetails) {
-      throw DioException.connectionError(
-        requestOptions: RequestOptions(path: '/v1/profiles/$userId'),
-        reason: 'offline',
-      );
-    }
+    detailCalls.add(userId);
     return ProfileDetailResponseDto.fromJson(_detailJson);
   }
 
@@ -89,7 +100,19 @@ class _Remote implements MarriageCardsRemoteDataSource {
   Future<SwipeResponseDto> swipe(Map<String, dynamic> body) async {
     lastSwipe = body;
     return SwipeResponseDto.fromJson({
-      'data': {'action': body['action'], 'isMatch': body['action'] == 'like'},
+      'data': {
+        'action': body['action'],
+        'isMatch': body['action'] == 'like',
+        if (body['action'] == 'like') ...{
+          'matchId': 'm1',
+          'conversationId': 'c1',
+          'matchedUser': {
+            'fullName': 'Amina',
+            'photoUrl': '/public/upload/a.jpg',
+          },
+        },
+        if (body['action'] == 'undo') 'rewoundUserId': 'u9',
+      },
     });
   }
 }
@@ -161,28 +184,152 @@ void main() {
     });
   });
 
-  test('a failed detail call keeps the card', () async {
+  // A card as the updated backend sends it: every section on the card.
+  final richCard = <String, dynamic>{
+    ..._cardJson,
+    'city': 'Dhaka',
+    'heightCm': 165,
+    'distanceKm': 12.5,
+    'marriageIntentions': {
+      'getToknowDuration': '3-4_months',
+      'marriageTimeline': '4-12_months',
+      'involveFamily': 'after_getting_to_know',
+    },
+    'aboutYou': {'haveChildren': false, 'relocateAbroad': true},
+    'religiousPractices': ['actively_practising'],
+    'languages': ['English', 'Bengali'],
+    'personalityTraits': ['Cheerful'],
+    'grewUpIn': ['Bangladesh'],
+    'isFaceVerified': true,
+    'isAgeVerified': true,
+    'isIdVerified': false,
+    'isPremium': true,
+  };
+
+  test('a rich card maps with no detail call at all', () async {
+    final remote = _Remote(card: richCard);
     final repo = MarriageCardsRepositoryImpl(
-      _Remote(failDetails: true),
+      remote,
       testGuard(),
       'https://x.test',
     );
     final page = (await repo.fetchPage(
       filters: const DiscoveryFilters(),
     )).getOrElse((f) => throw StateError('$f'));
-    expect(page.items.single.name, 'Maryam Hossain');
-    expect(page.items.single.chatFor, '');
+    final p = page.items.single;
+    expect(remote.detailCalls, isEmpty);
+    expect(p.area, 'Dhaka');
+    expect(p.heightCm, 165);
+    expect(p.distanceKm, 12.5);
+    expect(p.chatFor, '3-4 months');
+    expect(p.involveFamily, 'After getting to know');
+    expect(p.children, "Doesn't have children");
+    expect(p.futurePlans, ['Open to relocate globally']);
+    expect(p.languages, ['English', 'Bengali']);
+    expect(p.personality, ['Cheerful']);
+    expect(p.practice, 'Actively practising');
+    expect(p.isPhotoVerified, isTrue);
+    expect(p.isAgeVerified, isTrue);
+    expect(p.isIdVerified, isFalse);
+    expect(p.isPremium, isTrue);
+  });
+
+  test('an old-style card with no answers stays empty, not invented', () async {
+    final repo = MarriageCardsRepositoryImpl(_Remote(), testGuard(), 'x');
+    final page = (await repo.fetchPage(
+      filters: const DiscoveryFilters(),
+    )).getOrElse((f) => throw StateError('$f'));
+    final p = page.items.single;
+    expect(p.children, '');
+    expect(p.involveFamily, '');
+    expect(p.futurePlans, isEmpty);
+    expect(p.isPremium, isFalse);
+    expect(p.isPhotoVerified, isFalse);
+  });
+
+  test('cursor: sent back, and only returned while hasMore', () async {
+    final remote = _Remote(nextCursor: 'abc', hasMore: true);
+    final repo = MarriageCardsRepositoryImpl(remote, testGuard(), 'x');
+    final first = (await repo.fetchPage(
+      filters: const DiscoveryFilters(),
+    )).getOrElse((f) => throw StateError('$f'));
+    expect(first.nextCursor, 'abc');
+    expect(remote.lastQuery!.containsKey('cursor'), isFalse);
+    await repo.fetchPage(filters: const DiscoveryFilters(), cursor: 'abc');
+    expect(remote.lastQuery!['cursor'], 'abc');
+
+    final last = MarriageCardsRepositoryImpl(
+      _Remote(nextCursor: 'stale'),
+      testGuard(),
+      'x',
+    );
+    final page = (await last.fetchPage(
+      filters: const DiscoveryFilters(),
+    )).getOrElse((f) => throw StateError('$f'));
     expect(page.nextCursor, isNull);
   });
+
+  test('distance filter sends maxDistanceMiles (not when "everywhere")', () {
+    final f = const DiscoveryFilters().withDistance(
+      miles: 40,
+      limitToHomeCountry: false,
+    );
+    expect(
+      MarriageCardsRepositoryImpl.filtersToQuery(f)['maxDistanceMiles'],
+      40,
+    );
+    final all = const DiscoveryFilters().withDistance(
+      miles: kMaxDistanceMiles,
+      limitToHomeCountry: false,
+    );
+    expect(
+      MarriageCardsRepositoryImpl.filtersToQuery(all).containsKey(
+        'maxDistanceMiles',
+      ),
+      isFalse,
+    );
+  });
+
+  test(
+    'swipe: a match carries name, photo (resolved) and conversation',
+    () async {
+      final repo = MarriageCardsRepositoryImpl(
+        _Remote(),
+        testGuard(),
+        'https://x.test',
+      );
+      final like = (await repo.swipe(
+        SwipeAction.like,
+        targetUserId: 'u1',
+      )).getOrElse((f) => throw StateError('$f'));
+      expect(like.isMatch, isTrue);
+      expect(like.matchedName, 'Amina');
+      expect(like.matchedPhotoUrl, 'https://x.test/public/upload/a.jpg');
+      expect(like.conversationId, 'c1');
+      final undo = (await repo.swipe(
+        SwipeAction.undo,
+      )).getOrElse((f) => throw StateError('$f'));
+      expect(undo.rewoundUserId, 'u9');
+    },
+  );
 
   test('swipe sends action + target; undo sends no target', () async {
     final remote = _Remote();
     final repo = MarriageCardsRepositoryImpl(remote, testGuard(), 'x');
     final like = await repo.swipe(SwipeAction.like, targetUserId: 'u1');
     expect(remote.lastSwipe, {'action': 'like', 'targetUserId': 'u1'});
-    expect(like.getOrElse((_) => (isMatch: false)).isMatch, isTrue);
+    expect(like.getOrElse((_) => const SwipeOutcome()).isMatch, isTrue);
     await repo.swipe(SwipeAction.undo);
     expect(remote.lastSwipe, {'action': 'undo'});
+  });
+
+  test('block and report hit the right endpoints', () async {
+    final remote = _Remote();
+    final repo = MarriageCardsRepositoryImpl(remote, testGuard(), 'x');
+    await repo.block('u1');
+    expect(remote.blocked, ['u1']);
+    await repo.report('u1', reason: 'spam');
+    expect(remote.lastReport, {'reportedUserId': 'u1', 'reason': 'spam'});
   });
 
   test('cards request failing becomes a Failure', () async {

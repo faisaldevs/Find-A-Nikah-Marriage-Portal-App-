@@ -54,6 +54,8 @@ class ChatMessage extends Equatable {
     this.replyTo,
     this.callLog,
     this.imageUrl,
+    this.audioUrl,
+    this.audioDuration,
   });
 
   final String id;
@@ -71,7 +73,14 @@ class ChatMessage extends Equatable {
   /// Absolute URL of the picture, for an image message; [text] is empty.
   final String? imageUrl;
 
+  /// URL (or a local file path while uploading) of a voice message;
+  /// [text] is empty.
+  final String? audioUrl;
+  final Duration? audioDuration;
+
   bool get isImage => imageUrl != null;
+
+  bool get isAudio => audioUrl != null;
 
   bool get isCall => callLog != null;
 
@@ -85,6 +94,8 @@ class ChatMessage extends Equatable {
     Object? replyTo = unchanged,
     Object? callLog = unchanged,
     Object? imageUrl = unchanged,
+    Object? audioUrl = unchanged,
+    Object? audioDuration = unchanged,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -102,6 +113,12 @@ class ChatMessage extends Equatable {
       imageUrl: identical(imageUrl, unchanged)
           ? this.imageUrl
           : imageUrl as String?,
+      audioUrl: identical(audioUrl, unchanged)
+          ? this.audioUrl
+          : audioUrl as String?,
+      audioDuration: identical(audioDuration, unchanged)
+          ? this.audioDuration
+          : audioDuration as Duration?,
     );
   }
 
@@ -116,5 +133,7 @@ class ChatMessage extends Equatable {
     replyTo,
     callLog,
     imageUrl,
+    audioUrl,
+    audioDuration,
   ];
 }

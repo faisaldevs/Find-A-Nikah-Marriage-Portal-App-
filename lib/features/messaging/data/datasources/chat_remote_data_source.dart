@@ -46,6 +46,15 @@ abstract class ChatRemoteDataSource {
     @Part(name: 'image') MultipartFile image,
   );
 
+  /// Voice note: multipart, file field `audio` + `durationSeconds` (1–120).
+  @POST('/v1/conversations/{id}/messages')
+  @MultiPart()
+  Future<SendMessageResponseDto> sendAudio(
+    @Path('id') String conversationId,
+    @Part(name: 'audio') MultipartFile audio,
+    @Part(name: 'durationSeconds') String durationSeconds,
+  );
+
   /// Seen = read; clears the caller's unread count.
   @PATCH('/v1/conversations/{id}/seen')
   Future<void> markRead(@Path('id') String conversationId);
@@ -78,6 +87,14 @@ abstract class ChatRemoteDataSource {
   /// Delete for me: the other side keeps their copy.
   @DELETE('/v1/messages/{id}')
   Future<void> deleteMessage(@Path('id') String messageId);
+
+  /// Delete for everyone: sender only, within an hour (else 403
+  /// `DELETE_WINDOW_EXPIRED`).
+  @DELETE('/v1/messages/{id}')
+  Future<void> deleteMessageForEveryone(
+    @Path('id') String messageId, {
+    @Query('scope') String scope = 'everyone',
+  });
 
   @GET('/v1/blocks')
   Future<BlocksResponseDto> fetchBlocks({

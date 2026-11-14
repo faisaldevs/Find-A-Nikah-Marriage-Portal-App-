@@ -8,13 +8,14 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 Future<String?> showComplimentPage(
   BuildContext context, {
   required String name,
+  String? initialText,
 }) {
   return Navigator.of(context, rootNavigator: true).push<String>(
     PageRouteBuilder<String>(
       opaque: false,
-      transitionDuration: const Duration(milliseconds: 300),
       reverseTransitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (_, _, _) => _ComplimentPage(name: name),
+      pageBuilder: (_, _, _) =>
+          _ComplimentPage(name: name, initialText: initialText),
       // transitionsBuilder: (_, animation, _, child) =>
       //     FadeTransition(opacity: animation, child: child),
       // The reference slides the panel up from the bottom edge, with the
@@ -35,16 +36,17 @@ Future<String?> showComplimentPage(
 }
 
 class _ComplimentPage extends StatefulWidget {
-  const _ComplimentPage({required this.name});
+  const _ComplimentPage({required this.name, this.initialText});
 
   final String name;
+  final String? initialText;
 
   @override
   State<_ComplimentPage> createState() => _ComplimentPageState();
 }
 
 class _ComplimentPageState extends State<_ComplimentPage> {
-  final _controller = TextEditingController();
+  late final _controller = TextEditingController(text: widget.initialText);
 
   @override
   void dispose() {

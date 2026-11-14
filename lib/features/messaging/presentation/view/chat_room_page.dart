@@ -18,7 +18,10 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 
-enum _MessageAction { copy, delete }
+enum _MessageAction { copy, delete, deleteForEveryone }
+
+/// How long after sending a message can still be deleted for everyone.
+const _deleteForEveryoneWindow = Duration(hours: 1);
 
 /// One-to-one chat with a match, pushed over the tabs. Opened from a
 /// Chat-tab row or a match pick; the peer travels as the route's `extra`.
@@ -234,6 +237,12 @@ class _ChatRoomView extends StatelessWidget {
     ChatMessage m,
   ) async {
     final bloc = context.read<ChatRoomBloc>();
+    // Own, sent (not a pending / failed local copy), inside the window.
+    final canRecall =
+        m.isMine &&
+        !m.isCall &&
+        !m.id.startsWith('local-') &&
+        DateTime.now().difference(m.sentAt) < _deleteForEveryoneWindow;
     final action = await showModalBottomSheet<_MessageAction>(
       context: context,
       useRootNavigator: true,
@@ -255,6 +264,17 @@ class _ChatRoomView extends StatelessWidget {
               title: const Text('Delete for me'),
               onTap: () => Navigator.of(context).pop(_MessageAction.delete),
             ),
+            if (canRecall)
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_forever_outlined,
+                  color: AppColors.errorColor,
+                ),
+                title: const Text('Delete for everyone'),
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(_MessageAction.deleteForEveryone),
+              ),
           ],
         ),
       ),
@@ -264,6 +284,8 @@ class _ChatRoomView extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: m.text));
       case _MessageAction.delete:
         bloc.add(ChatRoomMessageDeleted(m));
+      case _MessageAction.deleteForEveryone:
+        bloc.add(ChatRoomMessageDeleted(m, forEveryone: true));
       case null:
         break;
     }
@@ -333,7 +355,9 @@ class _ChatRoomView extends StatelessWidget {
               const Expanded(child: _Thread()),
               BlocBuilder<ChatRoomBloc, ChatRoomState>(
                 buildWhen: (a, b) =>
-                    a.replyingTo != b.replyingTo || a.peer.name != b.peer.name,
+                    a.replyingTo != b.replyingTo ||
+                    a.peer.name != b.peer.name ||
+                    a.peer.closure != b.peer.closure,
                 builder: (context, state) {
                   final reply = state.replyingTo;
                   return MessageComposer(
@@ -343,12 +367,30 @@ class _ChatRoomView extends StatelessWidget {
                         ? 'yourself'
                         : state.peer.name,
                     replyText: reply?.text,
+                    closedMessage: switch (state.peer.closure) {
+                      null => null,
+                      ChatClosure.unmatched =>
+                        'This match has ended. You can’t send messages.',
+                      ChatClosure.blocked =>
+                        'You can’t message ${state.peer.name}.',
+                      ChatClosure.blockedByMe =>
+                        'You blocked ${state.peer.name}. Unblock them in '
+                            'Settings to send messages.',
+                      ChatClosure.unavailable =>
+                        'You can’t message ${state.peer.name} right now.',
+                    },
                     onSend: (text) => bloc.add(ChatRoomMessageSubmitted(text)),
                     onCancelReply: () => bloc.add(const ChatRoomReplyCleared()),
                     onTypingChanged: (typing) =>
                         bloc.add(ChatRoomTypingChanged(typing: typing)),
                     onAttach: () => _onAttach(context),
-                    onVoice: () => _comingSoon(context, 'Voice messages'),
+                    onVoiceRecorded: (path, duration) =>
+                        bloc.add(ChatRoomVoiceRecorded(path, duration)),
+                    onVoiceDenied: () => CustomToast.showInfo(
+                      context,
+                      'Allow microphone access in Settings to send voice '
+                      'messages.',
+                    ),
                   );
                 },
               ),

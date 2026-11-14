@@ -625,3 +625,28 @@ skip them — so the server must re-check on upload.
 - [ ] FCM: `POST /devices {token, platform}` / `DELETE /devices/:token` — needs firebase_messaging + config (ask before adding Firebase).
 - [ ] Verify on devices: typing bubble, mute, clear chat, Unmatched page, swipe-reply, block, unmatch, reconnect.
 - [ ] Restore real `lib/flavors/env/dev.json` URL before merge.
+
+**Update 2026-11-14 (chat):** replies, mute, clear chat and presence are
+live now (backend shipped them). New in the app: composer is replaced by a
+"can't message" bar when the match ended or the peer blocked this user
+(row `canMessage` / `blockedBy`, an ended match in `my-matches`, or a 403 on
+send; re-entering the room retries). 409 on opening a chat → toast (slot
+limit). `message:deleted` socket event removes the message. Still pending:
+voice messages, delete for everyone UI, push, Friends tab, offline cache,
+conversation search. Backend asks: `NEED_FROM_BACKEND_CHAT_ROUND3.md`.
+
+**Update 2026-11-14 (round 3 built):** conversation:updated, delete for
+everyone, chatSlots, lastMessageType and voice messages are in. Remaining
+list: `CHAT_REMAINING_AFTER_ROUND3.md` (backend asks A1–A9, app work B1–B10,
+device checks C).
+
+---
+
+## Feed — backend requirements + phased integration (planning)
+
+**Added:** 2026-11-14 · **Status:** planning only, 4 decisions open
+
+Full notes, phases, mobile gaps and open questions: `resources/docs/FEED_PLAN_NOTES.md`.
+- [ ] Answer open decisions (profile gate, @handle, name on posts, segmented switch).
+- [ ] Write `NEED_FROM_BACKEND_FEED.md` + `FEED_PROGRESS.md`.
+- [ ] Schedule `profile_view` before Feed Phase 4.

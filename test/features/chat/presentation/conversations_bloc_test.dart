@@ -25,6 +25,7 @@ void main() {
       repo.watchConversations,
     ).thenAnswer((_) => Stream.value(const [_conversation]));
     when(repo.watchMatches).thenAnswer((_) => Stream.value(const [_match]));
+    when(() => repo.slotLimit).thenReturn(5);
   });
 
   blocTest<ConversationsBloc, ConversationsState>(

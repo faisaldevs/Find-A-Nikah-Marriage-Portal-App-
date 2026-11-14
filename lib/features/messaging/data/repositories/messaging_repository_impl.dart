@@ -37,6 +37,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
       _socket.seen.listen(_onSeen),
       _socket.typing.listen(_onTyping),
       _socket.presence.listen(_onPresence),
+      _socket.deleted.listen(_onSocketDeleted),
+      _socket.conversationUpdated.listen(_onConversationUpdated),
       _socket.connection.listen(_onConnection),
     ]);
     _socket.connect();
@@ -57,8 +59,12 @@ class MessagingRepositoryImpl implements MessagingRepository {
   static const _maxMatchPages = 10;
   static const _threadPageSize = 30;
 
-  /// Free plan's conversation slots; the Chat tab draws this many.
-  static const _slotCount = 5;
+  /// Active-chat slots the Chat tab draws: the free plan's 5 until the
+  /// server says otherwise (`chatSlots.limit`: 10 on Gold).
+  var _slotLimit = 5;
+
+  @override
+  int get slotLimit => _slotLimit;
 
   final _changes = StreamController<void>.broadcast();
   final _subs = <StreamSubscription<Object?>>[];
@@ -92,6 +98,14 @@ class MessagingRepositoryImpl implements MessagingRepository {
   /// Partners of chats the user archived: kept out of the Matches panel until
   /// the chat is restored.
   final _archivedPeerIds = <String>{};
+
+  /// Peers whose chat can't take messages, from three sources: the
+  /// conversation row (`canMessage:false` / `blockedBy`), an ended match in
+  /// `my-matches`, and a 403 on send. Applied to the peers in [_byId] on
+  /// every [_notify].
+  final _rowClosure = <String, ChatClosure>{};
+  final _endedPeerIds = <String>{};
+  final _forbiddenPeerIds = <String>{};
 
   Future<void>? _firstLoad;
 
@@ -163,9 +177,22 @@ class MessagingRepositoryImpl implements MessagingRepository {
         limit: _listPageSize,
       );
       rows.addAll(res.data.conversations);
+      if (res.data.chatSlots?.limit case final limit? when limit > 0) {
+        _slotLimit = limit;
+      }
       if (!res.data.pagination.hasNext) break;
     }
     _order = [for (final r in rows) r.id];
+    _rowClosure.clear();
+    for (final r in rows) {
+      final peerId = r.partner?.id ?? '';
+      if (r.canMessage == false) {
+        _rowClosure[r.id] = _closureOf(r.blockedBy);
+      } else if (r.canMessage == true) {
+        // The server says it's open again: forget an earlier 403.
+        _forbiddenPeerIds.remove(peerId);
+      }
+    }
     final fresh = {for (final r in rows) r.id: _conversationOf(r)};
     // A just-opened empty conversation can be missing from a list that was
     // fetched before it existed; keep it until the server lists it.
@@ -185,6 +212,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
 
   Future<void> _fetchMatches() async {
     final peers = <ChatPeerDto>[];
+    final ended = <String>{};
     for (var page = 1; page <= _maxMatchPages; page++) {
       final res = await _matchesRemote.fetchMyMatches(
         page: page,
@@ -198,21 +226,43 @@ class MessagingRepositoryImpl implements MessagingRepository {
         }
         // A match that can no longer be messaged (ended) isn't offered as
         // a new conversation.
-        if (m.canMessage) peers.add(peer);
+        if (m.canMessage) {
+          peers.add(peer);
+        } else {
+          ended.add(peer.id);
+        }
       }
       if (!res.data.pagination.hasNext) break;
     }
     _matchesById
       ..clear()
       ..addEntries(peers.map((p) => MapEntry(p.id, p)));
+    _endedPeerIds
+      ..clear()
+      ..addAll(ended);
     _notify();
   }
+
+  static ChatClosure _closureOf(String? blockedBy) => switch (blockedBy) {
+    'them' => ChatClosure.blocked,
+    'me' => ChatClosure.blockedByMe,
+    _ => ChatClosure.unmatched,
+  };
+
+  /// The list-row text: the server's preview, or a label for media (the
+  /// server's preview for those isn't guaranteed to be readable).
+  static String? _previewOf(ConversationRowDto row) =>
+      switch (row.lastMessageType) {
+        'image' => 'Photo',
+        'audio' => 'Voice message',
+        _ => row.lastMessagePreview,
+      };
 
   Conversation _conversationOf(ConversationRowDto row) {
     final partner = row.partner;
     final peerId = partner?.id ?? '';
     final photo = partner?.photoUrl;
-    final preview = row.lastMessagePreview;
+    final preview = _previewOf(row);
     return Conversation(
       id: row.id,
       peer: ChatPeer(
@@ -275,7 +325,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
     }
     return [
       for (final c in eligible)
-        if (_slotOf[c.id]! < _slotCount)
+        if (_slotOf[c.id]! < _slotLimit)
           _enrich(c.copyWith(slot: _slotOf[c.id])),
     ]..sort((a, b) => a.slot.compareTo(b.slot));
   }
@@ -373,7 +423,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
     final held = _messages[conversationId] ?? const <ChatMessage>[];
     final byId = {for (final m in held) m.id: m};
     for (final dto in incoming) {
-      if (dto.deletedForMe) {
+      if (dto.deletedForMe || dto.deletedForEveryone) {
         byId.remove(dto.id);
         continue;
       }
@@ -401,15 +451,23 @@ class MessagingRepositoryImpl implements MessagingRepository {
       imageUrl: dto.messageType == 'image' && attachment != null
           ? resolveImageUrl(_imageBaseUrl, attachment)
           : null,
+      audioUrl: dto.messageType == 'audio' && attachment != null
+          ? resolveImageUrl(_imageBaseUrl, attachment)
+          : null,
+      audioDuration: dto.messageType == 'audio'
+          ? Duration(seconds: dto.durationSeconds ?? 0)
+          : null,
       replyTo: switch (dto.replyTo) {
         null => null,
         final r => MessageReply(
           messageId: r.id,
           isMine: r.senderId != _peerIdOf(conversationId),
-          text: r.deletedForMe
+          text: r.deletedForMe || r.deletedForEveryone
               ? 'Message deleted'
               : r.messageType == 'image'
               ? 'Photo'
+              : r.messageType == 'audio'
+              ? 'Voice message'
               : r.text,
         ),
       },
@@ -481,9 +539,11 @@ class MessagingRepositoryImpl implements MessagingRepository {
           localId,
           (m) => m.copyWith(status: MessageStatus.failed),
         );
+        _markForbidden(conversationId, f);
         return left(f);
       },
       (res) {
+        _forbiddenPeerIds.remove(_peerIdOf(conversationId));
         // The poll may have fetched the server copy already: dedupe by id.
         final list = _messages[conversationId]!
           ..removeWhere((m) => m.id == localId || m.id == res.data.id);
@@ -497,6 +557,16 @@ class MessagingRepositoryImpl implements MessagingRepository {
     );
   }
 
+  /// A 403 on send: the match ended or the peer blocked this user. Closes
+  /// the room's composer without waiting for the next list poll.
+  void _markForbidden(String conversationId, Failure f) {
+    if (f.base is! ForbiddenFailure) return;
+    if (_peerIdOf(conversationId) case final peerId?) {
+      _forbiddenPeerIds.add(peerId);
+      _notify();
+    }
+  }
+
   /// The held message [id], shaped as a quote, for the optimistic bubble.
   MessageReply? _quoteOf(String conversationId, String? id) {
     if (id == null) return null;
@@ -505,7 +575,11 @@ class MessagingRepositoryImpl implements MessagingRepository {
     return MessageReply(
       messageId: m.id,
       isMine: m.isMine,
-      text: m.isImage ? 'Photo' : m.text,
+      text: m.isImage
+          ? 'Photo'
+          : m.isAudio
+          ? 'Voice message'
+          : m.text,
     );
   }
 
@@ -594,6 +668,12 @@ class MessagingRepositoryImpl implements MessagingRepository {
   void enterConversation(String conversationId) {
     _openRoom = conversationId;
     _socket.join(conversationId);
+    // Opening the room is a retry: forget an earlier 403 (the peer may have
+    // unblocked us). A send that fails again closes it once more.
+    if (_peerIdOf(conversationId) case final peerId?
+        when _forbiddenPeerIds.remove(peerId)) {
+      _notify();
+    }
   }
 
   @override
@@ -646,7 +726,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
                   m.id.startsWith('local-') &&
                   m.status == MessageStatus.sending &&
                   m.text == dto.text &&
-                  m.imageUrl == null,
+                  m.imageUrl == null &&
+                  m.audioUrl == null,
             )
           : const <ChatMessage>[];
       // Our own send echoed from another device or ahead of the REST
@@ -655,7 +736,11 @@ class MessagingRepositoryImpl implements MessagingRepository {
       _merge(id, [dto]);
     }
     final c = _byId[id]!;
-    final preview = dto.messageType == 'image' ? 'Photo' : dto.text;
+    final preview = switch (dto.messageType) {
+      'image' => 'Photo',
+      'audio' => 'Voice message',
+      _ => dto.text,
+    };
     final isOpen = _openRoom == id;
     if (!mine) {
       // Conversation-level receipts: the server broadcasts those to the
@@ -723,6 +808,35 @@ class MessagingRepositoryImpl implements MessagingRepository {
       }
     }
     if (changed) _notify();
+  }
+
+  /// Delete for everyone, pushed by the server: gone from this thread too.
+  void _onSocketDeleted(SocketDeleted d) {
+    final list = _messages[d.conversationId];
+    if (list == null) return;
+    final before = list.length;
+    list.removeWhere((m) => m.id == d.messageId);
+    if (list.length != before) _notify();
+  }
+
+  /// An unmatch / block / unblock, pushed: the open room closes or reopens
+  /// at once instead of waiting for the next list poll.
+  void _onConversationUpdated(SocketConversationUpdated u) {
+    final c = _byId[u.conversationId];
+    if (c == null) {
+      if (_firstLoad != null) unawaited(_refreshList().catchError((_) {}));
+      return;
+    }
+    if (u.canMessage) {
+      _rowClosure.remove(u.conversationId);
+      _forbiddenPeerIds.remove(c.peer.id);
+      _endedPeerIds.remove(c.peer.id);
+    } else {
+      _rowClosure[u.conversationId] = _closureOf(u.blockedBy);
+    }
+    _notify();
+    // The match list changes with it (an ended match leaves the panel).
+    unawaited(_refreshList().catchError((_) {}));
   }
 
   // ── Presence ──
@@ -860,9 +974,11 @@ class MessagingRepositoryImpl implements MessagingRepository {
           localId,
           (m) => m.copyWith(status: MessageStatus.failed),
         );
+        _markForbidden(conversationId, f);
         return left(f);
       },
       (res) {
+        _forbiddenPeerIds.remove(_peerIdOf(conversationId));
         final list = _messages[conversationId]!
           ..removeWhere((m) => m.id == localId || m.id == res.data.id);
         list
@@ -874,6 +990,71 @@ class MessagingRepositoryImpl implements MessagingRepository {
       },
     );
   }
+
+  @override
+  Future<Either<Failure, Unit>> sendAudio({
+    required String conversationId,
+    required String path,
+    required Duration duration,
+  }) async {
+    final localId = 'local-${++_seq}';
+    _put(
+      conversationId,
+      ChatMessage(
+        id: localId,
+        conversationId: conversationId,
+        text: '',
+        sentAt: DateTime.now(),
+        isMine: true,
+        status: MessageStatus.sending,
+        audioUrl: path,
+        audioDuration: duration,
+      ),
+    );
+    final seconds = duration.inSeconds.clamp(1, 120);
+    final sent = await _guard(
+      () async => _chat.sendAudio(
+        conversationId,
+        await MultipartFile.fromFile(path, filename: 'voice.m4a'),
+        '$seconds',
+      ),
+    );
+    return sent.match(
+      (f) {
+        _replace(
+          conversationId,
+          localId,
+          (m) => m.copyWith(status: MessageStatus.failed),
+        );
+        _markForbidden(conversationId, f);
+        return left(f);
+      },
+      (res) {
+        _forbiddenPeerIds.remove(_peerIdOf(conversationId));
+        final list = _messages[conversationId]!
+          ..removeWhere((m) => m.id == localId || m.id == res.data.id);
+        list
+          ..add(_messageOf(conversationId, res.data))
+          ..sort((a, b) => a.sentAt.compareTo(b.sentAt));
+        _bumpPreview(conversationId, 'Voice message');
+        _notify();
+        return right(unit);
+      },
+    );
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteMessageForEveryone({
+    required String conversationId,
+    required String messageId,
+  }) => _guard(() async {
+    await _chat.deleteMessageForEveryone(messageId);
+    _messages[conversationId]?.removeWhere((m) => m.id == messageId);
+    _notify();
+    // The server recalculates the list preview; fetch it.
+    unawaited(_refreshList().catchError((_) {}));
+    return unit;
+  });
 
   @override
   Future<Either<Failure, Unit>> deleteMessage({
@@ -1118,6 +1299,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
   @override
   Future<Either<Failure, Unit>> unblockUser(String userId) => _guard(() async {
     await _chat.unblock(userId);
+    _forbiddenPeerIds.remove(userId);
     // They may be matchable / chattable again: refetch.
     await refresh();
     return unit;
@@ -1126,8 +1308,28 @@ class MessagingRepositoryImpl implements MessagingRepository {
   // ── Plumbing ──────────────────────────────────────────────────────────
 
   void _notify() {
+    _applyClosures();
     _syncLastStatuses();
     if (!_changes.isClosed) _changes.add(null);
+  }
+
+  /// Puts each chat's closure on its peer, so the room's composer (which
+  /// watches the peer) and the list agree.
+  void _applyClosures() {
+    for (final entry in _byId.entries.toList()) {
+      final c = entry.value;
+      final peerId = c.peer.id;
+      final want =
+          _rowClosure[c.id] ??
+          (_endedPeerIds.contains(peerId)
+              ? ChatClosure.unmatched
+              : _forbiddenPeerIds.contains(peerId)
+              ? ChatClosure.unavailable
+              : null);
+      if (c.peer.closure != want) {
+        _byId[entry.key] = c.copyWith(peer: c.peer.copyWith(closure: want));
+      }
+    }
   }
 
   /// The list row's last message is a stub built from the list preview, so it

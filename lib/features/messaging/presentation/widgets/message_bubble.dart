@@ -5,6 +5,7 @@ import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/image_viewer.dart';
 import 'package:find_a_nikah/features/messaging/presentation/widgets/messaging_style.dart';
+import 'package:find_a_nikah/features/messaging/presentation/widgets/voice_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -77,6 +78,12 @@ class MessageBubble extends StatelessWidget {
                         onTap: () =>
                             showImageViewer(context, message.imageUrl!),
                         child: _MessageImage(url: message.imageUrl!),
+                      )
+                    else if (message.isAudio)
+                      VoiceBubble(
+                        source: message.audioUrl!,
+                        duration: message.audioDuration ?? Duration.zero,
+                        onPink: mine,
                       )
                     else
                       Text(

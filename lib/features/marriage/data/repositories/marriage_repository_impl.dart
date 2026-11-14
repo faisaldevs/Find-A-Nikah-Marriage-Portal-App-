@@ -32,7 +32,18 @@ class MarriageRepositoryImpl implements MarriageRepository {
     SwipeAction action, {
     String? targetUserId,
     String? text,
-  }) async => right((isMatch: false));
+  }) async => right(const SwipeOutcome());
+
+  // Legacy placeholder feed: nothing to block or report.
+  @override
+  Future<Either<Failure, Unit>> block(String userId) async => right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> report(
+    String userId, {
+    required String reason,
+    String? description,
+  }) async => right(unit);
 
   /// The query the discovery API expects. Only set filters are sent.
   static Map<String, dynamic> filtersToQuery(

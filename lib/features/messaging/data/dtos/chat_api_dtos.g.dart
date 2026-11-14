@@ -26,6 +26,14 @@ ConversationsDataDto _$ConversationsDataDtoFromJson(
   pagination: json['pagination'] == null
       ? const ApiPaginationDto()
       : ApiPaginationDto.fromJson(json['pagination'] as Map<String, dynamic>),
+  chatSlots: json['chatSlots'] == null
+      ? null
+      : ChatSlotsDto.fromJson(json['chatSlots'] as Map<String, dynamic>),
+);
+
+ChatSlotsDto _$ChatSlotsDtoFromJson(Map<String, dynamic> json) => ChatSlotsDto(
+  limit: (json['limit'] as num?)?.toInt() ?? 5,
+  used: (json['used'] as num?)?.toInt() ?? 0,
 );
 
 ConversationRowDto _$ConversationRowDtoFromJson(Map<String, dynamic> json) =>
@@ -44,6 +52,9 @@ ConversationRowDto _$ConversationRowDtoFromJson(Map<String, dynamic> json) =>
       lastMessageSender: json['lastMessageSender'] as String?,
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
       isMuted: json['isMuted'] as bool? ?? false,
+      canMessage: json['canMessage'] as bool?,
+      blockedBy: json['blockedBy'] as String?,
+      lastMessageType: json['lastMessageType'] as String?,
     );
 
 ConversationPartnerDto _$ConversationPartnerDtoFromJson(
@@ -108,6 +119,8 @@ MessageDto _$MessageDtoFromJson(Map<String, dynamic> json) => MessageDto(
       ? null
       : DateTime.parse(json['seenAt'] as String),
   deletedForMe: json['deletedForMe'] as bool? ?? false,
+  deletedForEveryone: json['deletedForEveryone'] as bool? ?? false,
+  durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
   replyToId: json['replyToId'] as String?,
   replyTo: json['replyTo'] == null
       ? null
@@ -120,6 +133,7 @@ ReplyToDto _$ReplyToDtoFromJson(Map<String, dynamic> json) => ReplyToDto(
   messageType: json['messageType'] as String? ?? 'text',
   text: json['text'] as String? ?? '',
   deletedForMe: json['deletedForMe'] as bool? ?? false,
+  deletedForEveryone: json['deletedForEveryone'] as bool? ?? false,
 );
 
 UnreadCountResponseDto _$UnreadCountResponseDtoFromJson(
