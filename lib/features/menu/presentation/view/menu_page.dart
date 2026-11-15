@@ -116,13 +116,15 @@ class _TopActions extends StatelessWidget {
               semanticLabel: 'Settings',
               onTap: () => context.push<void>(RoutePaths.settings).ignore(),
             ),
-            SizedBox(width: 10.w),
-            MenuCircleButton(
-              icon: Assets.icons.menuBell,
-              iconSize: 18,
-              semanticLabel: 'Notifications',
-              onTap: () => showComingSoon(context, 'Notifications'),
-            ),
+            // Bell hidden until the notifications screen exists
+            // (resources/docs/PENDING.md).
+            // SizedBox(width: 10.w),
+            // MenuCircleButton(
+            //   icon: Assets.icons.menuBell,
+            //   iconSize: 18,
+            //   semanticLabel: 'Notifications',
+            //   onTap: () => showComingSoon(context, 'Notifications'),
+            // ),
           ],
         ),
       ),
@@ -367,7 +369,8 @@ class _MembershipContent extends StatelessWidget {
           SizedBox(height: 14.w),
           _BalanceCard(
             background: kMenuPrimary50,
-            value: '${membership.likes}',
+            // -1 from the server = unlimited likes.
+            value: membership.likes < 0 ? '∞' : '${membership.likes}',
             label: 'Likes',
             description: 'Get 3x more likes with Gold to keep swiping.',
             action: MenuPillButton(label: 'Get more', onTap: upgrade),

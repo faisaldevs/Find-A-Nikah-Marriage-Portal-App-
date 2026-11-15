@@ -132,6 +132,57 @@ void main() {
       await bloc.close();
     });
 
+    test('Start again reports how many passes came back', () async {
+      when(repo.startAgain).thenAnswer((_) async => right(3));
+      final bloc = SettingsBloc(repo)..add(const SettingsStarted());
+      await _settle();
+
+      bloc.add(const SettingsStartAgainRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.notice?.text, contains('3 passed profiles are back'));
+      await bloc.close();
+    });
+
+    test('Start again with nothing to bring back still refreshes', () async {
+      when(repo.startAgain).thenAnswer((_) async => right(0));
+      final bloc = SettingsBloc(repo)..add(const SettingsStarted());
+      await _settle();
+
+      bloc.add(const SettingsStartAgainRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.notice?.text, 'Your deck was refreshed');
+      await bloc.close();
+    });
+
+    test('deleting the account flags it so the page signs out', () async {
+      when(repo.deleteAccount).thenAnswer((_) async => right(unit));
+      final bloc = SettingsBloc(repo)..add(const SettingsStarted());
+      await _settle();
+
+      bloc.add(const SettingsDeleteAccountRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.accountDeleted, isTrue);
+      await bloc.close();
+    });
+
+    test('a failed delete keeps the member signed in and shows why', () async {
+      when(
+        repo.deleteAccount,
+      ).thenAnswer((_) async => left(const NetworkFailure()));
+      final bloc = SettingsBloc(repo)..add(const SettingsStarted());
+      await _settle();
+
+      bloc.add(const SettingsDeleteAccountRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.accountDeleted, isFalse);
+      expect(bloc.state.failure, isA<NetworkFailure>());
+      await bloc.close();
+    });
+
     test(
       'a failed save rolls the toggle back and surfaces the error',
       () async {

@@ -67,6 +67,11 @@ class AppTextField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        // Email fields: no capital letters or autocorrect.
+        textCapitalization: TextCapitalization.none,
+        autocorrect: keyboardType != TextInputType.emailAddress && !obscureText,
+        enableSuggestions:
+            keyboardType != TextInputType.emailAddress && !obscureText,
         onChanged: onChanged,
         // style: filled
         //     ? TextFontStyle.headline15w400black87StyleSatoshi

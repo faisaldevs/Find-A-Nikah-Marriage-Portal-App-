@@ -12,4 +12,7 @@ export 'error/guard.dart';
 export 'logging/logger.dart';
 export 'media/image_compressor.dart';
 export 'model/unchanged.dart';
+export 'push/push_payload.dart';
+export 'push/push_service.dart';
+export 'push/push_tap_handler.dart';
 export 'usecase/use_case.dart';

@@ -26,6 +26,9 @@ abstract interface class MarriageRepository {
     String? text,
   });
 
+  /// Adds [userId] to favourites (`POST /v1/favorites/:userId`).
+  Future<Either<Failure, Unit>> favourite(String userId);
+
   /// Blocks [userId] (`POST /v1/blocks/:userId`).
   Future<Either<Failure, Unit>> block(String userId);
 

@@ -14,6 +14,18 @@
         android:label="Find A Nikah"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Push: icon, colour and channel FCM uses when a notification
+             message doesn't name them. Channel ids match
+             NotificationPresenter. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="channel_activity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -65,6 +77,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher: open https pages (Terms, Privacy Policy) in the browser. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

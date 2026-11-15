@@ -87,10 +87,12 @@ class _FeedViewState extends State<_FeedView> {
                   onCloseSearch: _closeSearch,
                   onQueryChanged: (q) =>
                       context.read<FeedBloc>().add(FeedQueryChanged(q)),
-                  onNotifications: () => CustomToast.showInfo(
-                    context,
-                    'Notifications — coming soon',
-                  ),
+                  // Hidden until the notifications screen exists
+                  // (resources/docs/PENDING.md).
+                  // onNotifications: () => CustomToast.showInfo(
+                  //   context,
+                  //   'Notifications — coming soon',
+                  // ),
                 ),
                 SizedBox(height: 14.w),
                 FeedFilterChips(

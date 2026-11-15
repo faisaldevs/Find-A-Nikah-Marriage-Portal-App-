@@ -112,4 +112,10 @@ enum ExploreLiveSection {
   /// My history → Liked (members I liked); `likesInFilters` is the
   /// reverse — members who liked me.
   liked,
+
+  /// My history → Favourited (`GET /v1/favorites`).
+  favourited,
+
+  /// My history → Complimented (`GET /v1/likes/compliments-sent`).
+  complimented,
 }

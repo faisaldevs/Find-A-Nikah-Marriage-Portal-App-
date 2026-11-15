@@ -33,6 +33,17 @@ abstract interface class AuthRepository {
   /// Sign-up step 1: emails a one-time code to [email].
   Future<Either<Failure, Unit>> requestSignUpCode(String email);
 
+  /// "Forgot password": emails a reset code (the server answers the same
+  /// whether or not the account exists).
+  Future<Either<Failure, Unit>> requestPasswordReset(String email);
+
+  /// Sets a new password with the emailed [code]. The member then signs in.
+  Future<Either<Failure, Unit>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  });
+
   /// Sign-up step 2: checks the emailed code.
   Future<Either<Failure, Unit>> verifySignUpCode({
     required String email,

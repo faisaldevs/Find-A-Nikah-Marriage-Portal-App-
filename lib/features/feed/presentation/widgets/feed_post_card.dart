@@ -27,9 +27,14 @@ class FeedPostCard extends StatelessWidget {
     this.topicColor = kFeedTopicRed,
     this.maxBodyLines,
     this.commentsHighlighted = false,
+    this.showTopComment = true,
   });
 
   final FeedPost post;
+
+  /// The list shows the best comment under the text; the post page lists
+  /// every comment itself, so it turns this off (it was shown twice).
+  final bool showTopComment;
   final VoidCallback onMore;
   final VoidCallback onLike;
   final VoidCallback onComment;
@@ -77,10 +82,11 @@ class FeedPostCard extends StatelessWidget {
           ),
           SizedBox(height: 12.w),
           _Body(text: post.body, maxLines: maxBodyLines),
-          if (post.topComment case final comment?) ...[
-            SizedBox(height: 12.w),
-            FeedCommentPreview(comment: comment),
-          ],
+          if (showTopComment)
+            if (post.topComment case final comment?) ...[
+              SizedBox(height: 12.w),
+              FeedCommentPreview(comment: comment),
+            ],
           SizedBox(height: 12.w),
           Container(height: 1.w, color: kFeedGrey100),
           SizedBox(height: 12.w),

@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:find_a_nikah/app/di.dart';
+import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/presentation.dart';
 import 'package:find_a_nikah/features/remote_config/presentation/presentation.dart';
+import 'package:find_a_nikah/features/auth/domain/domain.dart';
 import 'package:find_a_nikah/router/app_router.dart';
+import 'package:find_a_nikah/router/push_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -29,6 +34,7 @@ class _AppState extends State<App> {
   late final RemoteConfigBloc _remoteConfig;
   late final GoRouter _router;
   late final AppLifecycleListener _lifecycle;
+  late final StreamSubscription<AuthStatus> _authSub;
 
   @override
   void initState() {
@@ -43,6 +49,13 @@ class _AppState extends State<App> {
       isEnabled: (flag) => _remoteConfig.state.isEnabled(flag),
       remoteConfig: _remoteConfig.stream,
     );
+    // Notification taps: held until signed in, then routed.
+    final taps = getIt<PushTapHandler>()
+      ..attach(
+        open: (p) => openPush(_router, p),
+        isReady: () => _auth.state is Authenticated,
+      );
+    _authSub = _auth.stream.listen((_) => taps.drain());
     // Kill switches and the version floor are re-read on every return to
     // the foreground.
     _lifecycle = AppLifecycleListener(
@@ -53,6 +66,7 @@ class _AppState extends State<App> {
   @override
   void dispose() {
     _lifecycle.dispose();
+    _authSub.cancel().ignore();
     _router.dispose();
     _auth.close().ignore();
     _remoteConfig.close().ignore();

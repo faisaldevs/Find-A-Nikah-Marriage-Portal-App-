@@ -7,6 +7,8 @@ abstract final class RoutePaths {
   static const welcome = '/welcome';
   static const login = '/login';
   static const signUpEmail = '/signup/email';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/forgot-password/reset';
   static const signUpCode = '/signup/verification-code';
   static const createPassword = '/signup/create-password';
 
@@ -142,6 +144,8 @@ abstract final class RoutePaths {
     intro,
     welcome,
     login,
+    forgotPassword,
+    resetPassword,
     signUpEmail,
     signUpCode,
     createPassword,

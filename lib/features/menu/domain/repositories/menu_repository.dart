@@ -34,4 +34,11 @@ abstract interface class MenuRepository {
   Future<Either<Failure, AppSettings>> fetchSettings();
 
   Future<Either<Failure, AppSettings>> saveSettings(AppSettings settings);
+
+  /// "Start again": clears the passes; the answer is how many were cleared.
+  /// The Marriage deck restarts.
+  Future<Either<Failure, int>> startAgain();
+
+  /// Deletes the account on the server. The caller signs out afterwards.
+  Future<Either<Failure, Unit>> deleteAccount();
 }

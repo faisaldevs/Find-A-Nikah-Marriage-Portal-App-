@@ -76,6 +76,9 @@ class _SignUpCodePageState extends State<SignUpCodePage> {
       _focusNodes[index - 1].requestFocus();
     }
     setState(() {});
+    // All digits in: close the keyboard so the Continue button is visible
+    // (it sat behind the keyboard).
+    if (_isComplete) FocusManager.instance.primaryFocus?.unfocus();
   }
 
   String get _code => _controllers.map((c) => c.text.trim()).join();

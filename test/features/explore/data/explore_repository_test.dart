@@ -90,6 +90,24 @@ class _Remote implements ExploreRemoteDataSource {
     calls.add('who-liked-me:$page');
     return LikeListResponseDto.fromJson({'data': likeListData});
   }
+
+  @override
+  Future<LikeListResponseDto> fetchFavourites({
+    required int page,
+    required int limit,
+  }) async {
+    calls.add('favorites:$page');
+    return LikeListResponseDto.fromJson({'data': likeListData});
+  }
+
+  @override
+  Future<LikeListResponseDto> fetchComplimentsSent({
+    required int page,
+    required int limit,
+  }) async {
+    calls.add('compliments-sent:$page');
+    return LikeListResponseDto.fromJson({'data': likeListData});
+  }
 }
 
 const ExploreLiveSection _nearYou = ExploreLiveSection.activeNearYou;
@@ -230,5 +248,16 @@ void main() {
     expect(remote.calls, ['visited-you:1']);
     expect(section.locked, isFalse);
     expect(section.profiles.single.postedAt, isNotNull);
+  });
+
+  test('Favourited and Complimented read their own endpoints', () async {
+    await repo.fetchSection(ExploreLiveSection.favourited, page: 1);
+    await repo.fetchSection(ExploreLiveSection.complimented, page: 1);
+    await repo.fetchSection(ExploreLiveSection.liked, page: 1);
+
+    expect(
+      remote.calls,
+      containsAll(['favorites:1', 'compliments-sent:1', 'like-list:1']),
+    );
   });
 }

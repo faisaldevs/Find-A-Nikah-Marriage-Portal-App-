@@ -5,8 +5,7 @@ import 'package:retrofit/retrofit.dart';
 part 'explore_remote_data_source.g.dart';
 
 /// Explore's real endpoints. Same base as the Marriage cards data source:
-/// `api.dio`, `/v1` in the path. "Currently available" and My history's
-/// Favourited / Complimented have no API yet and stay on
+/// `api.dio`, `/v1` in the path. "Currently available" still stays on
 /// `DummyExploreDataSource`.
 @RestApi()
 abstract class ExploreRemoteDataSource {
@@ -30,9 +29,27 @@ abstract class ExploreRemoteDataSource {
     @Query('limit') required int limit,
   });
 
-  /// Members I liked (My history → Liked).
-  @GET('/v1/likes/like-list')
+  /// Members I liked (My history → Liked). `/v1/likes/sent` — the old
+  /// `/v1/likes/like-list` now answers "Who Liked You" (members who liked
+  /// me) and was always empty here (found on 2026-11-15).
+  // @GET('/v1/likes/like-list')
+  @GET('/v1/likes/sent')
   Future<LikeListResponseDto> fetchLikeList({
+    @Query('page') required int page,
+    @Query('limit') required int limit,
+  });
+
+  /// Members I added to favourites (My history → Favourited). Same wrapped
+  /// shape as [fetchLikeList].
+  @GET('/v1/favorites')
+  Future<LikeListResponseDto> fetchFavourites({
+    @Query('page') required int page,
+    @Query('limit') required int limit,
+  });
+
+  /// Members I sent a compliment to (My history → Complimented).
+  @GET('/v1/likes/compliments-sent')
+  Future<LikeListResponseDto> fetchComplimentsSent({
     @Query('page') required int page,
     @Query('limit') required int limit,
   });

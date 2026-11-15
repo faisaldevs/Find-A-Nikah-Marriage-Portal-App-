@@ -36,6 +36,9 @@ class MarriageRepositoryImpl implements MarriageRepository {
 
   // Legacy placeholder feed: nothing to block or report.
   @override
+  Future<Either<Failure, Unit>> favourite(String userId) async => right(unit);
+
+  @override
   Future<Either<Failure, Unit>> block(String userId) async => right(unit);
 
   @override

@@ -21,9 +21,11 @@ class MenuRepositoryImpl implements MenuRepository {
     this._guard, {
     required String imageBaseUrl,
     JsonCache? cache,
+    void Function()? onDeckReset,
     // A private field can't be a named initializing formal.
     // ignore: prefer_initializing_formals
   }) : _cache = cache,
+       _onDeckReset = onDeckReset,
        _imageBaseUrl = imageBaseUrl.endsWith('/')
            ? imageBaseUrl.substring(0, imageBaseUrl.length - 1)
            : imageBaseUrl;
@@ -40,6 +42,9 @@ class MenuRepositoryImpl implements MenuRepository {
 
   /// Null in tests that don't need the device copy.
   final JsonCache? _cache;
+
+  /// Restarts the Marriage deck after "Start again" (wired in `di.dart`).
+  final void Function()? _onDeckReset;
 
   /// The last profile the server sent (or the device copy until then).
   MyProfile? _confirmed;
@@ -172,17 +177,103 @@ class MenuRepositoryImpl implements MenuRepository {
   /// Ends the session's stream (session scope dispose).
   Future<void> dispose() => _changes.close();
 
+  // Plan name and the three counters come from `/v1/subscriptions/me`. The
+  // description and the price line are still placeholders (the plan list
+  // and purchases are not built — see remaining/menu_settings.md SET-02).
   @override
-  Future<Either<Failure, Membership>> fetchMembership() =>
-      _guard(_dummy.fetchMembership);
+  Future<Either<Failure, Membership>> fetchMembership() => _guard(() async {
+    final base = await _dummy.fetchMembership();
+    final body = (await _remote.getSubscription()).data;
+    final data = body is Map ? body['data'] : null;
+    if (data is! Map) return base;
+    final sub = data['subscription'];
+    final plan = sub is Map ? sub['planId'] : null;
+    final planName = plan is Map ? plan['name'] as String? : null;
+    final endsAt = sub is Map ? DateTime.tryParse('${sub['endsAt']}') : null;
+    int count(String key, int fallback) =>
+        (data[key] as num?)?.toInt() ?? fallback;
+    return base.copyWith(
+      planName: planName ?? 'Basic plan',
+      planDescription: planName == null
+          ? base.planDescription
+          : endsAt == null
+          ? 'Your plan is active.'
+          : 'Active until ${_dayMonthYear(endsAt.toLocal())}.',
+      likes: count('likesRemainingToday', base.likes),
+      compliments: count('complimentsRemaining', base.compliments),
+      likesInFilters: count('likesInYourFiltersCount', base.likesInFilters),
+    );
+  });
 
+  static String _dayMonthYear(DateTime d) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+  // Was: _guard(_dummy.fetchMembership).
+
+  // Settings: the two switches the server knows (`notifications` →
+  // `messageNotifications`, `chatMessagePreview` → `messagePreview`) are
+  // saved on `/v1/me/settings`; the rest (language, sharing link, chat
+  // requests, gold badge) still live in memory for the session — see
+  // resources/docs/remaining/menu_settings.md.
   @override
-  Future<Either<Failure, AppSettings>> fetchSettings() =>
-      _guard(_dummy.fetchSettings);
+  Future<Either<Failure, AppSettings>> fetchSettings() => _guard(() async {
+    final local = await _dummy.fetchSettings();
+    final body = (await _remote.getMySettings()).data;
+    final server = body is Map ? body['data'] : null;
+    if (server is! Map) return local;
+    return _dummy.saveSettings(
+      local.copyWith(
+        notifications: server['messageNotifications'] as bool?,
+        chatMessagePreview: server['messagePreview'] as bool?,
+      ),
+    );
+  });
 
   @override
   Future<Either<Failure, AppSettings>> saveSettings(AppSettings settings) =>
-      _guard(() => _dummy.saveSettings(settings));
+      _guard(() async {
+        final before = await _dummy.fetchSettings();
+        final changed = <String, dynamic>{
+          if (settings.notifications != before.notifications)
+            'messageNotifications': settings.notifications,
+          if (settings.chatMessagePreview != before.chatMessagePreview)
+            'messagePreview': settings.chatMessagePreview,
+        };
+        if (changed.isNotEmpty) await _remote.updateMySettings(changed);
+        return _dummy.saveSettings(settings);
+      });
+  // Was: _guard(_dummy.fetchSettings) / _guard(() => _dummy.saveSettings(s)).
+
+  @override
+  Future<Either<Failure, int>> startAgain() => _guard(() async {
+    final body = (await _remote.resetDeck()).data;
+    final data = body is Map ? body['data'] : null;
+    final cleared = data is Map
+        ? (data['passesCleared'] as num?)?.toInt()
+        : null;
+    _onDeckReset?.call();
+    return cleared ?? 0;
+  });
+
+  @override
+  Future<Either<Failure, Unit>> deleteAccount() => _guard(() async {
+    await _remote.deleteAccount();
+    return unit;
+  });
 
   /// First non-empty list, in priority order.
   List<String> _firstFilled(List<List<String>?> lists) => [

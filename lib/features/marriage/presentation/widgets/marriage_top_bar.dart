@@ -7,14 +7,17 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 class MarriageTopBar extends StatelessWidget {
   const MarriageTopBar({
     required this.onFilters,
-    required this.onSort,
-    required this.onNotifications,
+    this.onSort,
+    this.onNotifications,
     super.key,
   });
 
   final VoidCallback onFilters;
-  final VoidCallback onSort;
-  final VoidCallback onNotifications;
+
+  /// Null hides the button (Sort and Notifications are hidden until they do
+  /// something — see resources/docs/PENDING.md).
+  final VoidCallback? onSort;
+  final VoidCallback? onNotifications;
 
   @override
   Widget build(BuildContext context) {
@@ -44,25 +47,28 @@ class MarriageTopBar extends StatelessWidget {
                 onTap: onFilters,
               ),
               const Spacer(),
-              CircleIconButton(
-                icon: Icon(
-                  Icons.swap_vert,
-                  size: 19.r,
-                  color: AppColors.textDark,
+              if (onSort != null)
+                CircleIconButton(
+                  icon: Icon(
+                    Icons.swap_vert,
+                    size: 19.r,
+                    color: AppColors.textDark,
+                  ),
+                  tooltip: 'Sort',
+                  onTap: onSort!,
                 ),
-                tooltip: 'Sort',
-                onTap: onSort,
-              ),
-              SizedBox(width: 10.w),
-              CircleIconButton(
-                icon: Icon(
-                  Icons.notifications_none,
-                  size: 17.5.r,
-                  color: AppColors.textDark,
+              if (onSort != null && onNotifications != null)
+                SizedBox(width: 10.w),
+              if (onNotifications != null)
+                CircleIconButton(
+                  icon: Icon(
+                    Icons.notifications_none,
+                    size: 17.5.r,
+                    color: AppColors.textDark,
+                  ),
+                  tooltip: 'Notifications',
+                  onTap: onNotifications!,
                 ),
-                tooltip: 'Notifications',
-                onTap: onNotifications,
-              ),
             ],
           ),
         ],

@@ -1,3 +1,4 @@
+export 'forgot_password_cubit.dart';
 export 'auth_bloc.dart';
 export 'phone_verification_bloc.dart';
 export 'sign_in_bloc.dart';

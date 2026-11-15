@@ -68,6 +68,11 @@ class _Remote implements MarriageCardsRemoteDataSource {
   Map<String, dynamic>? lastReport;
   Map<String, dynamic>? lastQuery;
 
+  final favourited = <String>[];
+
+  @override
+  Future<void> addFavourite(String userId) async => favourited.add(userId);
+
   @override
   Future<void> block(String userId) async => blocked.add(userId);
 
@@ -340,6 +345,16 @@ void main() {
     );
     final result = await repo.fetchPage(filters: const DiscoveryFilters());
     expect(result.getLeft().toNullable(), isA<Failure>());
+  });
+
+  test('favourite posts the member to favorites', () async {
+    final remote = _Remote();
+    final repo = MarriageCardsRepositoryImpl(remote, testGuard(), 'x');
+
+    final result = await repo.favourite('u9');
+
+    expect(result.isRight(), isTrue);
+    expect(remote.favourited, ['u9']);
   });
 }
 

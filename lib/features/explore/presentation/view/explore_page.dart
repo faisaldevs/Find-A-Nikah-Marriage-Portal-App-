@@ -887,13 +887,14 @@ class _MyHistoryTab extends StatelessWidget {
     );
   }
 
-  /// "Liked" and "Passed" are on the real API (cached, paged); the other 2
-  /// filters are still the dummy [ExploreHistoryFeed].
+  /// All four history filters are on the real API now (cached, paged).
+  /// The dummy [ExploreHistoryFeed] is no longer shown.
   static ExploreLiveSection? _liveSectionFor(ExploreHistoryFilter f) =>
       switch (f) {
         ExploreHistoryFilter.liked => ExploreLiveSection.liked,
         ExploreHistoryFilter.passed => ExploreLiveSection.passed,
-        _ => null,
+        ExploreHistoryFilter.favourited => ExploreLiveSection.favourited,
+        ExploreHistoryFilter.complimented => ExploreLiveSection.complimented,
       };
 
   Widget _liveHistory(

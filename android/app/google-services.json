@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "851419525846",
+    "project_id": "find-a-nikah",
+    "storage_bucket": "find-a-nikah.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851419525846:android:35abad97b564bd3a888f77",
+        "android_client_info": {
+          "package_name": "com.findanikah.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "851419525846-9m2sh5sjb1r8bs9v15hr69ha02uif4le.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.findanikah.app",
+            "certificate_hash": "1a5891e9cf1451e0c73332a75c95dfb0403485bb"
+          }
+        },
+        {
+          "client_id": "851419525846-maqmfgdpklsr9eg9taeahk448hjqit9b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.findanikah.app",
+            "certificate_hash": "71db2e45dddceb9c4b84d8d5b969a6e1d1fa42f9"
+          }
+        },
+        {
+          "client_id": "851419525846-mkioif2eo13oemu6mqenkk587s4nqfnk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwJF5JP-9F0zmSXT091fMm9tzyo2A77OE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "851419525846-mkioif2eo13oemu6mqenkk587s4nqfnk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "851419525846-6mf2uiphgicqdksg3qicft2buot11s79.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.findanikah.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

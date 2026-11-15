@@ -73,6 +73,12 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
   });
 
   @override
+  Future<Either<Failure, Unit>> favourite(String userId) => _guard(() async {
+    await _remote.addFavourite(userId);
+    return unit;
+  });
+
+  @override
   Future<Either<Failure, Unit>> block(String userId) => _guard(() async {
     await _remote.block(userId);
     return unit;

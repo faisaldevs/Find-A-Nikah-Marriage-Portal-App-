@@ -18,7 +18,7 @@ class FeedTopBar extends StatelessWidget {
     required this.onSearch,
     required this.onCloseSearch,
     required this.onQueryChanged,
-    required this.onNotifications,
+    this.onNotifications,
     super.key,
   });
 
@@ -27,7 +27,9 @@ class FeedTopBar extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onCloseSearch;
   final ValueChanged<String> onQueryChanged;
-  final VoidCallback onNotifications;
+
+  /// Null hides the bell (no notifications screen yet).
+  final VoidCallback? onNotifications;
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +82,14 @@ class FeedTopBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               circle(Assets.icons.feedSearch, 'Search', onSearch),
-              SizedBox(width: 10.w),
-              circle(Assets.icons.feedBell, 'Notifications', onNotifications),
+              if (onNotifications != null) ...[
+                SizedBox(width: 10.w),
+                circle(
+                  Assets.icons.feedBell,
+                  'Notifications',
+                  onNotifications!,
+                ),
+              ],
             ],
           ),
         ),

@@ -38,6 +38,18 @@ class _Remote implements ExploreRemoteDataSource {
     required int page,
     required int limit,
   }) async => LikeListResponseDto.fromJson(_fixture('who_liked_me'));
+
+  @override
+  Future<LikeListResponseDto> fetchFavourites({
+    required int page,
+    required int limit,
+  }) async => LikeListResponseDto.fromJson(_fixture('like_list'));
+
+  @override
+  Future<LikeListResponseDto> fetchComplimentsSent({
+    required int page,
+    required int limit,
+  }) async => LikeListResponseDto.fromJson(_fixture('like_list'));
 }
 
 const ExploreLiveSection _nearYou = ExploreLiveSection.activeNearYou;

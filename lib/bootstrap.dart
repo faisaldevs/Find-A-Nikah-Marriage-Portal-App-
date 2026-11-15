@@ -8,12 +8,24 @@ import 'package:find_a_nikah/app/session_scope_manager.dart';
 import 'package:find_a_nikah/core/core.dart';
 import 'package:find_a_nikah/core/logging/app_bloc_observer.dart';
 import 'package:find_a_nikah/flavors/app_config.dart';
+import 'package:find_a_nikah/features/auth/domain/domain.dart';
+import 'package:find_a_nikah/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/widgets.dart';
 
 /// Shared start-up for every flavor: config → DI → error handlers →
 /// session scope → `runApp`.
 Future<void> bootstrap(Flavors flavor) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Debug runs stay out of the Crashlytics dashboard.
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+    !kDebugMode,
+  );
 
   final config = AppConfig.fromEnvironment(flavor);
   await configureDependencies(config);
@@ -42,6 +54,14 @@ Future<void> bootstrap(Flavors flavor) async {
   // Before any bloc subscribes to auth status, so the session scope exists
   // by the time the router lets the user into session routes.
   getIt<SessionScopeManager>().attach();
+
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await getIt<PushService>().init();
+
+  // Register the push token on every sign-in (sign-out unregisters it).
+  getIt<AuthRepository>().watchStatus().listen((status) {
+    if (status is Authenticated) getIt<PushRegistrar>().register().ignore();
+  });
 
   logger.info('starting ${config.flavors.name}');
   runApp(const App());

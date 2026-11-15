@@ -18,19 +18,44 @@ import 'package:go_router/go_router.dart';
 /// and account. Toggles are live (saved via [SettingsBloc]); rows whose
 /// screens aren't designed yet show "Coming soon".
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({required this.onSignOut, super.key});
+  const SettingsPage({
+    required this.onSignOut,
+    required this.onAccountDeleted,
+    super.key,
+  });
 
   /// Wired by the router — features don't import the auth feature.
   final VoidCallback onSignOut;
+
+  /// After the server deleted the account: sign out locally (no API call —
+  /// the sessions are already invalid).
+  final VoidCallback onAccountDeleted;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<SettingsBloc>()..add(const SettingsStarted()),
-      child: BlocListener<SettingsBloc, SettingsState>(
-        listenWhen: (prev, next) =>
-            next.failure != null && prev.failure != next.failure,
-        listener: (context, state) => showFailureToast(context, state.failure!),
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<SettingsBloc, SettingsState>(
+            listenWhen: (prev, next) =>
+                next.failure != null && prev.failure != next.failure,
+            listener: (context, state) =>
+                showFailureToast(context, state.failure!),
+          ),
+          BlocListener<SettingsBloc, SettingsState>(
+            listenWhen: (prev, next) =>
+                next.notice != null && prev.notice != next.notice,
+            listener: (context, state) =>
+                CustomToast.showSuccess(context, state.notice!.text),
+          ),
+          // The server deleted the account: leave the app's signed-in area.
+          BlocListener<SettingsBloc, SettingsState>(
+            listenWhen: (prev, next) =>
+                !prev.accountDeleted && next.accountDeleted,
+            listener: (context, state) => onAccountDeleted(),
+          ),
+        ],
         child: _SettingsView(onSignOut: onSignOut),
       ),
     );
@@ -362,6 +387,65 @@ class _Account extends StatelessWidget {
     );
   }
 
+  Future<bool> _confirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirm,
+    bool destructive = false,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              confirm,
+              style: destructive
+                  ? const TextStyle(color: AppColors.errorColor)
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _confirmStartAgain(BuildContext context) async {
+    final bloc = context.read<SettingsBloc>();
+    final ok = await _confirm(
+      context,
+      title: 'Start again?',
+      message:
+          'Profiles you passed on will come back into your deck. '
+          'Your likes and matches stay as they are.',
+      confirm: 'Start again',
+    );
+    if (ok) bloc.add(const SettingsStartAgainRequested());
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final bloc = context.read<SettingsBloc>();
+    final ok = await _confirm(
+      context,
+      title: 'Delete your account?',
+      message:
+          'Your profile is hidden and you are signed out everywhere. '
+          'This can’t be undone from the app.',
+      confirm: 'Delete',
+      destructive: true,
+    );
+    if (ok) bloc.add(const SettingsDeleteAccountRequested());
+  }
+
   /// Not in Figma: the actions "Manage account" describes, plus Sign out
   /// (the design has no other place for it).
   Future<void> _showManageAccount(BuildContext context) {
@@ -402,7 +486,10 @@ class _Account extends StatelessWidget {
                 action(
                   'Start again',
                   icon: Icons.refresh_rounded,
-                  onTap: () => soon('Starting again'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    unawaited(_confirmStartAgain(context));
+                  },
                 ),
                 action(
                   'Take a break',
@@ -413,7 +500,10 @@ class _Account extends StatelessWidget {
                   'Delete marriage profile',
                   icon: Icons.delete_outline_rounded,
                   color: AppColors.errorColor,
-                  onTap: () => soon('Deleting your profile'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    unawaited(_confirmDelete(context));
+                  },
                 ),
                 const Divider(height: 1),
                 action(

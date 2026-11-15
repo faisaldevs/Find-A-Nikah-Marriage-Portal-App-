@@ -207,6 +207,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, Unit>> signInWithSocial(SocialProvider provider) =>
       _guard(() async {
         final idToken = await _social.obtainIdToken(provider);
+        // Backed out of the sheet: no session, no error.
+        if (idToken == null) return unit;
         return _startSession(
           await _remote.socialSignIn(
             SocialSignInRequestDto(provider: provider.name, idToken: idToken),
@@ -221,6 +223,27 @@ class AuthRepositoryImpl implements AuthRepository {
       return unit;
     },
   );
+
+  @override
+  Future<Either<Failure, Unit>> requestPasswordReset(String email) =>
+      _guard(() async {
+        await _remote.forgotPassword(EmailRequestDto(email: email));
+        return unit;
+      });
+
+  @override
+  Future<Either<Failure, Unit>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) => _guard(() async {
+    await _remote.resetPassword({
+      'email': email,
+      'code': code,
+      'newPassword': newPassword,
+    });
+    return unit;
+  });
 
   @override
   Future<Either<Failure, Unit>> verifySignUpCode({

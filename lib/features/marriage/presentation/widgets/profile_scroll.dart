@@ -19,6 +19,7 @@ class ProfileScroll extends StatefulWidget {
     required this.onComingSoon,
     required this.onBlock,
     required this.onReport,
+    required this.onFavourite,
     this.complimentDraft,
     // required this.actions,
     super.key,
@@ -43,6 +44,9 @@ class ProfileScroll extends StatefulWidget {
   /// Footer Block / Report (the page confirms and calls the API).
   final VoidCallback onBlock;
   final VoidCallback onReport;
+
+  /// Footer Favourite (the page calls the API).
+  final VoidCallback onFavourite;
 
   /// Snackbar for actions that aren't wired up yet.
   final ValueChanged<String> onComingSoon;
@@ -187,7 +191,8 @@ class ProfileScrollState extends State<ProfileScroll> {
             // ),
             onCompliment: _sentFromBox,
             onShare: () => onComingSoon('Share profile'),
-            onFavourite: () => onComingSoon('Favourite'),
+            // Was: onFavourite: () => onComingSoon('Favourite'),
+            onFavourite: widget.onFavourite,
             onBlock: widget.onBlock,
             onReport: widget.onReport,
           ),

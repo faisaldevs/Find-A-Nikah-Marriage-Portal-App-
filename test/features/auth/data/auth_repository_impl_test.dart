@@ -10,6 +10,14 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../helpers/fakes.dart';
 
 /// Test-only auth response source with zero latency.
+/// The user backed out of the provider's sheet.
+class _CancelledSocial implements SocialAuthDataSource {
+  const _CancelledSocial();
+
+  @override
+  Future<String?> obtainIdToken(SocialProvider provider) async => null;
+}
+
 class _Remote implements AuthRemoteDataSource {
   Exception? failWith;
   int logouts = 0;
@@ -69,6 +77,17 @@ class _Remote implements AuthRemoteDataSource {
         onboardingComplete = false;
         return _response(onboardingComplete: false);
       });
+
+  Map<String, dynamic>? lastReset;
+  String? lastForgotEmail;
+
+  @override
+  Future<void> forgotPassword(EmailRequestDto body) =>
+      _maybeFail(() async => lastForgotEmail = body.email);
+
+  @override
+  Future<void> resetPassword(Map<String, dynamic> body) =>
+      _maybeFail(() async => lastReset = body);
 
   @override
   Future<void> logout(RefreshRequestDto body) =>
@@ -158,6 +177,24 @@ void main() {
     },
   );
 
+  test('password reset sends the email, code and newPassword', () async {
+    expect((await repo.requestPasswordReset('a@b.co')).isRight(), isTrue);
+    expect(remote.lastForgotEmail, 'a@b.co');
+
+    final r = await repo.resetPassword(
+      email: 'a@b.co',
+      code: '123456',
+      newPassword: 'Newpass123',
+    );
+
+    expect(r.isRight(), isTrue);
+    expect(remote.lastReset, {
+      'email': 'a@b.co',
+      'code': '123456',
+      'newPassword': 'Newpass123',
+    });
+  });
+
   test('sign in stores tokens + session and emits authenticated', () async {
     final statuses = <AuthStatus>[];
     final sub = repo.watchStatus().listen(statuses.add);
@@ -192,6 +229,26 @@ void main() {
       await next.restoreSession();
 
       expect(next.currentStatus, const AuthStatus.unauthenticated());
+    },
+  );
+
+  test(
+    'closing the Google sheet is not an error and starts no session',
+    () async {
+      final cancelled = AuthRepositoryImpl(
+        remote: remote, // socialSignIn throws if the repo wrongly calls it
+        local: local,
+        social: const _CancelledSocial(),
+        guard: testGuard(),
+        logger: SilentLogger(),
+        sessionExpiry: expiry,
+      );
+      addTearDown(cancelled.dispose);
+
+      final result = await cancelled.signInWithSocial(SocialProvider.google);
+
+      expect(result, right<Failure, Unit>(unit));
+      expect(cancelled.currentStatus, isNot(isA<Authenticated>()));
     },
   );
 

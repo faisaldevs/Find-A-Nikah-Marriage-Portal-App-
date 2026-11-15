@@ -12,15 +12,19 @@ List<String> _importsOf(File file) => [
     if (_import.firstMatch(line) case final m?) m.group(1)!,
 ];
 
-Iterable<File> _dartFiles(String dir) => Directory(dir)
-    .listSync(recursive: true)
-    .whereType<File>()
-    .where(
-      (f) =>
-          f.path.endsWith('.dart') &&
-          !f.path.endsWith('.g.dart') &&
-          !f.path.endsWith('.config.dart'),
-    );
+// A missing folder (e.g. `packages/` — the pub workspace was never created)
+// has no files to check, instead of failing the whole suite.
+Iterable<File> _dartFiles(String dir) => !Directory(dir).existsSync()
+    ? const <File>[]
+    : Directory(dir)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where(
+            (f) =>
+                f.path.endsWith('.dart') &&
+                !f.path.endsWith('.g.dart') &&
+                !f.path.endsWith('.config.dart'),
+          );
 
 /// `lib/features/<feature>/<layer>/...` → (feature, layer).
 (String, String)? _locate(String path) {

@@ -211,6 +211,14 @@ class _MarriageView extends StatelessWidget {
           name: state.matchedName,
           photoUrl: state.matchedPhotoUrl,
         ).ignore(),
+        MarriageFeedNotice.favourited => CustomToast.showSuccess(
+          context,
+          'Added to your favourites',
+        ),
+        MarriageFeedNotice.alreadyFavourited => CustomToast.showInfo(
+          context,
+          'Already in your favourites',
+        ),
         MarriageFeedNotice.blocked => CustomToast.showSuccess(
           context,
           'Member blocked',
@@ -244,8 +252,9 @@ class _MarriageView extends StatelessWidget {
                 MarriageTopBar(
                   onFilters: () =>
                       context.push<void>(RoutePaths.addFilters).ignore(),
-                  onSort: () => _comingSoon(context, 'Sort'),
-                  onNotifications: () => _comingSoon(context, 'Notifications'),
+                  // Hidden until built (2026-11-15), tracked in PENDING.md:
+                  // onSort: () => _comingSoon(context, 'Sort'),
+                  // onNotifications: () => _comingSoon(context, 'Notifications'),
                 ),
                 Expanded(
                   child: switch (state.status) {
@@ -377,6 +386,9 @@ class _MarriageView extends StatelessWidget {
                                   complimentDraft:
                                       state.complimentDrafts[profile.id],
                                   onBlock: () => _block(context, profile),
+                                  onFavourite: () => feed.add(
+                                    const MarriageProfileFavourited(),
+                                  ),
                                   onReport: () => _report(context, profile),
                                   onCompliment: (text) => feed.add(
                                     MarriageComplimentSubmitted(text),

@@ -33,7 +33,10 @@ class ExploreRepositoryImpl implements ExploreRepository {
     ExploreLiveSection.secondLook => 'second-look',
     ExploreLiveSection.visitedYou => 'visited-you',
     ExploreLiveSection.passed => 'passed',
-    ExploreLiveSection.likesInFilters || ExploreLiveSection.liked => null,
+    ExploreLiveSection.likesInFilters ||
+    ExploreLiveSection.liked ||
+    ExploreLiveSection.favourited ||
+    ExploreLiveSection.complimented => null,
   };
 
   static String cacheKey(ExploreLiveSection s) => 'explore.${s.name}.page1';
@@ -80,7 +83,19 @@ class ExploreRepositoryImpl implements ExploreRepository {
   });
 
   Future<LikeListResponseDto> _likes(ExploreLiveSection section, int page) =>
-      section == ExploreLiveSection.liked
-      ? _remote.fetchLikeList(page: page, limit: pageSize)
-      : _remote.fetchWhoLikedMe(page: page, limit: pageSize);
+      switch (section) {
+        ExploreLiveSection.liked => _remote.fetchLikeList(
+          page: page,
+          limit: pageSize,
+        ),
+        ExploreLiveSection.favourited => _remote.fetchFavourites(
+          page: page,
+          limit: pageSize,
+        ),
+        ExploreLiveSection.complimented => _remote.fetchComplimentsSent(
+          page: page,
+          limit: pageSize,
+        ),
+        _ => _remote.fetchWhoLikedMe(page: page, limit: pageSize),
+      };
 }

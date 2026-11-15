@@ -42,6 +42,8 @@ import 'package:find_a_nikah/features/remote_config/data/data.dart';
 import 'package:find_a_nikah/features/remote_config/domain/domain.dart';
 import 'package:find_a_nikah/features/remote_config/presentation/presentation.dart';
 import 'package:find_a_nikah/flavors/app_config.dart';
+import 'package:find_a_nikah/core/logging/firebase_error_reporter.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
@@ -66,7 +68,11 @@ Future<void> configureDependencies(AppConfig config) async {
 
   // ── Core services ────────────────────────────────────────────────────
   const Logger logger = AppLogger();
-  final reporter = LogErrorReporter(logger);
+  // Crashlytics once Firebase is initialised (bootstrap); plain logging in
+  // tests and anywhere Firebase isn't set up.
+  final ErrorReporter reporter = Firebase.apps.isEmpty
+      ? LogErrorReporter(logger)
+      : FirebaseErrorReporter(LogErrorReporter(logger));
   final guard = Guard(reporter, translators: const [translateDioException]);
   final authLocal = AuthLocalDataSource(
     const FlutterSecureStorage(iOptions: AuthLocalDataSource.iosOptions),
@@ -99,12 +105,18 @@ Future<void> configureDependencies(AppConfig config) async {
     pickerPlatform.useAndroidPhotoPicker = true;
   }
 
+  final pushTaps = PushTapHandler();
+  final push = PushService(api.dio, logger, pushTaps);
+
   getIt
     ..registerSingleton<AppConfig>(config)
     ..registerSingleton<Logger>(logger)
     ..registerSingleton<ErrorReporter>(reporter)
     ..registerSingleton<Guard>(guard)
     ..registerSingleton<ApiClient>(api)
+    ..registerSingleton<PushTapHandler>(pushTaps)
+    ..registerSingleton<PushService>(push)
+    ..registerSingleton<PushRegistrar>(push)
     ..registerSingleton<TokenStore>(authLocal)
     ..registerSingleton<ImagePicker>(picker)
     ..registerSingleton<JsonCache>(cache)
@@ -116,7 +128,7 @@ Future<void> configureDependencies(AppConfig config) async {
           baseUrl: config.authApiBaseUrl,
         ),
         local: authLocal,
-        social: const UnconfiguredSocialAuthDataSource(),
+        social: GoogleSocialAuthDataSource(),
         guard: guard,
         logger: logger,
         sessionExpiry: sessionExpiry,
@@ -234,7 +246,11 @@ Future<void> configureDependencies(AppConfig config) async {
     )
     // SessionScopeManager is the SessionLifecycle sign-out drives.
     ..registerFactory<SignOut>(
-      () => SignOut(getIt<AuthRepository>(), getIt<SessionScopeManager>()),
+      () => SignOut(
+        getIt<AuthRepository>(),
+        getIt<SessionScopeManager>(),
+        getIt<PushRegistrar>(),
+      ),
     )
     // ── Blocs (a new one per page) ─────────────────────────────────────
     ..registerFactory<AuthBloc>(
@@ -242,6 +258,9 @@ Future<void> configureDependencies(AppConfig config) async {
     )
     ..registerFactory<SignInBloc>(() => SignInBloc(getIt<AuthRepository>()))
     ..registerFactory<SignUpBloc>(() => SignUpBloc(getIt<AuthRepository>()))
+    ..registerFactory<ForgotPasswordCubit>(
+      () => ForgotPasswordCubit(getIt<AuthRepository>()),
+    )
     ..registerFactory<PhoneVerificationBloc>(
       () => PhoneVerificationBloc(getIt<AuthRepository>()),
     )
@@ -403,6 +422,7 @@ void pushSessionScope() => getIt.pushNewScope(
         getIt<Guard>(),
         imageBaseUrl: getIt<AppConfig>().imageBaseUrl,
         cache: getIt<JsonCache>(),
+        onDeckReset: () => getIt<DiscoveryFiltersRepository>().reload(),
       ),
       dispose: (r) => (r as MenuRepositoryImpl).dispose(),
     ),
