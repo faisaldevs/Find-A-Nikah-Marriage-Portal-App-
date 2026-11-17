@@ -20,7 +20,24 @@ abstract class AuthRemoteDataSource {
 
   @POST('/auth/social')
   @Extra({requiresAuthExtraKey: false})
-  Future<AuthSessionDto> socialSignIn(@Body() SocialSignInRequestDto body);
+  // Was `Future<AuthSessionDto>`: the backend wraps social sign-in in the same
+  // `{data: {user, accessToken, refreshToken}}` envelope as login (ISS-025).
+  // Future<AuthSessionDto> socialSignIn(@Body() SocialSignInRequestDto body);
+  Future<AuthApiSessionResponseDto> socialSignIn(
+    @Body() SocialSignInRequestDto body,
+  );
+
+  /// Always 200 (no account enumeration); sends a 6-digit code valid for 5
+  /// minutes. Dev/staging echo it as `data.devCode`, production never does.
+  @POST('/auth/forgot-password')
+  @Extra({requiresAuthExtraKey: false})
+  Future<void> forgotPassword(@Body() EmailRequestDto body);
+
+  /// Body `{email, code, newPassword}`. Errors carry `code`:
+  /// `VALIDATION_ERROR`, `WEAK_PASSWORD`, `INVALID_OTP`.
+  @POST('/auth/reset-password')
+  @Extra({requiresAuthExtraKey: false})
+  Future<void> resetPassword(@Body() Map<String, dynamic> body);
 
   @POST('/onboarding/email/send-code')
   @Extra({requiresAuthExtraKey: false})

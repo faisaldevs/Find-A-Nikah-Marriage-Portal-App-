@@ -155,7 +155,7 @@ class _ForYouTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<ExploreBloc>().state;
+    // final state = context.watch<ExploreBloc>().state;
     // Superseded: the whole tab waited on the dummy feed behind one
     // spinner, which also hid the cached live sections on every reopen.
     // Each section now handles its own loading state.
@@ -170,6 +170,38 @@ class _ForYouTab extends StatelessWidget {
     //         context.read<ExploreBloc>().add(const ExploreSubscribed()),
     //   ),
     //   ExploreStatus.ready => NotificationListener<ScrollNotification>(
+    // Every "For you" section has finished loading and none has a profile:
+    // say so (each empty section hides itself, which left a blank page).
+    final done = context.select<ExploreBloc, ({bool empty, bool allFailed})>(
+      (b) {
+        final lives = _forYouSections.map(b.state.liveOf).toList();
+        final settled = lives.every(
+          (l) =>
+              l.status == ExploreStatus.ready ||
+              l.status == ExploreStatus.failure,
+        );
+        return (
+          empty: settled && lives.every((l) => l.section.profiles.isEmpty),
+          allFailed: lives.every((l) => l.status == ExploreStatus.failure),
+        );
+      },
+    );
+    if (done.empty) {
+      return done.allFailed
+          ? AppErrorView(
+              title: 'Couldn’t load Explore',
+              message: 'Check your connection and try again.',
+              retryLabel: 'Try again',
+              onRetry: () =>
+                  context.read<ExploreBloc>().add(const ExploreSubscribed()),
+            )
+          : const AppEmptyView(
+              title: 'Nothing to show yet',
+              message:
+                  'New members, likes and visits will appear here as they '
+                  'happen.',
+            );
+    }
     return NotificationListener<ScrollNotification>(
       onNotification: onScroll,
       child: SingleChildScrollView(
@@ -238,30 +270,40 @@ class _ForYouTab extends StatelessWidget {
                 onTap: locked ? _noTap : onCardTap,
               ),
             ),
-            // Still dummy (no API): shimmer while the dummy feed loads,
-            // hidden if it fails.
-            switch (state.status) {
-              ExploreStatus.initial ||
-              ExploreStatus.loading => const _GridSectionShimmer(
-                title: 'Currently available',
-                subtitle:
-                    'Members who have at least one slot available to chat.',
-                showCrown: true,
-              ),
-              ExploreStatus.failure => const SizedBox.shrink(),
-              ExploreStatus.ready => _GridSection(
-                title: 'Currently available',
-                subtitle:
-                    'Members who have at least one slot available to chat.',
-                showCrown: true,
-                profiles: state.feed.currentlyAvailable.profiles,
-                // Everything is free for now — no premium lock.
-                // locked: true,
-                // onTap: onLockedTap,
-                locked: false,
-                onTap: onCardTap,
-              ),
-            },
+            // Live now (`/feed/currently-available`, nearest first). The old
+            // dummy version:
+            // switch (state.status) {
+            // ExploreStatus.initial ||
+            // ExploreStatus.loading => const _GridSectionShimmer(
+            // title: 'Currently available',
+            // subtitle:
+            // 'Members who have at least one slot available to chat.',
+            // showCrown: true,
+            // ),
+            // ExploreStatus.failure => const SizedBox.shrink(),
+            // ExploreStatus.ready => _GridSection(
+            // title: 'Currently available',
+            // subtitle:
+            // 'Members who have at least one slot available to chat.',
+            // showCrown: true,
+            // profiles: state.feed.currentlyAvailable.profiles,
+            // // Everything is free for now — no premium lock.
+            // // locked: true,
+            // // onTap: onLockedTap,
+            // locked: false,
+            // onTap: onCardTap,
+            // ),
+            // },
+            _LiveGridSection(
+              section: ExploreLiveSection.currentlyAvailable,
+              title: 'Currently available',
+              subtitle: 'Members who have at least one slot available to chat.',
+              showCrown: true,
+              // Everything is free for now — no premium lock.
+              locked: false,
+              onTap: onCardTap,
+              locationHint: 'Turn on location to see who is near you.',
+            ),
             // _HorizontalSection(
             //   title: 'Visited you',
             //   subtitle:
@@ -334,6 +376,16 @@ class _ForYouTab extends StatelessWidget {
     );
   }
 }
+
+/// The live sections on the "For you" tab, to tell when all are empty.
+const _forYouSections = [
+  ExploreLiveSection.likesInFilters,
+  ExploreLiveSection.secondLook,
+  ExploreLiveSection.currentlyAvailable,
+  ExploreLiveSection.visitedYou,
+  ExploreLiveSection.justJoined,
+  ExploreLiveSection.activeNearYou,
+];
 
 /// Tap target for locked live cards: they show, but don't open.
 void _noTap() {}
@@ -621,6 +673,7 @@ class _LiveGridSection extends StatelessWidget {
     required this.locked,
     required this.onTap,
     this.last = false,
+    this.locationHint,
   });
 
   final ExploreLiveSection section;
@@ -630,6 +683,9 @@ class _LiveGridSection extends StatelessWidget {
   final bool locked;
   final VoidCallback onTap;
   final bool last;
+
+  /// Shown under the subtitle when the server couldn't place the member.
+  final String? locationHint;
 
   @override
   Widget build(BuildContext context) {
@@ -646,7 +702,9 @@ class _LiveGridSection extends StatelessWidget {
       ExploreStatus.failure => const SizedBox.shrink(),
       ExploreStatus.ready => _GridSection(
         title: title,
-        subtitle: subtitle,
+        subtitle: live.section.locationUnknown && locationHint != null
+            ? '$subtitle $locationHint'
+            : subtitle,
         showCrown: showCrown,
         profiles: live.section.profiles,
         locked: locked || live.section.locked,
@@ -887,13 +945,14 @@ class _MyHistoryTab extends StatelessWidget {
     );
   }
 
-  /// "Liked" and "Passed" are on the real API (cached, paged); the other 2
-  /// filters are still the dummy [ExploreHistoryFeed].
+  /// All four history filters are on the real API now (cached, paged).
+  /// The dummy [ExploreHistoryFeed] is no longer shown.
   static ExploreLiveSection? _liveSectionFor(ExploreHistoryFilter f) =>
       switch (f) {
         ExploreHistoryFilter.liked => ExploreLiveSection.liked,
         ExploreHistoryFilter.passed => ExploreLiveSection.passed,
-        _ => null,
+        ExploreHistoryFilter.favourited => ExploreLiveSection.favourited,
+        ExploreHistoryFilter.complimented => ExploreLiveSection.complimented,
       };
 
   Widget _liveHistory(

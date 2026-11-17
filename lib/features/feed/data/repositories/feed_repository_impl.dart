@@ -51,11 +51,11 @@ class FeedRepositoryImpl implements FeedRepository {
 
   @override
   Future<Either<Failure, FeedPost>> createPost({
-    required FeedTopic topic,
     required String body,
+    FeedTopic? topic,
   }) => _guard(
     () async => _map.post(
-      await _remote.createPost(topicId: topic.id, body: body),
+      await _remote.createPost(topicId: topic?.id, body: body),
     ),
   );
 

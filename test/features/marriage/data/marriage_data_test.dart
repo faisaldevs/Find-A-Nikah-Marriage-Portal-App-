@@ -41,7 +41,11 @@ void main() {
     test('maps age, distance, home country, ethnicity and cursor', () {
       final f = const DiscoveryFilters()
           .withAgeRange(25, 35)
-          .withDistance(miles: 42.4, limitToHomeCountry: true)
+          .withDistance(
+            miles: 42.4,
+            limitToHomeCountry: true,
+            homeCountryCode: 'BD',
+          )
           .withEthnicities(['BD', 'PK']);
       expect(MarriageRepositoryImpl.filtersToQuery(f, cursor: 'c1'), {
         'limit': MarriageRepositoryImpl.pageSize,

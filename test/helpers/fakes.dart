@@ -60,6 +60,18 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockSessionLifecycle extends Mock implements SessionLifecycle {}
 
+/// No-op: unregister returns at once.
+class FakePushRegistrar implements PushRegistrar {
+  FakePushRegistrar([this.onUnregister]);
+  final void Function()? onUnregister;
+
+  @override
+  Future<void> register() async {}
+
+  @override
+  Future<void> unregister() async => onUnregister?.call();
+}
+
 class MockMarriageRepository extends Mock implements MarriageRepository {}
 
 class MockLocationRepository extends Mock implements LocationRepository {}
@@ -96,6 +108,9 @@ class FakeDiscoveryFiltersRepository implements DiscoveryFiltersRepository {
     yield _current;
     yield* _controller.stream;
   }
+
+  @override
+  void reload() => _controller.add(_current);
 
   @override
   Future<Either<Failure, Unit>> save(DiscoveryFilters filters) async {

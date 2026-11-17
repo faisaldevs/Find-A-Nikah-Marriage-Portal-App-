@@ -24,21 +24,42 @@ void main() {
 
   group('writing', () {
     blocTest<CreatePostBloc, CreatePostState>(
-      'offers only topics the member can post into',
+      'loads the member; topics are not needed (no picker)',
       build: () => CreatePostBloc(repo),
       act: (b) => b.add(const CreatePostStarted()),
       verify: (b) {
-        expect(b.state.topics, [feedTopic]);
         expect(b.state.me, feedMe);
+        expect(b.state.topics, isEmpty);
+        verifyNever(repo.fetchTopics);
       },
     );
 
-    test('Post stays off until there is text and a topic', () {
+    blocTest<CreatePostBloc, CreatePostState>(
+      'publishes with no topic at all',
+      build: () {
+        when(
+          () => repo.createPost(
+            body: any(named: 'body'),
+            topic: any(named: 'topic'),
+          ),
+        ).thenAnswer((_) async => right(feedPost(mine: true, body: 'hi')));
+        return CreatePostBloc(repo);
+      },
+      act: (b) => b
+        ..add(const CreatePostTextChanged('hi'))
+        ..add(const CreatePostSubmitted()),
+      verify: (b) {
+        expect(b.state.status, CreatePostStatus.published);
+        verify(() => repo.createPost(body: 'hi')).called(1);
+      },
+    );
+
+    test('Post stays off until there is text; a topic is optional', () {
       expect(const CreatePostState().canPost, isFalse);
       expect(
         const CreatePostState(text: 'hi').canPost,
-        isFalse,
-        reason: 'no topic',
+        isTrue,
+        reason: 'the composer has no topic picker',
       );
       expect(
         const CreatePostState(topic: feedTopic).canPost,

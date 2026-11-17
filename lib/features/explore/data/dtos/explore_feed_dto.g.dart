@@ -32,6 +32,7 @@ ProfileFeedDataDto _$ProfileFeedDataDtoFromJson(Map<String, dynamic> json) =>
             ),
       totalCount: (json['totalCount'] as num?)?.toInt(),
       locked: json['locked'] as bool? ?? false,
+      viewerCoordinates: json['viewerCoordinates'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$ProfileFeedDataDtoToJson(ProfileFeedDataDto instance) =>
@@ -40,6 +41,7 @@ Map<String, dynamic> _$ProfileFeedDataDtoToJson(ProfileFeedDataDto instance) =>
       'pagination': instance.pagination.toJson(),
       'totalCount': instance.totalCount,
       'locked': instance.locked,
+      'viewerCoordinates': instance.viewerCoordinates,
     };
 
 ProfileFeedPaginationDto _$ProfileFeedPaginationDtoFromJson(

@@ -20,6 +20,16 @@ class _FakeFeed implements MarriageRepository {
   String? _lastRewound;
   final blocked = <String>[];
   final reported = <String>[];
+  final favourited = <String>[];
+
+  @override
+  Future<Either<Failure, Unit>> favourite(String userId) async {
+    final f = failNext;
+    failNext = null;
+    if (f != null) return left(f);
+    favourited.add(userId);
+    return right(unit);
+  }
 
   @override
   Future<Either<Failure, Unit>> block(String userId) async {
@@ -300,6 +310,35 @@ void main() {
     await _settle();
     expect(bloc.state.complimentDrafts, isEmpty);
     expect(bloc.state.isComplimented('a'), isTrue);
+    await bloc.close();
+  });
+
+  test('favourite keeps the profile and says so', () async {
+    final feed = _FakeFeed([testProfile('a'), testProfile('b')]);
+    final bloc = await started(feed);
+    final notices = <MarriageFeedNotice?>[];
+    final sub = bloc.stream.listen((s) => notices.add(s.notice));
+    bloc.add(const MarriageProfileFavourited());
+    await _settle();
+    await _settle();
+    expect(feed.favourited, ['a']);
+    expect(bloc.state.current!.id, 'a');
+    expect(notices, contains(MarriageFeedNotice.favourited));
+    await sub.cancel();
+    await bloc.close();
+  });
+
+  test('favourite already there is reported, not an error', () async {
+    final feed = _FakeFeed([testProfile('a')]);
+    final bloc = await started(feed);
+    final notices = <MarriageFeedNotice?>[];
+    final sub = bloc.stream.listen((s) => notices.add(s.notice));
+    feed.failNext = const ConflictFailure();
+    bloc.add(const MarriageProfileFavourited());
+    await _settle();
+    await _settle();
+    expect(notices, contains(MarriageFeedNotice.alreadyFavourited));
+    await sub.cancel();
     await bloc.close();
   });
 

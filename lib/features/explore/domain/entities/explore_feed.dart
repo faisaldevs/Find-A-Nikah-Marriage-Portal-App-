@@ -17,6 +17,7 @@ class ExploreSection extends Equatable {
     this.page = 0,
     this.hasMore = false,
     this.locked = false,
+    this.locationUnknown = false,
   });
 
   final int count;
@@ -25,12 +26,18 @@ class ExploreSection extends Equatable {
   final bool hasMore;
   final bool locked;
 
+  /// "Currently available" only: the server had no location for the member,
+  /// so it couldn't order by distance (the card shows a "turn on location"
+  /// hint). Meaningless for the other sections.
+  final bool locationUnknown;
+
   ExploreSection copyWith({
     int? count,
     List<ExploreProfile>? profiles,
     int? page,
     bool? hasMore,
     bool? locked,
+    bool? locationUnknown,
   }) {
     return ExploreSection(
       count: count ?? this.count,
@@ -38,6 +45,7 @@ class ExploreSection extends Equatable {
       page: page ?? this.page,
       hasMore: hasMore ?? this.hasMore,
       locked: locked ?? this.locked,
+      locationUnknown: locationUnknown ?? this.locationUnknown,
     );
   }
 
@@ -48,6 +56,7 @@ class ExploreSection extends Equatable {
     page,
     hasMore,
     locked,
+    locationUnknown,
   ];
 }
 
@@ -107,9 +116,18 @@ enum ExploreLiveSection {
   visitedYou,
   justJoined,
   activeNearYou,
-  passed,
 
+  /// `GET /v1/profiles/feed/currently-available` — members with a free chat
+  /// slot, nearest first.
+  currentlyAvailable,
+  passed,
   /// My history → Liked (members I liked); `likesInFilters` is the
   /// reverse — members who liked me.
   liked,
+
+  /// My history → Favourited (`GET /v1/favorites`).
+  favourited,
+
+  /// My history → Complimented (`GET /v1/likes/compliments-sent`).
+  complimented,
 }

@@ -16,21 +16,42 @@ class ProfessionPage extends StatefulWidget {
 
 class _ProfessionPageState extends State<ProfessionPage> {
   String? _value;
+  final _other = TextEditingController();
+  var _otherSelected = false;
 
   @override
   void initState() {
     super.initState();
     _value = context.read<OnboardingBloc>().state.draft.profession;
+    // A saved profession that isn't in the list was typed under "Other".
+    if (_value != null && !professionOptions.contains(_value)) {
+      _otherSelected = true;
+      _other.text = _value!;
+    }
+    _other.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _other.dispose();
+    super.dispose();
+  }
+
+  /// What gets saved: the typed text under "Other", else the picked item.
+  String? get _answer {
+    if (!_otherSelected) return _value;
+    final t = _other.text.trim();
+    return t.isEmpty ? null : t;
   }
 
   @override
   Widget build(BuildContext context) {
     return WizardScaffold(
-      onContinue: _value == null
+      onContinue: _answer == null
           ? null
           : () {
               context.read<OnboardingBloc>().add(
-                OnboardingAnswerSaved((d) => d.copyWith(profession: _value)),
+                OnboardingAnswerSaved((d) => d.copyWith(profession: _answer)),
               );
               context.push<void>(RoutePaths.maritalStatus).ignore();
             },
@@ -45,8 +66,14 @@ class _ProfessionPageState extends State<ProfessionPage> {
               child: SearchableSelectList(
                 hintText: 'Search jobs',
                 radioFirst: true,
-                selected: _value == null ? {} : {_value!},
-                onToggle: (v) => setState(() => _value = v),
+                selected: _otherSelected || _value == null ? {} : {_value!},
+                onToggle: (v) => setState(() {
+                  _value = v;
+                  _otherSelected = false;
+                }),
+                otherController: _other,
+                otherSelected: _otherSelected,
+                onOtherTap: () => setState(() => _otherSelected = true),
                 items: professionOptions
                     .map((p) => SelectListItem(value: p, label: p))
                     .toList(),

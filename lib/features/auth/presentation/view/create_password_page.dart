@@ -125,13 +125,17 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                   _RuleRow(met: _hasMinLength, label: 'Minimum 8 characters'),
                   // SizedBox(height: 6.h),
                   SizedBox(height: 8.h),
-                  _RuleRow(met: _hasNumber, label: 'At least 1 number (1-9)'),
+                  // Was 'At least 1 number (1-9)': 0 counts too.
+                  _RuleRow(met: _hasNumber, label: 'At least 1 number'),
                   // SizedBox(height: 6.h),
                   SizedBox(height: 8.h),
                   _RuleRow(
                     met: _hasLetter,
                     label: 'At least lowercase or uppercase letters',
                   ),
+                  SizedBox(height: 8.h),
+                  // Without this a mismatch just left Continue disabled.
+                  _RuleRow(met: _passwordsMatch, label: 'Both passwords match'),
                 ],
               ),
             ),

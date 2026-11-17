@@ -172,7 +172,7 @@ Three progress sections, each a `ShellRoute` with header + progress bar.
 | Second look | 🟢 | Wired, but only empty responses so far: the test accounts that passed and liked back are hidden by a backend filter |
 | Visited you | 🟢 | Live, cached, paged, unlocked; card shows `viewedAt` |
 | Passed | 🟢 | Live, cached, paged; `totalCount` can exceed the profiles returned (3 vs 2) |
-| Currently available | 🟡 | Dummy — no API |
+| Currently available | 🟢 | Live (`/v1/profiles/feed/currently-available`, nearest first, sends device position when location is allowed). Not yet checked on device against seeded data |
 | My history: Liked / Favourited / Complimented | 🟡 | Dummy — no API |
 | Tap a card → open profile | 🟠 | Coming soon — needs shared profile view (#15) |
 | Explore filters | 🟠 | Coming soon |

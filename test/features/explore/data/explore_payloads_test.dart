@@ -23,6 +23,8 @@ class _Remote implements ExploreRemoteDataSource {
     String feed, {
     required int page,
     required int limit,
+    double? latitude,
+    double? longitude,
   }) async => ProfileFeedResponseDto.fromJson(
     _fixture(feed.replaceAll('-', '_')),
   );
@@ -38,6 +40,18 @@ class _Remote implements ExploreRemoteDataSource {
     required int page,
     required int limit,
   }) async => LikeListResponseDto.fromJson(_fixture('who_liked_me'));
+
+  @override
+  Future<LikeListResponseDto> fetchFavourites({
+    required int page,
+    required int limit,
+  }) async => LikeListResponseDto.fromJson(_fixture('like_list'));
+
+  @override
+  Future<LikeListResponseDto> fetchComplimentsSent({
+    required int page,
+    required int limit,
+  }) async => LikeListResponseDto.fromJson(_fixture('like_list'));
 }
 
 const ExploreLiveSection _nearYou = ExploreLiveSection.activeNearYou;
@@ -168,6 +182,12 @@ void main() {
     expect(s.profiles.map((p) => p.area), ['Dhaka', 'Dhaka']);
     expect(s.profiles.map((p) => p.distanceKm), [0, 3.6]);
     expect(s.profiles.map((p) => p.isVerified), [true, false]);
+  });
+
+  test('currently-available: shape matches near-you, location is known', () async {
+    final s = await load(ExploreLiveSection.currentlyAvailable);
+    expect(s.profiles, isNotEmpty);
+    expect(s.locationUnknown, isFalse);
   });
 
   test('every payload survives the cache round trip unchanged', () async {

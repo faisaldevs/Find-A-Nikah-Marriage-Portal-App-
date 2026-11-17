@@ -37,7 +37,7 @@ void main() {
 
     blocTest<AuthBloc, AuthStatus>(
       'restores the stored session and follows status changes',
-      build: () => AuthBloc(repo, SignOut(repo, session)),
+      build: () => AuthBloc(repo, SignOut(repo, session, FakePushRegistrar())),
       act: (bloc) async {
         bloc.add(const AuthStatusSubscriptionRequested());
         await Future<void>.delayed(Duration.zero);
@@ -56,7 +56,7 @@ void main() {
         when(session.closeConnections).thenAnswer((_) async {});
         when(session.end).thenAnswer((_) async {});
       },
-      build: () => AuthBloc(repo, SignOut(repo, session)),
+      build: () => AuthBloc(repo, SignOut(repo, session, FakePushRegistrar())),
       act: (bloc) => bloc
         ..add(const AuthSignOutRequested())
         ..add(const AuthSignOutRequested()),

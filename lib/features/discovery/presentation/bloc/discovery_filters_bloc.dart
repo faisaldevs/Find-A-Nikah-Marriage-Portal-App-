@@ -26,6 +26,7 @@ final class DistanceFilterConfirmed extends DiscoveryFiltersEvent {
     required this.limitToHomeCountry,
     required this.center,
     this.countryName,
+    this.countryCode,
   });
   final double miles;
   final bool limitToHomeCountry;
@@ -37,6 +38,9 @@ final class DistanceFilterConfirmed extends DiscoveryFiltersEvent {
   /// [limitToHomeCountry] on, step 11 sends this country instead of the
   /// coordinates.
   final String? countryName;
+
+  /// ISO code of that country; kept so the deck can be limited to it.
+  final String? countryCode;
 }
 
 /// Saved to the backend (step 11, country) before it's applied.
@@ -55,6 +59,17 @@ final class LocationFilterCleared extends DiscoveryFiltersEvent {
 final class EthnicitiesChanged extends DiscoveryFiltersEvent {
   const EthnicitiesChanged(this.codes);
   final List<String> codes;
+}
+
+final class FaithsChanged extends DiscoveryFiltersEvent {
+  const FaithsChanged(this.tokens);
+  final List<String> tokens;
+}
+
+/// Blank clears the city filter.
+final class CityChanged extends DiscoveryFiltersEvent {
+  const CityChanged(this.city);
+  final String? city;
 }
 
 /// Ends sign-up (first time) and enters the app — sent by the Location
@@ -157,6 +172,7 @@ class DiscoveryFiltersBloc
         local: () => state.filters.withDistance(
           miles: e.miles,
           limitToHomeCountry: e.limitToHomeCountry,
+          homeCountryCode: e.countryCode,
         ),
       ),
       transformer: droppable(),
@@ -175,6 +191,14 @@ class DiscoveryFiltersBloc
     );
     on<EthnicitiesChanged>(
       (e, emit) => _save(emit, state.filters.withEthnicities(e.codes)),
+      transformer: sequential(),
+    );
+    on<FaithsChanged>(
+      (e, emit) => _save(emit, state.filters.withFaiths(e.tokens)),
+      transformer: sequential(),
+    );
+    on<CityChanged>(
+      (e, emit) => _save(emit, state.filters.withCity(e.city)),
       transformer: sequential(),
     );
     on<DiscoverProfilesRequested>(_onDiscover, transformer: droppable());

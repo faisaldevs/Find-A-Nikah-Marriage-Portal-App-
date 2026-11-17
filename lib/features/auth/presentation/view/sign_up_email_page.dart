@@ -33,7 +33,8 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
 
   void _onChanged(String value) {
     final valid = CredentialsPolicy.isValidEmail(value);
-    if (valid != _looksValid) setState(() => _looksValid = valid);
+    // Rebuild on every change so the hint under the field tracks the text.
+    setState(() => _looksValid = valid);
   }
 
   @override
@@ -80,10 +81,20 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
           controller: _controller,
           onChanged: _onChanged,
           keyboardType: TextInputType.emailAddress,
+          // An address is lower-case, uncorrected text.
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
+          enableSuggestions: false,
+          autofillHints: const [AutofillHints.email],
           // style: TextFontStyle.headline16w400textDarkStyleSatoshi,
           style: figmaText(16, 22.4),
           decoration: InputDecoration(
             hintText: 'Email address',
+            // Shown once something is typed that isn't an address yet.
+            helperText: !_looksValid && _controller.text.trim().length > 3
+                ? 'Enter a valid email address, like name@example.com'
+                : null,
+            helperStyle: figmaText(13, 18, color: const Color(0xFF727272)),
             // hintStyle: TextFontStyle.headline16w400textMutedStyleSatoshi,
             // Figma 883:6053: #A3A3A3 hint inset 10pt, #D4D4D4 rule.
             hintStyle: figmaText(16, 22.4, color: const Color(0xFFA3A3A3)),

@@ -50,7 +50,7 @@ Map<String, dynamic> _$FeedTopicDtoToJson(FeedTopicDto instance) =>
     };
 
 FeedPostTopicDto _$FeedPostTopicDtoFromJson(Map<String, dynamic> json) =>
-    FeedPostTopicDto(id: json['id'] as String, name: json['name'] as String);
+    FeedPostTopicDto(name: json['name'] as String, id: json['id'] as String?);
 
 Map<String, dynamic> _$FeedPostTopicDtoToJson(FeedPostTopicDto instance) =>
     <String, dynamic>{'id': instance.id, 'name': instance.name};

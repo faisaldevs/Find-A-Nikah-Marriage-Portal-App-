@@ -20,6 +20,9 @@ class InMemoryDiscoveryFiltersRepository implements DiscoveryFiltersRepository {
   }
 
   @override
+  void reload() => _controller.add(_current);
+
+  @override
   Future<Either<Failure, Unit>> save(DiscoveryFilters filters) async {
     if (filters != _current) {
       _current = filters;

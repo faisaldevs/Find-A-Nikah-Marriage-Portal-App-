@@ -66,12 +66,14 @@ class FeedTopicDto {
 
 @JsonSerializable()
 class FeedPostTopicDto {
-  const FeedPostTopicDto({required this.id, required this.name});
+  const FeedPostTopicDto({required this.name, this.id});
 
   factory FeedPostTopicDto.fromJson(Map<String, dynamic> json) =>
       _$FeedPostTopicDtoFromJson(json);
 
-  final String id;
+  /// Null for a post written without a topic (the server then names it
+  /// "General").
+  final String? id;
   final String name;
 
   Map<String, dynamic> toJson() => _$FeedPostTopicDtoToJson(this);

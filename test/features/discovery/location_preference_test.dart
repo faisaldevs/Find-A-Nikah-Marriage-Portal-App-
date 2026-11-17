@@ -144,6 +144,7 @@ void main() {
           limitToHomeCountry: true,
           center: GeoPoint(23.8, 90.4),
           countryName: 'Bangladesh',
+          countryCode: 'BD',
         ),
       );
       await settle();

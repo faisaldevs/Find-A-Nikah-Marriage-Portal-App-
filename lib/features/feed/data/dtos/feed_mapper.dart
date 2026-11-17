@@ -58,7 +58,7 @@ class FeedMapper {
     id: d.id,
     author: author(d.author),
     topic: d.topic.name,
-    topicId: d.topic.id,
+    topicId: d.topic.id ?? '',
     createdAt: d.createdAt,
     editedAt: d.editedAt,
     body: d.body,

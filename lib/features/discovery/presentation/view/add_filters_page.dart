@@ -63,8 +63,12 @@ class _AddFiltersView extends StatelessWidget {
         final base = f.isEverywhere
             ? 'Everywhere'
             : 'Within ${f.distanceMiles.round()} miles';
-        return f.limitToHomeCountry
-            ? '$base · ${_countryName(kHomeCountryCode)} only'
+        // Limited to the member's own country: the whole country, no radius.
+        // return f.limitToHomeCountry
+        //     ? '$base · ${_countryName(kHomeCountryCode)} only'
+        //     : base;
+        return f.limitToHomeCountry && f.homeCountryCode != null
+            ? 'All of ${_countryName(f.homeCountryCode!)}'
             : base;
       case LocationFilterMode.country:
         return _countryName(f.countryCode!);
@@ -81,6 +85,51 @@ class _AddFiltersView extends StatelessWidget {
     return names.length <= 2
         ? names.join(', ')
         : '${names.take(2).join(', ')} +${names.length - 2}';
+  }
+
+  String _faithSummary(DiscoveryFilters f) {
+    if (f.faiths.isEmpty) return 'No preference';
+    final labels = f.faiths
+        .map(
+          (t) => faithTags
+              .firstWhere(
+                (x) => x.token == t,
+                orElse: () => (token: t, label: t),
+              )
+              .label,
+        )
+        .toList();
+    return labels.length <= 2
+        ? labels.join(', ')
+        : '${labels.take(2).join(', ')} +${labels.length - 2}';
+  }
+
+  Future<void> _pickFaith(BuildContext context) async {
+    final bloc = context.read<DiscoveryFiltersBloc>();
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (_) => _FaithSheet(initial: bloc.state.filters.faiths),
+    );
+    if (result != null) bloc.add(FaithsChanged(result));
+  }
+
+  Future<void> _pickCity(BuildContext context) async {
+    final bloc = context.read<DiscoveryFiltersBloc>();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (_) => _CitySheet(initial: bloc.state.filters.city),
+    );
+    if (result != null) bloc.add(CityChanged(result));
   }
 
   Future<void> _pickEthnicity(BuildContext context) async {
@@ -106,11 +155,11 @@ class _AddFiltersView extends StatelessWidget {
 
     return WizardScaffold(
       title: 'Add filters',
-      // Standalone page after verification — header only, no progress bar.
-      // Figma does show the segmented bar; last onboarding step → all four.
-      step: 1,
-      totalSteps: 1,
-      activeSegment: 3,
+      // Standalone page opened from Marriage — header only, no step bar
+      // (no step/totalSteps). Before: the Figma bar, all four segments.
+      // step: 1,
+      // totalSteps: 1,
+      // activeSegment: 3,
       // continueLabel: 'Discover profiles',
       // continueLabel: state.status == DiscoveryFiltersStatus.submitting
       //     ? 'Setting up...'
@@ -154,6 +203,18 @@ class _AddFiltersView extends StatelessWidget {
               title: 'Ethnicity',
               value: _ethnicitySummary(filters),
               onTap: () => _pickEthnicity(context),
+            ),
+            const _DashedDivider(),
+            _FilterRow(
+              title: 'Faith',
+              value: _faithSummary(filters),
+              onTap: () => _pickFaith(context),
+            ),
+            const _DashedDivider(),
+            _FilterRow(
+              title: 'City',
+              value: filters.city ?? 'Any city',
+              onTap: () => _pickCity(context),
             ),
           ],
         ),
@@ -348,6 +409,146 @@ class _EthnicitySheetState extends State<_EthnicitySheet> {
                     ? 'No preference'
                     : 'Confirm (${_selected.length})',
                 onPressed: () => Navigator.of(context).pop(_selected.toList()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Multi-select faith picker (any-of: a profile matches if it has one).
+class _FaithSheet extends StatefulWidget {
+  const _FaithSheet({required this.initial});
+
+  final List<String> initial;
+
+  @override
+  State<_FaithSheet> createState() => _FaithSheetState();
+}
+
+class _FaithSheetState extends State<_FaithSheet> {
+  late Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initial.toSet();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 0.85.sh,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Faith',
+              style: TextFontStyle.headline20w700textDarkStyleSatoshi,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Show members who have at least one of these.',
+              style: TextFontStyle.headline14w400textMutedStyleSatoshi,
+            ),
+            SizedBox(height: 8.h),
+            Expanded(
+              child: SearchableSelectList(
+                hintText: 'Search faith',
+                multiSelect: true,
+                selected: _selected,
+                onToggle: (t) => setState(() {
+                  if (!_selected.remove(t)) _selected.add(t);
+                }),
+                items: faithTags
+                    .map((f) => SelectListItem(value: f.token, label: f.label))
+                    .toList(),
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: AppPrimaryButton(
+                label: _selected.isEmpty
+                    ? 'No preference'
+                    : 'Confirm (${_selected.length})',
+                onPressed: () => Navigator.of(context).pop(_selected.toList()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Free-text city. Only members who've set a city can match it.
+class _CitySheet extends StatefulWidget {
+  const _CitySheet({required this.initial});
+
+  final String? initial;
+
+  @override
+  State<_CitySheet> createState() => _CitySheetState();
+}
+
+class _CitySheetState extends State<_CitySheet> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void initState() {
+    super.initState();
+    // Button label ("Any city" / "Confirm") follows what's typed.
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // Lift the sheet above the keyboard.
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'City',
+              style: TextFontStyle.headline20w700textDarkStyleSatoshi,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Only members who have added their city will show.',
+              style: TextFontStyle.headline14w400textMutedStyleSatoshi,
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: _controller,
+              maxLength: 60,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Dhaka',
+                counterText: '',
+              ),
+              onSubmitted: (v) => Navigator.of(context).pop(v),
+            ),
+            SizedBox(height: 16.h),
+            SafeArea(
+              top: false,
+              child: AppPrimaryButton(
+                label: _controller.text.trim().isEmpty ? 'Any city' : 'Confirm',
+                onPressed: () => Navigator.of(context).pop(_controller.text),
               ),
             ),
           ],

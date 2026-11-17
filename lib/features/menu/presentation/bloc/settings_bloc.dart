@@ -18,7 +18,29 @@ final class SettingsChanged extends SettingsEvent {
   final AppSettings Function(AppSettings settings) update;
 }
 
+/// Manage account → "Start again".
+final class SettingsStartAgainRequested extends SettingsEvent {
+  const SettingsStartAgainRequested();
+}
+
+/// Manage account → "Delete marriage profile" (already confirmed).
+final class SettingsDeleteAccountRequested extends SettingsEvent {
+  const SettingsDeleteAccountRequested();
+}
+
 enum SettingsStatus { loading, ready, failure }
+
+/// One-shot message for the page's listener (toast).
+class SettingsNotice extends Equatable {
+  const SettingsNotice(this.id, this.text);
+
+  /// Distinct per notice, so the same text twice still fires a listener.
+  final int id;
+  final String text;
+
+  @override
+  List<Object?> get props => [id, text];
+}
 
 class SettingsState extends Equatable {
   const SettingsState({
@@ -26,6 +48,8 @@ class SettingsState extends Equatable {
     this.profile,
     this.settings = const AppSettings(),
     this.failure,
+    this.notice,
+    this.accountDeleted = false,
   });
 
   final SettingsStatus status;
@@ -34,12 +58,18 @@ class SettingsState extends Equatable {
 
   /// Shown once by the page's listener.
   final Failure? failure;
+  final SettingsNotice? notice;
+
+  /// The server deleted the account: the page signs out locally.
+  final bool accountDeleted;
 
   SettingsState copyWith({
     SettingsStatus? status,
     Object? profile = unchanged,
     AppSettings? settings,
     Object? failure = unchanged,
+    Object? notice = unchanged,
+    bool? accountDeleted,
   }) {
     return SettingsState(
       status: status ?? this.status,
@@ -50,6 +80,10 @@ class SettingsState extends Equatable {
       failure: identical(failure, unchanged)
           ? this.failure
           : failure as Failure?,
+      notice: identical(notice, unchanged)
+          ? this.notice
+          : notice as SettingsNotice?,
+      accountDeleted: accountDeleted ?? this.accountDeleted,
     );
   }
 
@@ -59,6 +93,8 @@ class SettingsState extends Equatable {
     profile,
     settings,
     failure,
+    notice,
+    accountDeleted,
   ];
 }
 
@@ -68,9 +104,46 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   SettingsBloc(this._repo) : super(const SettingsState()) {
     on<SettingsStarted>(_onStarted, transformer: restartable());
     on<SettingsChanged>(_onChanged, transformer: sequential());
+    on<SettingsStartAgainRequested>(_onStartAgain, transformer: droppable());
+    on<SettingsDeleteAccountRequested>(_onDelete, transformer: droppable());
   }
 
   final MenuRepository _repo;
+  var _noticeId = 0;
+
+  Future<void> _onStartAgain(
+    SettingsStartAgainRequested event,
+    Emitter<SettingsState> emit,
+  ) async {
+    final r = await _repo.startAgain();
+    emit(
+      r.fold(
+        (f) => state.copyWith(failure: f),
+        (n) => state.copyWith(
+          notice: SettingsNotice(
+            ++_noticeId,
+            n == 0
+                ? 'Your deck was refreshed'
+                : 'Your deck was refreshed — $n passed '
+                      '${n == 1 ? 'profile is' : 'profiles are'} back',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onDelete(
+    SettingsDeleteAccountRequested event,
+    Emitter<SettingsState> emit,
+  ) async {
+    final r = await _repo.deleteAccount();
+    emit(
+      r.fold(
+        (f) => state.copyWith(failure: f),
+        (_) => state.copyWith(accountDeleted: true),
+      ),
+    );
+  }
 
   // Before: a loading screen on every visit until the API answered.
   // Future<void> _onStarted(

@@ -57,6 +57,11 @@ final class MarriageComplimentSubmitted extends MarriageFeedEvent {
   final String text;
 }
 
+/// Footer "Favourite": adds the current profile to favourites.
+final class MarriageProfileFavourited extends MarriageFeedEvent {
+  const MarriageProfileFavourited();
+}
+
 /// Footer "Block": blocks the current profile, then shows the next one.
 final class MarriageProfileBlocked extends MarriageFeedEvent {
   const MarriageProfileBlocked();
@@ -87,6 +92,12 @@ class SentCompliment extends Equatable {
 
 /// One-shot messages for the page to show (then cleared).
 enum MarriageFeedNotice {
+  /// The current profile was added to favourites.
+  favourited,
+
+  /// It was already there.
+  alreadyFavourited,
+
   /// A like turned into a match.
   matched,
 
@@ -266,6 +277,7 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
       transformer: droppable(),
     );
     on<MarriageMoreRequested>(_onMore, transformer: droppable());
+    on<MarriageProfileFavourited>(_onFavourited, transformer: droppable());
     on<MarriageProfileBlocked>(_onBlocked, transformer: droppable());
     on<MarriageProfileReported>(_onReported, transformer: droppable());
   }
@@ -382,6 +394,21 @@ class MarriageFeedBloc extends Bloc<MarriageFeedEvent, MarriageFeedState> {
           );
         }
       },
+    );
+  }
+
+  Future<void> _onFavourited(
+    MarriageProfileFavourited event,
+    Emitter<MarriageFeedState> emit,
+  ) async {
+    final profile = state.current;
+    if (profile == null || state.status != MarriageFeedStatus.ready) return;
+    final result = await _feed.favourite(profile.id);
+    result.fold(
+      (f) => f.base is ConflictFailure
+          ? _notify(emit, MarriageFeedNotice.alreadyFavourited)
+          : _notify(emit, MarriageFeedNotice.actionFailed, failure: f),
+      (_) => _notify(emit, MarriageFeedNotice.favourited),
     );
   }
 

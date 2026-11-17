@@ -46,11 +46,12 @@ class FeedRemoteDataSource {
   Future<FeedPostDto> fetchPost(String postId) async =>
       FeedPostDto.fromJson(await _get('/v1/feed/posts/$postId'));
 
+  /// [topicId] is optional on the server; a post without one has no topic.
   Future<FeedPostDto> createPost({
-    required String topicId,
     required String body,
+    String? topicId,
   }) async => FeedPostDto.fromJson(
-    await _send('POST', '/v1/feed/posts', {'topicId': topicId, 'body': body}),
+    await _send('POST', '/v1/feed/posts', {'topicId': ?topicId, 'body': body}),
   );
 
   Future<FeedPostDto> editPost(String postId, String body) async =>

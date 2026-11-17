@@ -40,7 +40,12 @@ class _DistanceTabState extends State<DistanceTab> {
   void initState() {
     super.initState();
     final saved = context.read<DiscoveryFiltersBloc>().state.filters;
-    _miles = saved.distanceMiles;
+    // _miles = saved.distanceMiles;
+    // Starts at the base 5 miles around the member; a saved distance filter
+    // restores its own radius.
+    _miles = saved.locationMode == LocationFilterMode.distance
+        ? saved.distanceMiles
+        : kMinDistanceMiles;
     _limitToHomeCountry = saved.limitToHomeCountry;
   }
 
@@ -51,6 +56,14 @@ class _DistanceTabState extends State<DistanceTab> {
   }
 
   bool get _isEverywhere => _miles >= kMaxDistanceMiles;
+
+  /// The member's country on the map, when "Limit to `<country>`" is on and
+  /// the country has a known area; otherwise null (radius circle is used).
+  CountryArea? get _limitedArea {
+    if (!_limitToHomeCountry) return null;
+    final code = context.read<UserLocationBloc>().state.countryCode;
+    return code == null ? null : countryAreas[code];
+  }
 
   String get _distanceLabel =>
       _isEverywhere ? 'Everywhere' : 'Upto ${_miles.round()} miles away';
@@ -77,6 +90,10 @@ class _DistanceTabState extends State<DistanceTab> {
   /// out to a country-scale view when "Everywhere").
   void _fitToRadius(LatLng center) {
     if (!_mapReady) return;
+    if (_limitedArea case final area?) {
+      _fitMeters(LatLng(area.lat, area.lng), area.radiusKm * 1000);
+      return;
+    }
     if (_isEverywhere) {
       // _mapController.move(center, 5);
       // Zoom 5 never painted tiles on device (blank grey, audit #41);
@@ -84,7 +101,10 @@ class _DistanceTabState extends State<DistanceTab> {
       _mapController.move(center, 6);
       return;
     }
-    final meters = _miles * _metersPerMile;
+    _fitMeters(center, _miles * _metersPerMile);
+  }
+
+  void _fitMeters(LatLng center, double meters) {
     final latDelta = meters / 111_320;
     final lngDelta =
         meters / (111_320 * math.cos(center.latitude * math.pi / 180));
@@ -115,6 +135,7 @@ class _DistanceTabState extends State<DistanceTab> {
         countryName: _countryName(
           context.read<UserLocationBloc>().state.countryCode,
         ),
+        countryCode: context.read<UserLocationBloc>().state.countryCode,
       ),
     );
     // The page moves on once the backend save succeeds (its listener).
@@ -165,7 +186,20 @@ class _DistanceTabState extends State<DistanceTab> {
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.findanikah.app',
                 ),
-                if (!_isEverywhere)
+                if (_limitedArea case final area?)
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: LatLng(area.lat, area.lng),
+                        radius: area.radiusKm * 1000,
+                        useRadiusInMeter: true,
+                        color: AppColors.primaryColor.withValues(alpha: 0.15),
+                        borderColor: AppColors.primaryColor,
+                        borderStrokeWidth: 2,
+                      ),
+                    ],
+                  )
+                else if (!_isEverywhere)
                   CircleLayer(
                     circles: [
                       CircleMarker(
@@ -237,7 +271,10 @@ class _DistanceTabState extends State<DistanceTab> {
                 ),
               ),
               limitToHomeCountry: _limitToHomeCountry,
-              onLimitChanged: (v) => setState(() => _limitToHomeCountry = v),
+              onLimitChanged: (v) {
+                setState(() => _limitToHomeCountry = v);
+                _fitToRadius(center);
+              },
               // Disabled while the step-11 save is in flight.
               onConfirm:
                   context.select<DiscoveryFiltersBloc, bool>(
@@ -275,7 +312,7 @@ class _DistanceCard extends StatelessWidget {
   final ValueChanged<double> onMilesChanged;
   final ValueChanged<double> onMilesChangeEnd;
 
-  /// Null hides the "Limit to only …" toggle (country unknown).
+  /// Null hides the "Limit to …" toggle (country unknown).
   final String? homeCountryName;
   final bool limitToHomeCountry;
   final ValueChanged<bool> onLimitChanged;
@@ -359,7 +396,8 @@ class _DistanceCard extends StatelessWidget {
                           divisions:
                               ((kMaxDistanceMiles - kMinDistanceMiles) / 5)
                                   .round(),
-                          onChanged: onMilesChanged,
+                          // The whole country is selected: radius is moot.
+                          onChanged: limitToHomeCountry ? null : onMilesChanged,
                           onChangeEnd: onMilesChangeEnd,
                           padding: EdgeInsets.zero,
                         ),
@@ -371,7 +409,8 @@ class _DistanceCard extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                'Limit to only $homeCountryName',
+                                // 'Limit to only $homeCountryName',
+                                'Limit to $homeCountryName',
                                 style: labelStyle,
                               ),
                             ),
@@ -387,6 +426,14 @@ class _DistanceCard extends StatelessWidget {
                   )
                 : const SizedBox(width: double.infinity),
           ),
+          if (limitToHomeCountry && homeCountryName != null) ...[
+            SizedBox(height: 12.h),
+            Text(
+              'All of $homeCountryName is selected',
+              textAlign: TextAlign.center,
+              style: TextFontStyle.headline14w400textMutedStyleSatoshi,
+            ),
+          ],
           SizedBox(height: 16.h),
           AppPrimaryButton(label: 'Confirm', onPressed: onConfirm),
         ],

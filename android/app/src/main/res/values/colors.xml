@@ -2,4 +2,6 @@
 <resources>
     <!-- Brand pink (Figma splash 883:3759). -->
     <color name="splash_background">#EF0160</color>
+    <!-- Notification accent (status-bar icon tint). -->
+    <color name="notification_accent">#EF0160</color>
 </resources>

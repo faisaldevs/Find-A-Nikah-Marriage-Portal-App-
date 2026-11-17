@@ -1,0 +1,76 @@
+{
+  "statusCode": 200,
+  "data": {
+    "profiles": [
+      {
+        "userId": "6ad456b6e361f54f53a01e71",
+        "profileId": "6ad456b5a16f2d56cc22592d",
+        "fullName": "Ayesha Siddiqua",
+        "isVerified": true,
+        "lastActiveAt": "2026-10-18T05:18:46.141Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/sample_ayesha1.jpg",
+        "images": [
+          "/public/upload/sample_ayesha1.jpg"
+        ],
+        "age": 26,
+        "maritalStatus": "never_married",
+        "professionTitle": "Software Engineer",
+        "educationLevel": "bachelors",
+        "religion": "islam",
+        "faith": [
+          "sunni"
+        ],
+        "sect": [
+          "sunni"
+        ],
+        "city": "Dhaka",
+        "country": "Bangladesh",
+        "completeness": 90,
+        "distanceKm": 0
+      },
+      {
+        "userId": "6ad456b6e361f54f53a01e75",
+        "profileId": "6ad456b5a16f2d56cc22592e",
+        "fullName": "Fatima Zohra",
+        "isVerified": false,
+        "lastActiveAt": "2026-10-18T05:18:46.355Z",
+        "gender": "female",
+        "photoUrl": "/public/upload/sample_fatima.jpg",
+        "images": [
+          "/public/upload/sample_fatima.jpg"
+        ],
+        "age": 24,
+        "maritalStatus": "never_married",
+        "professionTitle": "Medical Student",
+        "educationLevel": "bachelors",
+        "religion": "islam",
+        "faith": [
+          "sunni"
+        ],
+        "sect": [
+          "sunni"
+        ],
+        "city": "Dhaka",
+        "country": "Bangladesh",
+        "completeness": 85,
+        "distanceKm": 3.6
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 12,
+      "totalPages": 1,
+      "totalCount": 2,
+      "hasNext": false,
+      "hasPrev": false
+    },
+    "viewerCoordinates": {
+      "latitude": 23.81,
+      "longitude": 90.41
+    },
+    "tag": "Currently Available"
+  },
+  "message": "Currently available",
+  "success": true
+}

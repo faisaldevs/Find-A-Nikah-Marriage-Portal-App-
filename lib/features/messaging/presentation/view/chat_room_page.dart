@@ -48,6 +48,8 @@ class _ChatRoomView extends StatelessWidget {
 
   final bool devTools;
 
+  // Unused since the last coming-soon row was built; kept for the next one.
+  // ignore: unused_element
   void _comingSoon(BuildContext context, String what) =>
       CustomToast.showInfo(context, '$what — coming soon');
 

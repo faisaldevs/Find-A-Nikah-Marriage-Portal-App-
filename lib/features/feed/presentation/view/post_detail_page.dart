@@ -298,6 +298,7 @@ class _PostDetailViewState extends State<_PostDetailView> {
               post: post,
               topicColor: kFeedReadMoreGreen,
               commentsHighlighted: true,
+              showTopComment: false,
               onAuthorTap: () => openProfile(post.author),
               onFollow: state.following == null || post.author.isMe
                   ? null

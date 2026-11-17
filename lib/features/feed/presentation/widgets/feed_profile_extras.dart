@@ -75,10 +75,14 @@ class FeedActivityStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = profile;
+    String label(int n, String one, String many) => n == 1 ? one : many;
+    final posts = p?.postsCount ?? 0;
+    final comments = p?.commentsCount ?? 0;
+    final likes = p?.likesCount ?? 0;
     final items = [
-      ('${p?.postsCount ?? 0}', 'Posts'),
-      ('${p?.commentsCount ?? 0}', 'Comments'),
-      ('${p?.likesCount ?? 0}', 'Likes'),
+      ('$posts', label(posts, 'Post', 'Posts')),
+      ('$comments', label(comments, 'Comment', 'Comments')),
+      ('$likes', label(likes, 'Like', 'Likes')),
     ];
     return Container(
       padding: EdgeInsets.symmetric(vertical: 12.w),

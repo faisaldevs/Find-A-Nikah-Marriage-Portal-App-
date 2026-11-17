@@ -13,6 +13,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 /// Guided face photos: a round camera view with a 3-segment progress ring
 /// and one clear instruction at a time ("Look straight at the camera",
@@ -42,6 +43,13 @@ class _LivenessCapturePageState extends State<LivenessCapturePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Full screen brightness: a dim screen lights the face poorly. Only for
+    // this app and this page; reset in dispose.
+    unawaited(
+      ScreenBrightness.instance
+          .setApplicationScreenBrightness(1)
+          .catchError((Object _) {}),
+    );
     _bloc.add(const LivenessPermissionRequested());
   }
 
@@ -101,6 +109,11 @@ class _LivenessCapturePageState extends State<LivenessCapturePage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(
+      ScreenBrightness.instance
+          .resetApplicationScreenBrightness()
+          .catchError((Object _) {}),
+    );
     unawaited(_frames?.cancel());
     unawaited(_camera.dispose());
     super.dispose();

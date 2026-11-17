@@ -100,6 +100,14 @@ abstract interface class ChatSocket {
   void connect();
   void disconnect();
 
+  /// App went to the background: drop the connection but remember the open
+  /// rooms. Backend sends FCM only while no socket is connected, so a
+  /// lingering background socket would swallow chat pushes.
+  void suspend();
+
+  /// Back in the foreground: reconnect (and rejoin rooms) if [suspend]ed.
+  void resume();
+
   /// Rooms are rejoined by the data source after a reconnect.
   void join(String conversationId);
   void leave(String conversationId);
@@ -374,8 +382,26 @@ class SocketIoChatSocket implements ChatSocket {
     });
   }
 
+  bool _suspended = false;
+
+  @override
+  void suspend() {
+    if (!_wanted || _socket == null) return;
+    _suspended = true;
+    _wanted = false;
+    _socket!.disconnect();
+  }
+
+  @override
+  void resume() {
+    if (!_suspended) return;
+    _suspended = false;
+    connect();
+  }
+
   @override
   void disconnect() {
+    _suspended = false;
     _wanted = false;
     _rooms.clear();
     _socket?.disconnect();

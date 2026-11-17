@@ -67,17 +67,21 @@ class _WelcomeView extends StatelessWidget {
             // const Spacer(flex: 4),
             // Figma 883:3805: plain white globe + 'English' and a bare (?)
             // icon — no pill/circle backgrounds.
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // TODO(i18n): wire a real language picker.
-                  const _GhostPill(icon: Icons.language, label: 'English'),
-                  _GhostIcon(icon: Icons.help_outline, onTap: () {}),
-                ],
-              ),
-            ),
+            // Hidden until they do something (2026-11-15): the language picker
+            // needs l10n and the help icon has no destination yet. Tracked in
+            // resources/docs/PENDING.md.
+            // Padding(
+            //   padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 0),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       // TODO(i18n): wire a real language picker.
+            //       const _GhostPill(icon: Icons.language, label: 'English'),
+            //       _GhostIcon(icon: Icons.help_outline, onTap: () {}),
+            //     ],
+            //   ),
+            // ),
+            SizedBox(height: 32.h + 38.h),
             SizedBox(height: 46.h),
             BrandLogo(width: 172.w),
             const Spacer(),
@@ -96,16 +100,18 @@ class _WelcomeView extends StatelessWidget {
                       width: 24.w,
                     ),
                   ),
-                  SizedBox(height: 18.h),
-                  _SocialButton(
-                    label: 'Continue with Apple',
-                    onPressed: busy ? null : () => social(SocialProvider.apple),
-                    leading: Image.asset(
-                      Assets.images.appleIcon,
-                      height: 24.h,
-                      width: 24.w,
-                    ),
-                  ),
+                  // Apple hidden until Sign in with Apple is built (iOS
+                  // work, resources/docs/PENDING.md).
+                  // SizedBox(height: 18.h),
+                  // _SocialButton(
+                  //   label: 'Continue with Apple',
+                  //   onPressed: busy ? null : () => social(SocialProvider.apple),
+                  //   leading: Image.asset(
+                  //     Assets.images.appleIcon,
+                  //     height: 24.h,
+                  //     width: 24.w,
+                  //   ),
+                  // ),
                   SizedBox(height: 18.h),
                   SizedBox(
                     width: double.infinity,
@@ -204,6 +210,7 @@ class _SocialButton extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _GhostPill extends StatelessWidget {
   const _GhostPill({required this.icon, required this.label});
 
@@ -239,6 +246,7 @@ class _GhostPill extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _GhostIcon extends StatelessWidget {
   const _GhostIcon({required this.icon, required this.onTap});
 

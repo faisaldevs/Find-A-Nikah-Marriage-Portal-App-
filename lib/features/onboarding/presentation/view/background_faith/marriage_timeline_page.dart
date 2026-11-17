@@ -115,8 +115,9 @@ class _MarriageTimelinePageState extends State<MarriageTimelinePage> {
               isDisabled: (_) => false,
               onTap: (v) => setState(() {
                 _knowSomeone = v;
-                if (_marriedRank case final married?
-                    when !_fits(_knowRank!, married)) {
+                if (_enforceTimelineFit &&
+                    _marriedRank != null &&
+                    !_fits(_knowRank!, _marriedRank!)) {
                   _marriedWithin = null;
                 }
               }),
@@ -129,7 +130,11 @@ class _MarriageTimelinePageState extends State<MarriageTimelinePage> {
               iconWidth: 15.29,
               options: marriedWithinOptions,
               value: _marriedWithin,
-              isDisabled: (i) => _knowRank != null && !_fits(_knowRank!, i),
+              // isDisabled: (i) => _knowRank != null && !_fits(_knowRank!, i),
+              isDisabled: (i) =>
+                  _enforceTimelineFit &&
+                  _knowRank != null &&
+                  !_fits(_knowRank!, i),
               onTap: (v) => setState(() => _marriedWithin = v),
             ),
             SizedBox(height: 20.h),
@@ -149,6 +154,11 @@ class _MarriageTimelinePageState extends State<MarriageTimelinePage> {
   int? get _marriedRank => _marriedWithin == null
       ? null
       : marriedWithinOptions.indexWhere((o) => o.value == _marriedWithin);
+
+  /// Figma greys out "married within" options that are less than two steps
+  /// after the get-to-know period. Off so members can pick any combination;
+  /// set to true to restore the Figma rule.
+  static const _enforceTimelineFit = false;
 
   /// Whether married-within option [married] works with get-to-know option
   /// [know] (indexes into [marriedWithinOptions] / [durationOptions]).

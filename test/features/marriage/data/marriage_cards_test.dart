@@ -68,6 +68,11 @@ class _Remote implements MarriageCardsRemoteDataSource {
   Map<String, dynamic>? lastReport;
   Map<String, dynamic>? lastQuery;
 
+  final favourited = <String>[];
+
+  @override
+  Future<void> addFavourite(String userId) async => favourited.add(userId);
+
   @override
   Future<void> block(String userId) async => blocked.add(userId);
 
@@ -181,6 +186,30 @@ void main() {
         'maxAge': 35,
         'country': 'Pakistan',
       });
+    });
+  });
+
+  group('filtersToQuery: location, ethnicity, faith, city', () {
+    test('limit to my country: that country by name, no radius', () {
+      final f = const DiscoveryFilters().withDistance(
+        miles: 5,
+        limitToHomeCountry: true,
+        homeCountryCode: 'PK',
+      );
+      final q = MarriageCardsRepositoryImpl.filtersToQuery(f);
+      expect(q['country'], 'Pakistan');
+      expect(q.containsKey('maxDistanceMiles'), isFalse);
+    });
+
+    test('ethnicity by country name, faith tokens and city', () {
+      final f = const DiscoveryFilters()
+          .withEthnicities(['BD', 'PK'])
+          .withFaiths(['dhikr', 'fasting'])
+          .withCity('Dhaka');
+      final q = MarriageCardsRepositoryImpl.filtersToQuery(f);
+      expect(q['ethnicity'], 'Bangladesh,Pakistan');
+      expect(q['faith'], 'dhikr,fasting');
+      expect(q['city'], 'Dhaka');
     });
   });
 
@@ -340,6 +369,16 @@ void main() {
     );
     final result = await repo.fetchPage(filters: const DiscoveryFilters());
     expect(result.getLeft().toNullable(), isA<Failure>());
+  });
+
+  test('favourite posts the member to favorites', () async {
+    final remote = _Remote();
+    final repo = MarriageCardsRepositoryImpl(remote, testGuard(), 'x');
+
+    final result = await repo.favourite('u9');
+
+    expect(result.isRight(), isTrue);
+    expect(remote.favourited, ['u9']);
   });
 }
 

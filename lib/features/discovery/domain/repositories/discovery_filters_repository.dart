@@ -12,6 +12,10 @@ abstract interface class DiscoveryFiltersRepository {
 
   DiscoveryFilters get current;
 
+  /// Announces the current filters again, so the Marriage deck restarts
+  /// ("Start again" clears the passes on the server).
+  void reload();
+
   /// Write policy: online only once the discovery API exists; in-memory
   /// until then.
   Future<Either<Failure, Unit>> save(DiscoveryFilters filters);

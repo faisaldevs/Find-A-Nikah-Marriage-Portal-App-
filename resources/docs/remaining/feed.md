@@ -12,7 +12,7 @@ Full detail lives in `../feed/` — start with `README.md` and `09_DEVICE_TEST_R
 | FEED-03 | 🟠 | App | Muted members list (`GET /feed/mutes`) | `../PENDING.md` |
 | FEED-04 | 🟠 | App | Report: optional text box (max 1000) and load reasons from `GET /reports/reasons` | `../PENDING.md` |
 | FEED-05 | 🟠 | App | Link opened while signed out should return to the link after login (built, only tested signed in) | `../feed/09_DEVICE_TEST_REPORT.md` A1 |
-| FEED-06 | 🟡 | App | Polish A7–A13: "1 Likes", topic colour red vs green, compose button covers the card's share row, duplicate top-comment preview on the post page, compliment page overlap, default delete dialog style, full name in chat vs initial in Feed | same |
+| FEED-06 | 🟡 | App | Polish still open: topic colour red vs green (A8, confirm with design), compose button over the card (A9, normal for a floating button), compliment page overlap (A11), default delete dialog style (A12), full name in chat vs initial in Feed (A13) | `../feed/09_DEVICE_TEST_REPORT.md` |
 | FEED-07 | 🟡 | App | Offline: measure the new retry timing; failed like/refresh messages | same A6 |
 | FEED-08 | 🟡 | App | Page-1 cache, offline banner, shimmer loading; Feed widget tests; shared `profile_view` replacing the Preview copy | `../PENDING.md` |
 | FEED-09 | 🟡 | App | Remove the "force chosen topic" override in `CreatePostBloc` (backend fixed) | `../PENDING.md` |

@@ -30,6 +30,10 @@ class SearchableSelectList extends StatefulWidget {
     this.maxSelections,
     this.hintText = 'Search',
     this.radioFirst = false,
+    this.otherController,
+    this.otherSelected = false,
+    this.onOtherTap,
+    this.otherMaxLength = 60,
   });
 
   final List<SelectListItem> items;
@@ -43,6 +47,14 @@ class SearchableSelectList extends StatefulWidget {
   /// Single-select only: radio before the label (Figma's Profession list,
   /// like the other wizard radio pages) instead of trailing it.
   final bool radioFirst;
+
+  /// Single-select only: when set, an "Other" row ends the list and, while
+  /// [otherSelected], a text field below it lets the member type a value
+  /// that isn't in [items]. The caller owns the text and the selection.
+  final TextEditingController? otherController;
+  final bool otherSelected;
+  final VoidCallback? onOtherTap;
+  final int otherMaxLength;
 
   @override
   State<SearchableSelectList> createState() => _SearchableSelectListState();
@@ -77,7 +89,13 @@ class _SearchableSelectListState extends State<SearchableSelectList> {
       return Opacity(
         opacity: isDisabled ? 0.4 : 1,
         child: InkWell(
-          onTap: isDisabled ? null : () => widget.onToggle(item.value),
+          onTap: isDisabled
+              ? null
+              : () {
+                  // Close the keyboard; typing again needs a tap on the field.
+                  FocusScope.of(context).unfocus();
+                  widget.onToggle(item.value);
+                },
           // Figma 358:2139: 8pt padding + 14pt between rows, flag → 16pt →
           // Bold 16 #131416 name.
           child: Padding(
@@ -175,6 +193,66 @@ class _SearchableSelectListState extends State<SearchableSelectList> {
                   const _SectionLabel('All'),
                 ],
                 ...(filtered ?? widget.items).map(tile),
+                if (widget.otherController != null) ...[
+                  InkWell(
+                    onTap: () {
+                      FocusScope.of(context).unfocus();
+                      widget.onOtherTap?.call();
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 15.h),
+                      child: Row(
+                        children: [
+                          _RadioDot(
+                            selected: widget.otherSelected,
+                            figma: true,
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Text(
+                              'Other',
+                              style: figmaText(
+                                16,
+                                20,
+                                weight: FontWeight.w700,
+                                color: const Color(0xFF131416),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (widget.otherSelected)
+                    Padding(
+                      padding: EdgeInsets.only(left: 40.w),
+                      child: TextField(
+                        controller: widget.otherController,
+                        maxLength: widget.otherMaxLength,
+                        textCapitalization: TextCapitalization.words,
+                        style: figmaText(16, 22.4),
+                        decoration: InputDecoration(
+                          hintText: 'Type your own',
+                          hintStyle: figmaText(
+                            16,
+                            22.4,
+                            color: const Color(0xFFA3A3A3),
+                          ),
+                          counterText: '',
+                          isDense: true,
+                          border: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFD4D4D4)),
+                          ),
+                          enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFD4D4D4)),
+                          ),
+                          focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFD4D4D4)),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
                 // SizedBox(height: 12.h),
                 SizedBox(height: 40.h),
               ],

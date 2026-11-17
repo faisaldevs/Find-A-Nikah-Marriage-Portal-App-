@@ -46,3 +46,37 @@ app.*.map.json
 
 # QA/audit tooling — screenshots, data dumps, QA emails; never commit
 /audit/
+
+# ── Secrets: never commit ─────────────────────────────────────────────
+# Android signing keys and their passwords (also in android/.gitignore)
+key.properties
+**/key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+# Apple signing / push keys and profiles
+*.p8
+*.pem
+*.cer
+*.certSigningRequest
+*.mobileprovision
+# Firebase / Google Cloud service-account keys (server credentials)
+*service-account*.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+*credentials*.json
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+# Environment files and local overrides
+.env
+.env.*
+!.env.example
+lib/flavors/env/*.local.json
+secrets/
+*.secret
+
+# Android build output outside the root /build
+/android/build/
+/android/.gradle/

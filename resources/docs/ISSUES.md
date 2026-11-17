@@ -372,3 +372,93 @@ decision
 **Owner:** App · **Severity:** Low · **Status:** Partly fixed (2026-11-12): Copy added; Delete for everyone needs the backend.
 
 - No Copy, Reply (swipe only), or "Delete for everyone" (backend has none yet).
+
+## ISS-023 — App lifecycle pause/resume throws "ChatSocket is not registered" when signed out
+
+**Owner:** App · **Severity:** Medium · **Status:** Open (found 2026-11-17, Pixel 5). Reproduced again: Google sign-in sheet backgrounds the app while signed out.
+
+- **Seen:** `Bad state: GetIt: Object/factory with type ChatSocket is not
+  registered inside GetIt` while dispatching
+  `WidgetsBindingObserver.didChangeAppLifecycleState`. Stack:
+  `_AppState.initState.<anonymous closure>` at `lib/app/app.dart:65`
+  (`getIt<ChatSocket>().resume()`); the `onPause` twin at `app.dart:68`
+  (`.suspend()`) fails the same way.
+- **Cause:** `ChatSocket` is registered in the session scope
+  (`pushSessionScope()` in `lib/app/di.dart:400`), which only exists while
+  signed in (pushed/dropped by `SessionScopeManager`). The lifecycle listener
+  in `App` runs for the whole app life, so any background/foreground switch
+  on the splash/login/onboarding screens (or after sign-out) throws. The
+  `RemoteConfigRefreshRequested` on the line before still runs; only the
+  socket call fails.
+- **Impact:** error spam in logs/Crashlytics on every pause/resume while
+  signed out; no user-visible break seen.
+- **Fix idea:** guard both calls, e.g.
+  `if (getIt.isRegistered<ChatSocket>()) getIt<ChatSocket>().resume();`
+  (same for `.suspend()`), or move the lifecycle hook into the session scope.
+
+## ISS-024 — Every API call fails ("network not found") on the physical Pixel 5
+
+**Owner:** App (dev config) · **Severity:** High for dev · **Status:** Fixed (2026-11-17): `adb reverse tcp:8007 tcp:8007` + debug-only `usesCleartextTraffic`; login now reaches the backend (401/201 seen). Re-run `adb reverse` after replugging the cable.
+
+- **Seen:** all REST calls fail with a network error on the USB-connected
+  Pixel 5 (`08201FDD4005BA`).
+- **Cause:** uncommitted `lib/flavors/env/dev.json` points every URL at
+  `https://127.0.0.1:8007`. Three problems:
+  1. `127.0.0.1` on a physical phone is the phone, not the Mac, and
+     `adb reverse --list` is empty, so nothing is forwarded.
+  2. The local backend on `:8007` speaks plain HTTP (`https` → no response,
+     `http://127.0.0.1:8007/api` → 404 from the Mac), so `https://` fails TLS.
+  3. No `usesCleartextTraffic` / `networkSecurityConfig` in
+     `android/app/src`, so Android blocks `http://` too.
+- **Fix:** either run `adb reverse tcp:8007 tcp:8007` and use `http://127.0.0.1:8007`
+  with cleartext allowed for dev, or tunnel the backend (ngrok `https`, as the
+  committed `dev.json` did) and put that URL back.
+
+## ISS-025 — Google sign-in succeeds on the server but the app crashes parsing the response
+
+**Owner:** App · **Severity:** High · **Status:** Fixed (2026-11-17), needs on-device retest
+
+- **Seen:** `POST /auth/social` → 201 `Social signup successful`, then
+  `type 'Null' is not a subtype of type 'String' in type cast` at
+  `_$AuthSessionDtoFromJson` (`auth_dtos.g.dart:11`), from
+  `_AuthRemoteDataSource.socialSignIn`. No session starts; the user stays on
+  the login screen.
+- **Cause:** `socialSignIn` is declared as `Future<AuthSessionDto>`
+  (`auth_remote_data_source.dart:23`) but the backend returns the same
+  envelope as login: `{data: {user: {_id, isOnboardingComplete, ...},
+  accessToken, refreshToken}}`. `AuthSessionDto` expects flat
+  `accessToken/refreshToken/userId/onboardingComplete`. `login` already uses
+  `AuthApiSessionResponseDto` + `.toAuthSession()`.
+- **Fix:** change `socialSignIn` to return `AuthApiSessionResponseDto`, regenerate
+  (`dart run build_runner build`), and call `.toAuthSession()` in
+  `AuthRepositoryImpl.signInWithSocial` (`auth_repository_impl.dart:213`).
+- **Also:** `refresh` (line 54) returns `AuthSessionDto` too; check the real
+  refresh response shape.
+
+## ISS-026 — Login with a wrong password returns 401 (expected, not a bug)
+
+**Owner:** — · **Status:** Note
+
+- `POST /auth/login` → 401 `Invalid credentials` for the test account. Confirm
+  the UI shows an error message for it; not verified on screen.
+
+## ISS-027 — Backend ethnicity filter over-matches short names
+
+**Owner:** Backend · **Severity:** Low · **Status:** Open (found 2026-11-17)
+
+- **Seen (code read, not run):** `GET /profiles/cards?ethnicity=` in
+  `swipeDeck.controller.js` builds regexes like `india|indian|in`,
+  `turkey|turkish|tr`, `bangladesh|bengali|bd`. The bare `in` / `tr` / `bd`
+  match anywhere in a stored value, so "India" also matches e.g. "Indonesia",
+  "Singapore", "Turkmenistan".
+- **Ask backend:** anchor the short codes (`^in$`) or drop them.
+- **App:** now sends country names (what onboarding stores) as `ethnicity`.
+
+## ISS-028 — Deck country filter used a fixed `BD` instead of the member's country
+
+**Owner:** App · **Severity:** Medium · **Status:** Fixed (2026-11-17)
+
+- "Limit to <country>" sent `country=Bangladesh` for everyone while step 11
+  saved the real country. Now the confirmed country code is kept in
+  `DiscoveryFilters.homeCountryCode` and used for the deck; with it on, no
+  `maxDistanceMiles` is sent (it is the whole country).

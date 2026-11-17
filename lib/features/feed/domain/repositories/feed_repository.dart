@@ -27,9 +27,10 @@ abstract interface class FeedRepository {
   /// One post by id (deep links, refresh after returning from comments).
   Future<Either<Failure, FeedPost>> fetchPost(String postId);
 
+  /// [topic] is optional: the composer no longer asks for one.
   Future<Either<Failure, FeedPost>> createPost({
-    required FeedTopic topic,
     required String body,
+    FeedTopic? topic,
   });
 
   Future<Either<Failure, FeedPost>> editPost(String postId, String body);

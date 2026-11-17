@@ -143,6 +143,28 @@ void main() {
       expect((f as ApiResponseFailure).message, contains('15 minutes'));
     });
 
+    test('a post written without a topic parses (topic id null)', () async {
+      when(
+        () => remote.createPost(
+          topicId: any(named: 'topicId'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
+        (_) async => FeedPostDto.fromJson({
+          'id': 'p9',
+          'author': {'userId': 'u1', 'displayName': 'Me', 'handle': 'me'},
+          'topic': {'id': null, 'name': 'General'},
+          'body': 'hi',
+          'createdAt': '2026-11-17T06:00:00.000Z',
+        }),
+      );
+
+      final r = await repo.createPost(body: 'hi');
+
+      expect(r.toNullable()!.topicId, '');
+      expect(r.toNullable()!.topic, 'General');
+    });
+
     test('429 RATE_LIMITED becomes RateLimitedFailure', () async {
       when(
         () => remote.createPost(

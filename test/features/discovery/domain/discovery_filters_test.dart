@@ -27,11 +27,32 @@ void main() {
   test('distance replaces a country filter and clamps the radius', () {
     final f = filters
         .withCountry('PK')
-        .withDistance(miles: 9999, limitToHomeCountry: true);
+        .withDistance(
+          miles: 9999,
+          limitToHomeCountry: true,
+          homeCountryCode: 'BD',
+        );
     expect(f.locationMode, LocationFilterMode.distance);
+    expect(f.homeCountryCode, 'BD');
     expect(f.countryCode, isNull);
     expect(f.distanceMiles, kMaxDistanceMiles);
     expect(f.limitToHomeCountry, isTrue);
+  });
+
+  test('limit to home country needs a known country', () {
+    final f = filters.withDistance(miles: 50, limitToHomeCountry: true);
+    expect(f.limitToHomeCountry, isFalse);
+    expect(f.homeCountryCode, isNull);
+  });
+
+  test('faiths and city are set, cleared and kept by withoutLocation', () {
+    final f = filters.withFaiths(['dhikr']).withCity('  Dhaka ');
+    expect(f.faiths, ['dhikr']);
+    expect(f.city, 'Dhaka');
+    final cleared = f.withoutLocation();
+    expect(cleared.faiths, ['dhikr']);
+    expect(cleared.city, 'Dhaka');
+    expect(f.withCity('  ').city, isNull);
   });
 
   test('country replaces distance but keeps the slider position', () {

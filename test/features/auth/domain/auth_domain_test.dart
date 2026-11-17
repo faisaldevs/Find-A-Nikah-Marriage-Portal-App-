@@ -47,10 +47,14 @@ void main() {
       when(auth.markSignedOut).thenAnswer((_) async => calls.add('signedOut'));
     });
 
-    test('runs the guide\'s five steps in order and never fails', () async {
-      final result = await SignOut(auth, session)(const NoParams());
+    test('runs the guide\'s steps in order and never fails', () async {
+      final result = await SignOut(
+        auth,
+        session,
+        FakePushRegistrar(() => calls.add('push')),
+      )(const NoParams());
       expect(result, right<Failure, Unit>(unit));
-      expect(calls, ['revoke', 'close', 'delete', 'end', 'signedOut']);
+      expect(calls, ['push', 'revoke', 'close', 'delete', 'end', 'signedOut']);
     });
   });
 }

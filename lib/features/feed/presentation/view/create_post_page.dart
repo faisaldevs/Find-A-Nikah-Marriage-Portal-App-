@@ -53,6 +53,8 @@ class _CreatePostViewState extends State<_CreatePostView> {
   void _comingSoon(BuildContext context, String what) =>
       CustomToast.showInfo(context, '$what — coming soon');
 
+  // Kept for when topics come back to the composer; unused for now.
+  // ignore: unused_element
   Future<void> _pickGroup(BuildContext context) async {
     final bloc = context.read<CreatePostBloc>();
     final topic = await showFeedGroupPicker(
@@ -106,11 +108,9 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       _PostButton(
                         label: state.isEditing ? 'Save' : 'Post',
                         enabled: state.canPost,
-                        onTap: () => state.topic == null
-                            ? _pickGroup(context)
-                            : context.read<CreatePostBloc>().add(
-                                const CreatePostSubmitted(),
-                              ),
+                        onTap: () => context.read<CreatePostBloc>().add(
+                          const CreatePostSubmitted(),
+                        ),
                       ),
                     ],
                   ),
@@ -126,13 +126,27 @@ class _CreatePostViewState extends State<_CreatePostView> {
                             : Assets.images.feedDefaultAvatar,
                         size: 40,
                       ),
-                      SizedBox(width: 12.w),
-                      _GroupSelect(
-                        topic: state.topic,
-                        locked: state.isEditing,
-                        onTap: () =>
-                            state.isEditing ? null : _pickGroup(context),
-                      ),
+                      SizedBox(width: 16.w),
+                      // Was a "Select topic" dropdown here and these icons in
+                      // a bar under the text; they sit beside the avatar now.
+                      // _GroupSelect(
+                      //   topic: state.topic,
+                      //   locked: state.isEditing,
+                      //   onTap: () =>
+                      //       state.isEditing ? null : _pickGroup(context),
+                      // ),
+                      for (final (i, (icon, what)) in [
+                        (Assets.icons.feedMediaImage, 'Photos'),
+                        (Assets.icons.feedMediaVideo, 'Videos'),
+                        (Assets.icons.feedMediaGif, 'GIFs'),
+                        (Assets.icons.feedMediaCamera, 'Camera'),
+                      ].indexed) ...[
+                        if (i > 0) SizedBox(width: 22.w),
+                        GestureDetector(
+                          onTap: () => _comingSoon(context, what),
+                          child: FeedIcon(icon, size: 24, color: kFeedGrey700),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -200,29 +214,31 @@ class _CreatePostViewState extends State<_CreatePostView> {
                 //     ],
                 //   ),
                 // ),
-                SizedBox(height: 7.5.w),
-                Container(height: 1.w, color: kFeedGrey200),
+                // Moved up beside the avatar (above):
+                // SizedBox(height: 7.5.w),
+                // Container(height: 1.w, color: kFeedGrey200),
+                // SizedBox(height: 12.w),
+                // Padding(
+                // padding: EdgeInsets.only(left: 24.w),
+                // child: Row(
+                // children: [
+                // for (final (i, (icon, what)) in [
+                // (Assets.icons.feedMediaImage, 'Photos'),
+                // (Assets.icons.feedMediaVideo, 'Videos'),
+                // (Assets.icons.feedMediaGif, 'GIFs'),
+                // (Assets.icons.feedMediaCamera, 'Camera'),
+                // ].indexed) ...[
+                // if (i > 0) SizedBox(width: 22.w),
+                // GestureDetector(
+                // onTap: () => _comingSoon(context, what),
+                // child: FeedIcon(icon, size: 24, color: kFeedGrey700),
+                // ),
+                // ],
+                // ],
+                // ),
+                // ),
+                // SizedBox(height: 14.3.w),
                 SizedBox(height: 12.w),
-                Padding(
-                  padding: EdgeInsets.only(left: 24.w),
-                  child: Row(
-                    children: [
-                      for (final (i, (icon, what)) in [
-                        (Assets.icons.feedMediaImage, 'Photos'),
-                        (Assets.icons.feedMediaVideo, 'Videos'),
-                        (Assets.icons.feedMediaGif, 'GIFs'),
-                        (Assets.icons.feedMediaCamera, 'Camera'),
-                      ].indexed) ...[
-                        if (i > 0) SizedBox(width: 22.w),
-                        GestureDetector(
-                          onTap: () => _comingSoon(context, what),
-                          child: FeedIcon(icon, size: 24, color: kFeedGrey700),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                SizedBox(height: 14.3.w),
               ],
             ),
           ),
@@ -271,10 +287,13 @@ class _PostButton extends StatelessWidget {
 }
 
 /// "Select group" outlined dropdown (160×34).
+// Kept for when topics come back to the composer; unused for now.
+// ignore: unused_element
 class _GroupSelect extends StatelessWidget {
   const _GroupSelect({
     required this.topic,
     required this.onTap,
+    // ignore: unused_element_parameter
     this.locked = false,
   });
 
@@ -346,6 +365,22 @@ Future<FeedTopic?> showFeedGroupPicker(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // No group the member can post into (none created yet, or the
+            // list failed to load): say so instead of an empty sheet.
+            if (topics.isEmpty)
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Text(
+                  'No groups available to post in right now.',
+                  textAlign: TextAlign.center,
+                  style: feedText(
+                    16,
+                    22,
+                    weight: FontWeight.w500,
+                    color: kFeedGrey900,
+                  ),
+                ),
+              ),
             for (final t in topics)
               InkWell(
                 onTap: () => Navigator.of(context).pop(t),

@@ -2,6 +2,7 @@ import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/presentation/bloc/phone_verification_bloc.dart';
 import 'package:find_a_nikah/router/route_paths.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +19,12 @@ class PhoneNumberPage extends StatefulWidget {
 
 class _PhoneNumberPageState extends State<PhoneNumberPage> {
   String? _completeNumber;
+  var _digits = '';
+  var _isBd = true;
+
+  /// Bangladesh: 11 digits when typed with the leading 0 (01903440069),
+  /// 10 without it (1903440069). Other countries use the field's own limit.
+  static int _bdMax(String digits) => digits.startsWith('0') ? 11 : 10;
 
   void _next() {
     context.read<PhoneVerificationBloc>().add(
@@ -32,7 +39,10 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
     final busy = context.select<PhoneVerificationBloc, bool>(
       (b) => b.state.status == PhoneVerificationStatus.submitting,
     );
-    final canContinue = (_completeNumber ?? '').length > 6 && !busy;
+    final lengthOk = _isBd
+        ? _digits.length == _bdMax(_digits)
+        : (_completeNumber ?? '').length > 6;
+    final canContinue = lengthOk && !busy;
     return BlocListener<PhoneVerificationBloc, PhoneVerificationState>(
       // Only while on top: the code page (pushed over this one) handles
       // its own results — otherwise its errors would toast twice.
@@ -63,6 +73,23 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
               SizedBox(height: 20.h),
               IntlPhoneField(
                 initialCountryCode: 'BD',
+                // BD length rule is ours (above); the field's fixed limit
+                // would block the 11-digit "0…" form.
+                disableLengthCheck: _isBd,
+                inputFormatters: _isBd
+                    ? [
+                        FilteringTextInputFormatter.digitsOnly,
+                        TextInputFormatter.withFunction(
+                          (old, next) =>
+                              next.text.length > _bdMax(next.text) ? old : next,
+                        ),
+                      ]
+                    : null,
+                onCountryChanged: (c) => setState(() {
+                  _isBd = c.code == 'BD';
+                  _digits = '';
+                  _completeNumber = null;
+                }),
                 style: TextFontStyle.headline15w400textDarkStyleSatoshi,
                 dropdownTextStyle:
                     TextFontStyle.headline15w400textDarkStyleSatoshi,
@@ -75,8 +102,14 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                     borderSide: BorderSide(color: AppColors.primaryColor),
                   ),
                 ),
-                onChanged: (phone) =>
-                    setState(() => _completeNumber = phone.completeNumber),
+                onChanged: (phone) => setState(() {
+                  _digits = phone.number;
+                  // The leading trunk 0 is not part of the +880 number.
+                  _completeNumber = _isBd
+                      ? phone.countryCode +
+                            phone.number.replaceFirst(RegExp('^0'), '')
+                      : phone.completeNumber;
+                }),
               ),
               SizedBox(height: 12.h),
               Text(

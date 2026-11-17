@@ -27,6 +27,7 @@ class ProfileFeedDataDto {
     this.pagination = const ProfileFeedPaginationDto(),
     this.totalCount,
     this.locked = false,
+    this.viewerCoordinates,
   });
 
   factory ProfileFeedDataDto.fromJson(Map<String, dynamic> json) =>
@@ -43,6 +44,10 @@ class ProfileFeedDataDto {
   /// Free members can't open these profiles: cards show with the lock and
   /// do nothing on tap.
   final bool locked;
+
+  /// `near-you` / `currently-available`: where the server measured distance
+  /// from; null when it had no location for the member.
+  final Map<String, dynamic>? viewerCoordinates;
 
   Map<String, dynamic> toJson() => _$ProfileFeedDataDtoToJson(this);
 }

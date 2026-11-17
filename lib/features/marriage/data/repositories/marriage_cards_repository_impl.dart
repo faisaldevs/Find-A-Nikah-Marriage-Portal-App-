@@ -73,6 +73,12 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
   });
 
   @override
+  Future<Either<Failure, Unit>> favourite(String userId) => _guard(() async {
+    await _remote.addFavourite(userId);
+    return unit;
+  });
+
+  @override
   Future<Either<Failure, Unit>> block(String userId) => _guard(() async {
     await _remote.block(userId);
     return unit;
@@ -92,26 +98,34 @@ class MarriageCardsRepositoryImpl implements MarriageRepository {
     return unit;
   });
 
-  /// `limit`, `cursor`, `minAge`/`maxAge`, `country` (a country *name*) and
-  /// `maxDistanceMiles` (the server converts it). The ethnicity filter is
-  /// not sent yet: the backend example uses names like "Bengali" while the
-  /// app stores country codes — waiting on the real value set.
+  /// `limit`, `cursor`, `minAge`/`maxAge`, `country` (a country *name*),
+  /// `maxDistanceMiles` (the server converts it), `ethnicity` (country names,
+  /// comma-separated — what onboarding stores), `faith` (backend tokens,
+  /// any-of) and `city` (text match).
   static Map<String, dynamic> filtersToQuery(
     DiscoveryFilters f, {
     String? cursor,
   }) {
+    // "Limit to <my country>" is the whole country: no radius with it.
     final countryCode = switch (f.locationMode) {
       LocationFilterMode.country => f.countryCode,
-      LocationFilterMode.distance when f.limitToHomeCountry => kHomeCountryCode,
+      LocationFilterMode.distance when f.limitToHomeCountry =>
+        f.homeCountryCode,
       _ => null,
     };
     return {
       'limit': deckSize,
       'cursor': ?cursor,
-      if (f.locationMode == LocationFilterMode.distance && !f.isEverywhere)
+      if (f.locationMode == LocationFilterMode.distance &&
+          !f.isEverywhere &&
+          !f.limitToHomeCountry)
         'maxDistanceMiles': f.distanceMiles.round(),
       if (!f.isAnyAge) ...{'minAge': f.minAge, 'maxAge': f.maxAge},
       if (countryCode != null) 'country': _countryName(countryCode),
+      if (f.ethnicities.isNotEmpty)
+        'ethnicity': f.ethnicities.map(_countryName).join(','),
+      if (f.faiths.isNotEmpty) 'faith': f.faiths.join(','),
+      if (f.city != null) 'city': f.city,
     };
   }
 

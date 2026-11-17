@@ -7,6 +7,8 @@ abstract final class RoutePaths {
   static const welcome = '/welcome';
   static const login = '/login';
   static const signUpEmail = '/signup/email';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/forgot-password/reset';
   static const signUpCode = '/signup/verification-code';
   static const createPassword = '/signup/create-password';
 
@@ -62,6 +64,9 @@ abstract final class RoutePaths {
   static const feed = '/feed';
   static const chat = '/chat';
   static const menu = '/menu';
+
+  /// The bell list, pushed over the tabs.
+  static const notifications = '/notifications';
 
   // Feed flow, pushed over the tabs (no bottom nav). Post and member pages
   // are opened **by id** (so links and notifications work); the object that
@@ -142,6 +147,8 @@ abstract final class RoutePaths {
     intro,
     welcome,
     login,
+    forgotPassword,
+    resetPassword,
     signUpEmail,
     signUpCode,
     createPassword,
@@ -206,6 +213,7 @@ abstract final class RoutePaths {
     feedCompose,
     chatUnmatched,
     chatArchived,
+    notifications,
     peerProfile,
     blockedProfiles,
     chatRoom,

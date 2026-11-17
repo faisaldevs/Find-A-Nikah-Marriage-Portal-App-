@@ -60,11 +60,10 @@ void main() {
       for (final path in RoutePaths.onboarding) {
         expect(_redirect(path, _newUser), isNull, reason: path);
       }
-      // Registration happens on create-password; the router moves on.
-      expect(
-        _redirect(RoutePaths.createPassword, _newUser),
-        RoutePaths.getStarted,
-      );
+      // A new account (step ≤ 4) keeps the sign-up screens reachable, so
+      // Back from "Get started" returns into sign-up (see appRedirect).
+      // Was: createPassword → getStarted.
+      expect(_redirect(RoutePaths.createPassword, _newUser), isNull);
       expect(_redirect(RoutePaths.marriage, _newUser), RoutePaths.getStarted);
     });
 

@@ -662,3 +662,51 @@ All Feed docs: `resources/docs/feed/` (start at `README.md`; `PROGRESS.md` is th
 - [ ] Send `resources/docs/feed/REPLY_TO_BACKEND_V3.md`: needs the release + Play-signing SHA-256 fingerprints and the Apple Team ID from the product owner, then the iOS associated-domains entitlement in Xcode.
 - [ ] Report: free-text description box (max 1000) and, later, load reasons from `GET /reports/reasons`.
 - [ ] **Pre-release checklist:** see `resources/docs/remaining/` (one file per feature; start with `00_release_blockers.md`).
+
+## Hidden until built (2026-11-15) — come back to these
+- [ ] **Marriage header "Sort"** — needs a design (what is sorted? distance, age, last active?). Code is commented out in `marriage_page.dart` (`onSort`).
+- [ ] **Marriage header bell (notifications)** — build the list from `GET /v1/notifications` (exists; needs item shape, mark-read, deep links — see `remaining/backend_asks.md` B-08). Commented out in `marriage_page.dart` (`onNotifications`).
+- [ ] **Welcome: language selector and help "?"** — needs l10n (`flutter gen-l10n`) and a help destination. Commented out in `welcome_page.dart`.
+- [x] Terms / Privacy links open `https://findanikah.com/terms` and `/privacy-policy` (2026-11-15; verify on device).
+- [ ] Dead "?" icon on the sign-up and wizard headers — will open an info page about the screen; **to be designed and built later** (owner's decision 2026-11-15, not in code yet).
+- [ ] **Firebase** (push + Crashlytics): the owner will add the Firebase project and config files; then build push registration (`POST /v1/devices`), notification list (`GET /v1/notifications`) and the bells. Not started.
+- [ ] **Android release signing:** owner will create the upload keystore later; release builds are still signed with the debug key (`android/app/build.gradle.kts`). Not started.
+- [ ] **Settings switches without a server field** (profile sharing link, "Block social chat requests…", gold badge, language) and the backend's `readReceipts` / `showOnlineStatus` / `allowMessagesFrom` have no UI yet — decide switches + backend fields later (`remaining/menu_settings.md`, `backend_asks.md` B-07). Not in code.
+- [ ] **Architecture test rules** (`test/architecture/layer_boundaries_test.dart` reports ~60 violations): discuss — update the rules or refactor the imports.
+- [ ] **Take a break** (Settings → Manage account): backend `POST /v1/me/pause` is ready; needs a product decision on durations, how a paused member resumes, and what the profile shows. Still "coming soon".
+- [ ] **Membership / purchases:** plans list (`GET /subscriptions/plans`), paywall, `in_app_purchase`, verify/restore. Needs store product IDs. Plan name and counters are wired.
+- [ ] **Favourite button state** (already favourited, remove with `DELETE /favorites/:id`) and **Share profile** link — design needed.
+- [ ] **Google / Apple sign-in** — SDKs + client IDs, after Firebase; backend contract is ready.
+- [ ] **Settings fields now available on the backend** (profileShareLink, profileVisibility, blockSocialChatRequests, blockPhoneContacts, language, goldBadgeVisible, blocked-contacts upload): wire the switches once you decide.
+- [ ] **Notifications**: bell + list + unread badge + FCM channels (`channel_chat`, `channel_matches`, `channel_activity`) after Firebase.
+- [ ] **Support tickets** (`/support/tickets`, replies): check the Help screens against the contract.
+
+
+- **Notifications bells (Feed + Menu) hidden 2026-11-15** — restore `onNotifications` in `feed_page.dart` and the bell in `menu_page.dart` (commented) when the notifications screen is built (`GET /notifications`, unread count, read, read-all).
+
+## Push notifications — iOS (deferred 2026-11-15, Android first)
+- [ ] APNs auth key (.p8) from Apple Developer → upload in Firebase console → Project settings → Cloud Messaging (Apple app configuration).
+- [ ] Xcode: add the Push Notifications capability and Background Modes → Remote notifications on Runner; entitlements file.
+- [ ] iOS permission prompt wording and timing (the Android path already calls `requestPermission`, which also covers iOS once the capability exists).
+- [ ] Test on a real iPhone (the simulator can't receive FCM pushes reliably); Sign in with Apple, associated domains and Universal Links also wait for the Mac/Team ID work.
+- [ ] Notification tap → open screen on iOS; badge counts.
+
+## Push notifications — Android follow-ups (2026-11-15)
+- [ ] Inline **Reply** and **Mark as read** actions on chat notifications (needs a background isolate that can call the API with the stored token).
+- [ ] Sender avatar in chat notifications (`Person.icon`, download in the background isolate).
+- [ ] Persist the per-conversation message stack (today it resets if the process was killed).
+- [ ] Clear a conversation's notification when its chat room opens (`NotificationPresenter.clearConversation` exists, not called yet).
+- [ ] Crashlytics Gradle plugin so release stack traces are symbolicated.
+- [ ] Notifications list screen + the two bells (see the bells entry above); `GET /notifications`, unread count, read, read-all.
+
+## Sign in with Apple (hidden 2026-11-15)
+- [ ] Apple buttons are commented out on the welcome and login pages. Build with `sign_in_with_apple` + the Apple capability, Team ID and a Services ID; `SocialProvider.apple` and the backend `provider: "apple"` path already exist.
+- [ ] Google sign-in on iOS needs the iOS OAuth client / URL scheme (reversed client id) in `Info.plist`.
+
+- [ ] Google sign-in: add the **release** and **Play App Signing** SHA-1 fingerprints to the Firebase Android app when the keystore exists, then re-download `google-services.json` (`firebase apps:sdkconfig android <appId>`); iOS needs the iOS OAuth client / reversed-client-id URL scheme.
+
+## Release signing (done 2026-11-15)
+- Keystore `~/keystores/find_a_nikah-upload.jks`, alias `upload`, 10000-day validity; config in `android/key.properties` (gitignored). SHA-1 `71:DB:2E:45:DD:DC:EB:9C:4B:84:D8:D5:B9:69:A6:E1:D1:FA:42:F9`.
+- [ ] Back up the keystore + passwords off this machine (password manager / secure vault).
+- [ ] Play Console: enable Play App Signing; add Google's app-signing SHA-1/SHA-256 to Firebase and to the backend's `assetlinks.json`.
+- [ ] CI: provide `key.properties` as a secret and make the build fail instead of falling back to the debug key.

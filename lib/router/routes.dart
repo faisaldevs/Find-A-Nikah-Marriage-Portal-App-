@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:find_a_nikah/app/di.dart';
 import 'package:find_a_nikah/app/view/main_nav_shell.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
+import 'package:find_a_nikah/features/auth/domain/domain.dart'
+    show AuthRepository;
 import 'package:find_a_nikah/features/auth/presentation/presentation.dart';
 import 'package:find_a_nikah/features/calling/presentation/presentation.dart';
 import 'package:find_a_nikah/features/chat/presentation/presentation.dart';
@@ -14,6 +17,7 @@ import 'package:find_a_nikah/features/marriage/presentation/presentation.dart';
 import 'package:find_a_nikah/features/menu/presentation/presentation.dart';
 import 'package:find_a_nikah/features/messaging/domain/domain.dart';
 import 'package:find_a_nikah/features/messaging/presentation/presentation.dart';
+import 'package:find_a_nikah/features/notifications/presentation/view/notifications_page.dart';
 import 'package:find_a_nikah/features/onboarding/presentation/presentation.dart';
 // Only needed for the livenessEnabled flag lookup (now disabled).
 // import 'package:find_a_nikah/features/remote_config/domain/domain.dart';
@@ -37,6 +41,18 @@ final List<RouteBase> appRoutes = [
   _page(RoutePaths.intro, const IntroPage()),
   _page(RoutePaths.welcome, const WelcomePage()),
   _page(RoutePaths.login, const LoginPage()),
+
+  // Forgot password: email → code + new password share one cubit.
+  ShellRoute(
+    builder: (_, _, child) => BlocProvider(
+      create: (_) => getIt<ForgotPasswordCubit>(),
+      child: child,
+    ),
+    routes: [
+      _page(RoutePaths.forgotPassword, const ForgotPasswordEmailPage()),
+      _page(RoutePaths.resetPassword, const ResetPasswordPage()),
+    ],
+  ),
 
   // Email → code → password share one SignUpBloc (it carries the email).
   ShellRoute(
@@ -248,6 +264,9 @@ final List<RouteBase> appRoutes = [
     builder: (context, _) => SettingsPage(
       onSignOut: () =>
           context.read<AuthBloc>().add(const AuthSignOutRequested()),
+      // The account is gone on the server; just clear the device session.
+      onAccountDeleted: () =>
+          unawaited(getIt<AuthRepository>().markSignedOut()),
     ),
   ),
   _page(RoutePaths.editProfile, const EditProfilePage()),
@@ -260,6 +279,7 @@ final List<RouteBase> appRoutes = [
     },
   ),
   _page(RoutePaths.chatArchived, const ChatArchivedPage()),
+  _page(RoutePaths.notifications, const NotificationsPage()),
   GoRoute(
     path: RoutePaths.peerProfile,
     builder: (_, state) => PeerProfilePage(peer: state.extra! as ChatPeer),

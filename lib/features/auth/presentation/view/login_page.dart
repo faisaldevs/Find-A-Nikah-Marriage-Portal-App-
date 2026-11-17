@@ -1,4 +1,5 @@
 import 'package:find_a_nikah/app/di.dart';
+import 'package:find_a_nikah/flavors/app_config.dart';
 import 'package:find_a_nikah/core/ui/ui.dart';
 import 'package:find_a_nikah/features/auth/domain/domain.dart';
 import 'package:find_a_nikah/features/auth/presentation/bloc/sign_in_bloc.dart';
@@ -46,11 +47,19 @@ class _LoginView extends StatefulWidget {
 }
 
 class _LoginPageState extends State<_LoginView> {
-  // Hard-coded dev credentials shipped in every build type (audit #6).
-  final _emailController = TextEditingController(text: 'user@example.com');
-  final _passwordController = TextEditingController(text: '12345678');
-  // final _emailController = TextEditingController();
-  // final _passwordController = TextEditingController();
+  // Dev-flavor convenience only (audit #6, fixed 2026-11-15): staging and
+  // prod start with empty fields. The dev password is the dev backend's
+  // test account (`user@example.com`).
+  static final _isDev = getIt<AppConfig>().flavors == Flavors.dev;
+  // Was: hard-coded in every build type.
+  // final _emailController = TextEditingController(text: 'user@example.com');
+  // final _passwordController = TextEditingController(text: '12345678');
+  final _emailController = TextEditingController(
+    text: _isDev ? 'user@example.com' : '',
+  );
+  final _passwordController = TextEditingController(
+    text: _isDev ? 'user1234' : '',
+  );
 
   bool _obscurePassword = true;
   late final _signUpRecognizer = TapGestureRecognizer()
@@ -266,8 +275,9 @@ class _LoginPageState extends State<_LoginView> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            // TODO(auth): password reset.
-                            onTap: () {},
+                            onTap: () => context
+                                .push<void>(RoutePaths.forgotPassword)
+                                .ignore(),
                             child: Text(
                               'Forgot Password?',
                               style: TextFontStyle
@@ -323,17 +333,19 @@ class _LoginPageState extends State<_LoginView> {
                                 width: 30.r,
                               ),
                             ),
-                            SizedBox(width: 14.w),
-                            _CircleSocialButton(
-                              onTap: busy
-                                  ? null
-                                  : () => _social(SocialProvider.apple),
-                              child: Image.asset(
-                                Assets.images.appleIcon,
-                                height: 31.5.r,
-                                width: 31.5.r,
-                              ),
-                            ),
+                            // Apple hidden until Sign in with Apple is built
+                            // (iOS work, resources/docs/PENDING.md).
+                            // SizedBox(width: 14.w),
+                            // _CircleSocialButton(
+                            //   onTap: busy
+                            //       ? null
+                            //       : () => _social(SocialProvider.apple),
+                            //   child: Image.asset(
+                            //     Assets.images.appleIcon,
+                            //     height: 31.5.r,
+                            //     width: 31.5.r,
+                            //   ),
+                            // ),
                           ],
                         ),
                         SizedBox(height: 24.h),

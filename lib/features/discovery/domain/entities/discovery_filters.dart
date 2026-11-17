@@ -29,7 +29,10 @@ class DiscoveryFilters extends Equatable {
     this.distanceMiles = kMaxDistanceMiles,
     this.limitToHomeCountry = false,
     this.countryCode,
+    this.homeCountryCode,
     this.ethnicities = const <String>[],
+    this.faiths = const <String>[],
+    this.city,
   });
 
   final int minAge;
@@ -47,8 +50,19 @@ class DiscoveryFilters extends Equatable {
   /// Country-mode field: ISO code from `package:core` `allCountries`.
   final String? countryCode;
 
+  /// The member's own country (from their location) when
+  /// [limitToHomeCountry] was confirmed — what the deck is limited to.
+  final String? homeCountryCode;
+
   /// Ethnicity codes; empty = "No preference".
   final List<String> ethnicities;
+
+  /// Faith tags as the backend's snake_case tokens (`core` `faithTags`);
+  /// empty = "No preference". A profile matches if it has any of them.
+  final List<String> faiths;
+
+  /// Free-text city; null = any city.
+  final String? city;
 
   bool get isAnyAge => minAge == kMinAge && maxAge == kMaxAge;
   bool get isEverywhere => distanceMiles >= kMaxDistanceMiles;
@@ -66,10 +80,13 @@ class DiscoveryFilters extends Equatable {
   DiscoveryFilters withDistance({
     required double miles,
     required bool limitToHomeCountry,
+    String? homeCountryCode,
   }) => copyWith(
     locationMode: LocationFilterMode.distance,
     distanceMiles: miles.clamp(kMinDistanceMiles, kMaxDistanceMiles),
-    limitToHomeCountry: limitToHomeCountry,
+    // Limiting to "my country" needs to know which one.
+    limitToHomeCountry: limitToHomeCountry && homeCountryCode != null,
+    homeCountryCode: limitToHomeCountry ? homeCountryCode : null,
     countryCode: null,
   );
 
@@ -85,11 +102,21 @@ class DiscoveryFilters extends Equatable {
     locationMode: null,
     distanceMiles: kMaxDistanceMiles,
     limitToHomeCountry: false,
+    homeCountryCode: null,
     countryCode: null,
   );
 
   DiscoveryFilters withEthnicities(List<String> codes) =>
       copyWith(ethnicities: List.unmodifiable(codes));
+
+  DiscoveryFilters withFaiths(List<String> tokens) =>
+      copyWith(faiths: List.unmodifiable(tokens));
+
+  /// Blank clears the city filter.
+  DiscoveryFilters withCity(String? value) {
+    final t = value?.trim() ?? '';
+    return copyWith(city: t.isEmpty ? null : t);
+  }
 
   DiscoveryFilters copyWith({
     int? minAge,
@@ -98,7 +125,10 @@ class DiscoveryFilters extends Equatable {
     double? distanceMiles,
     bool? limitToHomeCountry,
     Object? countryCode = unchanged,
+    Object? homeCountryCode = unchanged,
     List<String>? ethnicities,
+    List<String>? faiths,
+    Object? city = unchanged,
   }) {
     return DiscoveryFilters(
       minAge: minAge ?? this.minAge,
@@ -111,7 +141,12 @@ class DiscoveryFilters extends Equatable {
       countryCode: identical(countryCode, unchanged)
           ? this.countryCode
           : countryCode as String?,
+      homeCountryCode: identical(homeCountryCode, unchanged)
+          ? this.homeCountryCode
+          : homeCountryCode as String?,
       ethnicities: ethnicities ?? this.ethnicities,
+      faiths: faiths ?? this.faiths,
+      city: identical(city, unchanged) ? this.city : city as String?,
     );
   }
 
@@ -123,7 +158,10 @@ class DiscoveryFilters extends Equatable {
     distanceMiles,
     limitToHomeCountry,
     countryCode,
+    homeCountryCode,
     ethnicities,
+    faiths,
+    city,
   ];
 }
 

@@ -13,8 +13,9 @@ class ExploreRepositoryImpl implements ExploreRepository {
     this._remote,
     this._cache,
     this._guard,
-    this._imageBaseUrl,
-  );
+    this._imageBaseUrl, {
+    this.viewerPosition,
+  });
 
   // Dev-only for every section but "Active near you" — no API for those
   // yet (see `MarriageRepositoryImpl` for the shape a real/dummy split
@@ -25,15 +26,25 @@ class ExploreRepositoryImpl implements ExploreRepository {
   final Guard _guard;
   final String _imageBaseUrl;
 
+  /// The device position for "Currently available" (distance ordering), or
+  /// null when location isn't allowed — it never asks. Without it the server
+  /// falls back to the profile's saved location.
+  final Future<({double latitude, double longitude})?> Function()?
+  viewerPosition;
+
   /// Path segment under `/v1/profiles/feed/`; null = not a feed endpoint
   /// (likes come from `/v1/likes/who-liked-me` and `/v1/likes/like-list`).
   static String? feedPath(ExploreLiveSection s) => switch (s) {
     ExploreLiveSection.activeNearYou => 'near-you',
+    ExploreLiveSection.currentlyAvailable => 'currently-available',
     ExploreLiveSection.justJoined => 'just-joined',
     ExploreLiveSection.secondLook => 'second-look',
     ExploreLiveSection.visitedYou => 'visited-you',
     ExploreLiveSection.passed => 'passed',
-    ExploreLiveSection.likesInFilters || ExploreLiveSection.liked => null,
+    ExploreLiveSection.likesInFilters ||
+    ExploreLiveSection.liked ||
+    ExploreLiveSection.favourited ||
+    ExploreLiveSection.complimented => null,
   };
 
   static String cacheKey(ExploreLiveSection s) => 'explore.${s.name}.page1';
@@ -68,8 +79,17 @@ class ExploreRepositoryImpl implements ExploreRepository {
     required int page,
   }) => _guard(() async {
     final path = feedPath(section);
+    final here = section == ExploreLiveSection.currentlyAvailable
+        ? await viewerPosition?.call()
+        : null;
     final data = path != null
-        ? (await _remote.fetchFeed(path, page: page, limit: pageSize)).data
+        ? (await _remote.fetchFeed(
+            path,
+            page: page,
+            limit: pageSize,
+            latitude: here?.latitude,
+            longitude: here?.longitude,
+          )).data
         : (await _likes(section, page)).data.toFeedData();
     if (page == 1) {
       // Saved only after a successful response; a failed write just
@@ -80,7 +100,19 @@ class ExploreRepositoryImpl implements ExploreRepository {
   });
 
   Future<LikeListResponseDto> _likes(ExploreLiveSection section, int page) =>
-      section == ExploreLiveSection.liked
-      ? _remote.fetchLikeList(page: page, limit: pageSize)
-      : _remote.fetchWhoLikedMe(page: page, limit: pageSize);
+      switch (section) {
+        ExploreLiveSection.liked => _remote.fetchLikeList(
+          page: page,
+          limit: pageSize,
+        ),
+        ExploreLiveSection.favourited => _remote.fetchFavourites(
+          page: page,
+          limit: pageSize,
+        ),
+        ExploreLiveSection.complimented => _remote.fetchComplimentsSent(
+          page: page,
+          limit: pageSize,
+        ),
+        _ => _remote.fetchWhoLikedMe(page: page, limit: pageSize),
+      };
 }

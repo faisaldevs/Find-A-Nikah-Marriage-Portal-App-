@@ -104,6 +104,13 @@ class _FakeSocket implements ChatSocket {
   final emitted = <String>[];
   final joined = <String>[];
   var connectCalls = 0;
+  var suspendCalls = 0;
+  var resumeCalls = 0;
+
+  @override
+  void suspend() => suspendCalls++;
+  @override
+  void resume() => resumeCalls++;
 
   @override
   Stream<MessageDto> get messages => messagesC.stream;

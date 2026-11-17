@@ -36,6 +36,9 @@ class MarriageRepositoryImpl implements MarriageRepository {
 
   // Legacy placeholder feed: nothing to block or report.
   @override
+  Future<Either<Failure, Unit>> favourite(String userId) async => right(unit);
+
+  @override
   Future<Either<Failure, Unit>> block(String userId) async => right(unit);
 
   @override
@@ -56,7 +59,7 @@ class MarriageRepositoryImpl implements MarriageRepository {
     if (f.locationMode == LocationFilterMode.distance && !f.isEverywhere)
       'maxDistanceMiles': f.distanceMiles.round(),
     if (f.locationMode == LocationFilterMode.distance && f.limitToHomeCountry)
-      'country': kHomeCountryCode,
+      'country': f.homeCountryCode ?? kHomeCountryCode,
     if (f.locationMode == LocationFilterMode.country) 'country': f.countryCode,
     if (f.ethnicities.isNotEmpty) 'ethnicity': f.ethnicities.join(','),
   };

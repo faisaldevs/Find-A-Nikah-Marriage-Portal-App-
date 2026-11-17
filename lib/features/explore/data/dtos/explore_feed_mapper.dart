@@ -52,6 +52,7 @@ extension ProfileFeedDataMapper on ProfileFeedDataDto {
       page: pagination.currentPage,
       hasMore: pagination.hasNext,
       locked: locked,
+      locationUnknown: viewerCoordinates == null,
     );
   }
 }

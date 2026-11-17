@@ -1,10 +1,13 @@
+import 'package:find_a_nikah/core/constants/legal_urls.dart';
 import 'package:find_a_nikah/core/ui/theme/figma_text.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// "By continuing you agree to our Terms and Privacy Policy" footer shown
 /// on the welcome screen and every sign-up step. [light] switches
 /// between white text (over a photo background) and dark text (on white).
-class LegalFooterText extends StatelessWidget {
+class LegalFooterText extends StatefulWidget {
   const LegalFooterText({
     super.key,
     this.light = false,
@@ -15,7 +18,35 @@ class LegalFooterText extends StatelessWidget {
   final TextAlign textAlign;
 
   @override
+  State<LegalFooterText> createState() => _LegalFooterTextState();
+}
+
+class _LegalFooterTextState extends State<LegalFooterText> {
+  late final _terms = TapGestureRecognizer()
+    ..onTap = () => _open(LegalUrls.terms);
+  late final _privacy = TapGestureRecognizer()
+    ..onTap = () => _open(LegalUrls.privacyPolicy);
+
+  @override
+  void dispose() {
+    _terms.dispose();
+    _privacy.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open(Uri url) async {
+    final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Could not open the page')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final light = widget.light;
+    final textAlign = widget.textAlign;
     // final baseColor = light ? Colors.white70 : AppColors.textMuted;
     // Figma (welcome): plain white 14pt, line height 1.75, over the photo.
     // final baseColor = light ? Colors.white : AppColors.textMuted;
@@ -42,6 +73,7 @@ class LegalFooterText extends StatelessWidget {
         children: [
           TextSpan(
             text: 'Terms',
+            recognizer: _terms,
             style: baseStyle.copyWith(
               decoration: TextDecoration.underline,
               decorationColor: linkColor,
@@ -51,6 +83,7 @@ class LegalFooterText extends StatelessWidget {
           const TextSpan(text: ' and '),
           TextSpan(
             text: 'Privacy Policy',
+            recognizer: _privacy,
             style: baseStyle.copyWith(
               decoration: TextDecoration.underline,
               decorationColor: linkColor,

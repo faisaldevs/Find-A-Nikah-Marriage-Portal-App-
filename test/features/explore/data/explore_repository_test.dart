@@ -34,6 +34,8 @@ Map<String, dynamic> _item(String id, {String? city, double? km}) => {
 
 class _Remote implements ExploreRemoteDataSource {
   final calls = <String>[];
+  double? lastLatitude;
+  double? lastLongitude;
   bool offline = false;
 
   @override
@@ -41,8 +43,12 @@ class _Remote implements ExploreRemoteDataSource {
     String feed, {
     required int page,
     required int limit,
+    double? latitude,
+    double? longitude,
   }) async {
     calls.add('$feed:$page');
+    lastLatitude = latitude;
+    lastLongitude = longitude;
     if (offline) {
       throw DioException.connectionError(
         requestOptions: RequestOptions(path: '/v1/profiles/feed/$feed'),
@@ -90,6 +96,24 @@ class _Remote implements ExploreRemoteDataSource {
     calls.add('who-liked-me:$page');
     return LikeListResponseDto.fromJson({'data': likeListData});
   }
+
+  @override
+  Future<LikeListResponseDto> fetchFavourites({
+    required int page,
+    required int limit,
+  }) async {
+    calls.add('favorites:$page');
+    return LikeListResponseDto.fromJson({'data': likeListData});
+  }
+
+  @override
+  Future<LikeListResponseDto> fetchComplimentsSent({
+    required int page,
+    required int limit,
+  }) async {
+    calls.add('compliments-sent:$page');
+    return LikeListResponseDto.fromJson({'data': likeListData});
+  }
 }
 
 const ExploreLiveSection _nearYou = ExploreLiveSection.activeNearYou;
@@ -116,6 +140,49 @@ void main() {
   });
 
   tearDown(() => db.close());
+
+  group('currently available', () {
+    ExploreRepositoryImpl withPosition(
+      Future<({double latitude, double longitude})?> Function()? position,
+    ) => ExploreRepositoryImpl(
+      const DummyExploreDataSource(),
+      remote,
+      JsonCache(db),
+      testGuard(),
+      'https://img.example.com/',
+      viewerPosition: position,
+    );
+
+    test('uses /currently-available and sends the device position', () async {
+      final r = withPosition(
+        () async => (latitude: 23.8, longitude: 90.4),
+      );
+      final section = (await r.fetchSection(
+        ExploreLiveSection.currentlyAvailable,
+        page: 1,
+      )).getOrElse((f) => fail('$f'));
+      expect(remote.calls, ['currently-available:1']);
+      expect(remote.lastLatitude, 23.8);
+      expect(remote.lastLongitude, 90.4);
+      // No viewerCoordinates in the response → the hint is shown.
+      expect(section.locationUnknown, isTrue);
+    });
+
+    test('no permission: no coordinates are sent', () async {
+      final r = withPosition(() async => null);
+      await r.fetchSection(ExploreLiveSection.currentlyAvailable, page: 1);
+      expect(remote.lastLatitude, isNull);
+      expect(remote.lastLongitude, isNull);
+    });
+
+    test('other feeds never get the position', () async {
+      final r = withPosition(
+        () async => (latitude: 23.8, longitude: 90.4),
+      );
+      await r.fetchSection(_nearYou, page: 1);
+      expect(remote.lastLatitude, isNull);
+    });
+  });
 
   test('no cache on first launch', () async {
     expect(await repo.cachedSection(_nearYou), isNull);
@@ -230,5 +297,16 @@ void main() {
     expect(remote.calls, ['visited-you:1']);
     expect(section.locked, isFalse);
     expect(section.profiles.single.postedAt, isNotNull);
+  });
+
+  test('Favourited and Complimented read their own endpoints', () async {
+    await repo.fetchSection(ExploreLiveSection.favourited, page: 1);
+    await repo.fetchSection(ExploreLiveSection.complimented, page: 1);
+    await repo.fetchSection(ExploreLiveSection.liked, page: 1);
+
+    expect(
+      remote.calls,
+      containsAll(['favorites:1', 'compliments-sent:1', 'like-list:1']),
+    );
   });
 }

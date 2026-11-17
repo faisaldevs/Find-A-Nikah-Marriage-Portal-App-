@@ -31,6 +31,10 @@ abstract class MarriageCardsRemoteDataSource {
   @POST('/v1/profiles/swipe')
   Future<SwipeResponseDto> swipe(@Body() Map<String, dynamic> body);
 
+  /// Adds [userId] to my favourites (shortlist).
+  @POST('/v1/favorites/{userId}')
+  Future<void> addFavourite(@Path('userId') String userId);
+
   @POST('/v1/blocks/{userId}')
   Future<void> block(@Path('userId') String userId);
 

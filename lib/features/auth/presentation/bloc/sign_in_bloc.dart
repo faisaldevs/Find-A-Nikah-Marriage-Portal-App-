@@ -86,7 +86,11 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
       transformer: droppable(),
     );
     on<SignInSocialRequested>(
-      (e, emit) => _run(emit, () => _repository.signInWithSocial(e.provider)),
+      (e, emit) => _run(
+        emit,
+        () => _repository.signInWithSocial(e.provider),
+        socialMayBeCancelled: true,
+      ),
       transformer: droppable(),
     );
   }
@@ -95,8 +99,9 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
 
   Future<void> _run(
     Emitter<SignInState> emit,
-    Future<Either<Failure, Unit>> Function() action,
-  ) async {
+    Future<Either<Failure, Unit>> Function() action, {
+    bool socialMayBeCancelled = false,
+  }) async {
     emit(const SignInState(status: SignInStatus.submitting));
     final result = await action();
     emit(
@@ -105,6 +110,10 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
             SignInState(status: SignInStatus.failure, failure: failure),
         (_) {
           final status = _repository.currentStatus;
+          // A social sheet the user closed ends here with nobody signed in.
+          if (socialMayBeCancelled && status is! Authenticated) {
+            return const SignInState();
+          }
           return SignInState(
             status: SignInStatus.success,
             // `!onboardingComplete` alone misclassifies every returning
